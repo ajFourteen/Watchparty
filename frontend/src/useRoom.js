@@ -21,10 +21,15 @@ export function useRoom() {
   const [state, setState] = useState(null);
   const [playerId, setPlayerId] = useState(null);
   const [error, setError] = useState(null);
+  const [yourBet, setYourBet] = useState(null);
 
   const socketRef = useRef(null);
   const retryRef = useRef(null);
   const closedByUs = useRef(false);
+  const lastRoundIdRef = useRef(null);
+
+  /** serverNow minus Date.now(); einmal pro STATE gebildet, lokal interpoliert (Etappe 4). */
+  const clockOffsetRef = useRef(0);
 
   const send = useCallback((message) => {
     const socket = socketRef.current;
@@ -59,7 +64,21 @@ export function useRoom() {
           setPlayerId(message.playerId);
           setError(null);
         } else if (message.type === "STATE") {
+          clockOffsetRef.current = message.serverNow - Date.now();
+          // Eine neue Runde faengt bei OPEN frisch an -- der eigene Tipp der
+          // vorherigen Runde gilt nicht mehr. Beim allerersten STATE (Join)
+          // nicht loeschen: YOUR_BET fuer eine laufende Runde kommt vorher an.
+          if (
+            message.phase === "OPEN" &&
+            lastRoundIdRef.current !== null &&
+            message.roundId !== lastRoundIdRef.current
+          ) {
+            setYourBet(null);
+          }
+          lastRoundIdRef.current = message.roundId;
           setState(message);
+        } else if (message.type === "YOUR_BET") {
+          setYourBet({ outcomeId: message.outcomeId, stake: message.stake });
         } else if (message.type === "ERROR") {
           setError(message.message);
         }
@@ -89,7 +108,28 @@ export function useRoom() {
     [send]
   );
 
-  const hostAction = useCallback(() => send({ type: "HOST_ACTION" }), [send]);
+  const openMarket = useCallback(() => send({ type: "OPEN_MARKET" }), [send]);
+  const closeMarket = useCallback(() => send({ type: "CLOSE_MARKET" }), [send]);
+  const placeBet = useCallback(
+    (outcomeId, stake) => send({ type: "PLACE_BET", outcomeId, stake }),
+    [send]
+  );
+  const resolve = useCallback((outcomeId) => send({ type: "RESOLVE", outcomeId }), [send]);
 
-  return { status, state, playerId, error, join, hostAction };
+  /** Serverzeit jetzt, aus dem einmal gebildeten Offset interpoliert (nur Anzeige, siehe Etappe 4). */
+  const serverNow = useCallback(() => Date.now() + clockOffsetRef.current, []);
+
+  return {
+    status,
+    state,
+    playerId,
+    error,
+    yourBet,
+    join,
+    openMarket,
+    closeMarket,
+    placeBet,
+    resolve,
+    serverNow,
+  };
 }
