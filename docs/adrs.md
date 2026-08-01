@@ -23,6 +23,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-016 | Erster Joiner wird Host, Rolle wandert bei Verlust | Akzeptiert (Teilfrage offen) |
 | ADR-017 | Markt als Datenstruktur, nicht als Sonderfall im Code | Akzeptiert |
 | ADR-018 | Fly.io als Hosting, Subdomain bei IONOS | Akzeptiert |
+| ADR-019 | Deploy automatisiert über Semantic Release | Akzeptiert |
 
 ---
 
@@ -349,3 +350,43 @@ Verworfene Alternativen:
   im Weg): eine zusätzliche Schicht brächte ein weiteres Idle-Timeout und
   eine zweite Zertifikatskette, ohne Nutzen für ein paar Handys im selben
   Raum.
+
+## ADR-019: Deploy automatisiert über Semantic Release
+
+**Status:** Akzeptiert
+
+**Kontext:** Bislang war Deployen ein manuelles `fly deploy --ha=false` (ADR-
+018). Das ist fehleranfällig, wenn es nicht regelmäßig gemacht wird, und
+lässt Versionsstand und tatsächlich laufenden Code auseinanderlaufen. Ein
+klassisches „Deploy bei jedem Push auf master" stünde aber im Widerspruch
+zur Deploy-Regel aus ADR-018: Ein Deploy ist ein Neustart, ein Neustart
+kostet nach ADR-004 den kompletten Raumzustand, und ein Merge am Spielabend
+darf das nicht ungefragt auslösen.
+
+**Entscheidung:** Semantic Release wertet Commit-Messages auf `master` aus
+(Konvention: `fix:`, `feat:`, `feat!:`/`BREAKING CHANGE:` für Patch/Minor/
+Major). Nur wenn ein Commit dieser Art dabei ist, entsteht ein Release —
+Git-Tag, `CHANGELOG.md`, GitHub Release. Nur ein tatsächlich veröffentlichter
+Release löst per GitHub Actions den Fly-Deploy aus
+(`.github/workflows/release.yml`), weiterhin mit `--ha=false` (ADR-018).
+
+**Konsequenzen:**
+- Commits mit `chore:`, `docs:`, `refactor:` (ohne Verhaltensänderung) usw.
+  landen auf `master`, ohne einen Deploy auszulösen. Das mildert das
+  „Push = sofort live"-Risiko, hebt es aber nicht auf: Ein `fix:`- oder
+  `feat:`-Commit deployed weiterhin sofort bei Push auf `master`. Die
+  Deploy-Disziplin aus ADR-018 verschiebt sich damit auf den Zeitpunkt des
+  Merges nach `master`, nicht auf einen separaten manuellen Schritt.
+  **Nicht am Spieltag auf `master` mergen**, wenn der Commit release-
+  relevant ist.
+- Commit-Konvention ist ab jetzt verbindlich für den Typ-Präfix (englisch,
+  z. B. `fix:`), der Rest der Nachricht bleibt wie gehabt deutsch.
+- `FLY_API_TOKEN` (App-gescoped über `fly tokens create deploy -a
+  watchparty-fourteen`) liegt als GitHub-Actions-Secret im Repo, nicht im
+  Code. `GITHUB_TOKEN` für Semantic Release selbst kommt automatisch von
+  Actions.
+- Der manuelle Weg (`fly deploy --ha=false`) bleibt für Notfälle bestehen,
+  z. B. wenn ein Fix ohne Versionsbump sofort raus muss.
+- Kein `@semantic-release/npm`-Plugin: Das Projekt wird nicht auf npm
+  veröffentlicht, Semantic Release dient hier ausschließlich als
+  Release-/Deploy-Trigger.

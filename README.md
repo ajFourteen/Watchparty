@@ -58,29 +58,67 @@ docker run -p 8080:8080 watchparty
 ```
 
 Produktiv läuft die App auf Fly.io unter
-`https://watchparty.fourteen-it.de` (ADR-018):
+`https://watchparty.fourteen-it.de` (ADR-018).
+
+### Automatischer Deploy (Semantic Release)
+
+Normalfall ist nicht der manuelle Befehl, sondern ein Merge nach `master`
+(ADR-019). `.github/workflows/release.yml` wertet die Commit-Messages aus:
+
+- `fix: …` → Patch-Release
+- `feat: …` → Minor-Release
+- `feat!: …` oder ein `BREAKING CHANGE:`-Footer → Major-Release
+- `chore: …`, `docs: …`, `refactor: …` (ohne Verhaltensänderung) usw. →
+  **kein** Release, **kein** Deploy
+
+Nur bei einem tatsächlich veröffentlichten Release folgt automatisch
+`flyctl deploy --ha=false`. Damit gilt die Deploy-Regel von oben weiterhin,
+nur verschoben: **Ein release-relevanter Commit (`fix:`/`feat:`) darf nicht
+am Spieltag nach `master` gemerged werden** — der Deploy folgt dann
+automatisch und sofort.
+
+Einmalige Einrichtung, zwei Repo-Secrets unter *Settings → Secrets and
+variables → Actions*:
+
+- `FLY_API_TOKEN` — ein auf diese App beschränkter Token:
+  ```bash
+  fly tokens create deploy -a watchparty-fourteen -x 8760h
+  ```
+  (Ablauf hier auf ein Jahr begrenzt, statt der 20-Jahre-Voreinstellung.
+  Rechtzeitig vor Ablauf erneuern.)
+- `GITHUB_TOKEN` wird von GitHub Actions automatisch bereitgestellt, dafür
+  ist nichts zu tun.
+
+### Manueller Deploy (Notfall)
 
 ```bash
 fly deploy --ha=false
 fly machines list          # muss genau eine Maschine zeigen
 ```
 
-Die Konfiguration steht in `fly.toml`. Die Werte dort sind keine
-Tuning-Parameter: `min_machines_running = 1` und `auto_stop_machines = false`
-setzen ADR-005 um. Zwei Instanzen wären zwei getrennte Räume, und eine
-gestoppte Maschine verliert den kompletten Raumzustand (ADR-004).
+Für einen dringenden Fix ohne Versionsbump, oder wenn die Automation gerade
+nicht verfügbar ist. Die Konfiguration steht in `fly.toml`. Die Werte dort
+sind keine Tuning-Parameter: `min_machines_running = 1` und
+`auto_stop_machines = false` setzen ADR-005 um. Zwei Instanzen wären zwei
+getrennte Räume, und eine gestoppte Maschine verliert den kompletten
+Raumzustand (ADR-004).
 
-**`--ha=false` ist nicht optional.** `fly deploy` legt sonst von sich aus
-eine zweite Maschine für High Availability an — auch bei
-`min_machines_running = 1`, die Einstellung verhindert das nicht. Beim ersten
-Deploy ist das genau so passiert. Deshalb nach jedem Deploy `fly machines
-list` prüfen; steht dort mehr als eine Maschine, korrigiert `fly scale count
-1` das. Zwei Maschinen heißt: Die Spieler landen zufällig in einem von zwei
-getrennten Räumen und sehen sich gegenseitig nicht.
+**`--ha=false` ist nicht optional** — gilt für beide Wege. `fly deploy` legt
+sonst von sich aus eine zweite Maschine für High Availability an, auch bei
+`min_machines_running = 1`; die Einstellung verhindert das nicht. Beim
+allerersten Deploy ist das genau so passiert. Der GitHub-Actions-Workflow
+hat `--ha=false` fest verdrahtet; beim manuellen Befehl nicht vergessen.
+Nach jedem Deploy zur Sicherheit `fly machines list` prüfen; steht dort mehr
+als eine Maschine, korrigiert `fly scale count 1` das. Zwei Maschinen heißt:
+Die Spieler landen zufällig in einem von zwei getrennten Räumen und sehen
+sich gegenseitig nicht.
 
 **Betriebsregel: nicht am Spieltag deployen.** Ein Deploy ist ein Neustart,
 und ein Neustart kostet nicht die laufende Runde, sondern die Punktestände
-des ganzen Abends. Die Tokens im localStorage zeigen danach ins Leere.
+des ganzen Abends. Die Tokens im localStorage zeigen danach ins Leere. Beim
+automatischen Weg heißt das konkret: **release-relevante Commits
+(`fix:`/`feat:`) nicht am Spieltag nach `master` mergen** — der Merge selbst
+ist bereits der Auslöser.
 
 ### Domain einrichten (einmalig)
 
