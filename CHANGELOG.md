@@ -1,3 +1,27 @@
+# [3.0.0](https://github.com/ajFourteen/Watchparty/compare/v2.0.1...v3.0.0) (2026-08-01)
+
+
+* feat!: Wettkatalog, Kurzanleitung und Broadcast-Look ([84292e0](https://github.com/ajFourteen/Watchparty/commit/84292e000cb16624b0a4d9551e907a5140430bcf))
+
+
+### Bug Fixes
+
+* **build:** Tests lauffähig machen und Quelltext-Kodierung festlegen ([da397f4](https://github.com/ajFourteen/Watchparty/commit/da397f469801d4630f4ff47099aad59e444cbae8))
+
+
+### BREAKING CHANGES
+
+* Das Protokoll spricht durchgehend von Wette und Tipp. Aus
+`OPEN_MARKET`/`CLOSE_MARKET`/`PLACE_BET`/`YOUR_BET` wurden
+`OPEN_BET`/`CLOSE_BET`/`PLACE_PICK`/`YOUR_PICK`, im STATE aus `market` `bet`,
+aus `betCount` `pickCount` und aus `revealedBets` `revealedPicks`. Neu sind
+`ANNUL`, der Katalog an `WELCOME` und `annulReason` im STATE. Server und
+Frontend kommen aus demselben Jar (ADR-015), ein Deploy tauscht also beide
+Seiten gleichzeitig; nur ein alter Client im Browser-Cache muss neu geladen
+werden.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
 ## [2.0.1](https://github.com/ajFourteen/Watchparty/compare/v2.0.0...v2.0.1) (2026-08-01)
 
 
