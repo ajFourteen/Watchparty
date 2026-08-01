@@ -1,0 +1,49 @@
+# Deployment-Konfiguration fuer Fly.io (ADR-018).
+#
+# Die Werte hier sind keine Tuning-Parameter, sondern die Umsetzung von
+# ADR-005: genau eine Instanz. Wer sie aendert, aendert eine Architektur-
+# entscheidung — zwei Instanzen waeren zwei getrennte Raeume.
+#
+# ACHTUNG: Diese Datei allein reicht nicht. `fly deploy` legt beim ersten
+# Deploy von sich aus eine zweite Maschine fuer High Availability an — auch
+# mit min_machines_running = 1. Deshalb immer mit `--ha=false` deployen und
+# danach `fly machines list` pruefen. Passiert es doch: `fly scale count 1`.
+
+app = "watchparty-fourteen"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+
+  # ADR-005: fest eine Instanz, kein Autoscaling.
+  min_machines_running = 1
+
+  # Kein Scale-to-Zero. Fly stoppt eine Maschine, sobald keine Verbindung
+  # mehr offen ist — in der Halbzeitpause stecken alle das Handy ein, iOS
+  # suspendiert die Tabs, die WebSockets fallen weg. Die Maschine wuerde
+  # anhalten und mit ihr der komplette Raumzustand (ADR-004). Danach saessen
+  # alle mit null Punkten da.
+  auto_stop_machines = false
+
+  # Gegenstueck dazu: sollte eine Maschine doch einmal stehen (Wartung,
+  # Absturz), startet sie beim naechsten Request von selbst wieder.
+  auto_start_machines = true
+
+  # Die Defaults sind auf Verteilung ueber mehrere Instanzen ausgelegt und
+  # liegen im niedrigen zweistelligen Bereich. Hier gibt es keine zweite
+  # Instanz, auf die verteilt werden koennte, und jede offene WebSocket
+  # zaehlt dauerhaft als Verbindung. Deshalb bewusst hoch gesetzt.
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 150
+    hard_limit = 200
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # 256 MB reichen fuer die JVM nicht; sie geriete in GC-Dauerlast oder
+  # wuerde vom OOM-Killer beendet. Ein OOM-Kill kostet den Abend (ADR-004).
+  memory = "512mb"

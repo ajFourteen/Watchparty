@@ -22,6 +22,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-015 | React mit Build-Schritt als Frontend | Akzeptiert |
 | ADR-016 | Erster Joiner wird Host, Rolle wandert bei Verlust | Akzeptiert (Teilfrage offen) |
 | ADR-017 | Markt als Datenstruktur, nicht als Sonderfall im Code | Akzeptiert |
+| ADR-018 | Fly.io als Hosting, Subdomain bei IONOS | Akzeptiert |
 
 ---
 
@@ -292,3 +293,59 @@ davon, kein eingebauter Spezialfall.
 **Konsequenzen:**
 - Weitere Märkte sind später ein neuer Datensatz, kein Umbau der Wett-Engine.
 - Kostet heute kaum etwas, spart den Bruch beim zweiten Markt.
+
+## ADR-018: Fly.io als Hosting, Subdomain bei IONOS
+
+**Status:** Akzeptiert
+
+**Kontext:** Die App ist ein Container mit einem Port. Aus den vorhandenen
+ADRs ergeben sich vier harte Anforderungen an die Plattform: fest eine
+Instanz (ADR-005), WebSockets müssen durchgereicht werden (ADR-006), TLS ist
+Pflicht, weil die Wake-Lock-API einen Secure Context verlangt (ADR-002), und
+— am wichtigsten — der Zustand lebt nur im Arbeitsspeicher (ADR-004). Damit
+ist die **Neustart-Politik der Plattform das entscheidende Kriterium, nicht
+der Preis**: Ein Neustart mitten im Spiel kostet nicht die laufende Runde,
+sondern die Punktestände des ganzen Abends. Die Tokens im localStorage
+zeigen danach ins Leere.
+
+**Entscheidung:** Fly.io, Region `fra`, `shared-cpu-1x` mit 512 MB, fest eine
+Maschine. Die Konfiguration steht in `fly.toml`. Erreichbar unter
+`watchparty.fourteen-it.de`, ein CNAME bei IONOS auf
+`watchparty-fourteen.fly.dev`; das Zertifikat verwaltet Fly.
+
+Verworfene Alternativen:
+
+- **Scale-to-Zero** (naheliegend bei drei Stunden Nutzung pro Woche): Fly
+  stoppt eine Maschine, sobald keine Verbindung mehr offen ist. In der
+  Halbzeitpause stecken alle das Handy ein, iOS suspendiert die Tabs, alle
+  WebSockets fallen weg — die Maschine hielte an und der Raumzustand wäre
+  weg. Die Ersparnis läge unter 3 €/Monat.
+- **Heroku:** tägliches Dyno-Cycling. Garantierter Punkteverlust irgendwann
+  mitten am Abend.
+- **Cloud Run:** CPU-Throttling außerhalb von Requests kollidiert mit einem
+  Eventloop, der eigene Timer fährt (ADR-009/011). Mit CPU-always-on
+  behebbar, aber dann ohne Preisvorteil.
+- **Render Free:** Spin-down nach 15 Minuten Leerlauf, ~50 s Kaltstart für
+  den ersten Joiner.
+- **Eigener VPS (Hetzner):** gleichwertig und gleich teuer, Neustarts nur
+  selbst ausgelöst. Verworfen zugunsten des geringeren Betriebsaufwands —
+  kein Reverse Proxy, keine OS-Updates, kein Firewall-Regelwerk.
+
+**Konsequenzen:**
+- ADR-005 ist in `fly.toml` festgenagelt statt nur im README erwähnt.
+- **`fly.toml` allein genügt dafür aber nicht.** `fly deploy` legt beim
+  ersten Deploy eigenmächtig eine zweite Maschine für High Availability an,
+  auch bei `min_machines_running = 1`. Beim ersten Deploy dieser App ist das
+  eingetreten und wurde mit `fly scale count 1` korrigiert. Deployen darum
+  nur mit `--ha=false`, danach `fly machines list` prüfen. Was für Fly ein
+  Feature ist, ist hier ein Korrektheitsfehler.
+- Fly migriert Maschinen bei Host-Wartung, ohne dass der Zeitpunkt steuerbar
+  wäre. Selten, aber das verbleibende Restrisiko dieser Wahl.
+- Deployen ist ein Neustart. **Nicht am Spieltag deployen** ist damit eine
+  Betriebsregel, keine Stilfrage.
+- Die WebSocket-URL leitet sich aus `window.location` ab; die Domain ist
+  reine DNS- und Zertifikatsarbeit ohne Codeänderung.
+- Der Proxy von Cloudflare o. Ä. bleibt außen vor (bei IONOS ohnehin nicht
+  im Weg): eine zusätzliche Schicht brächte ein weiteres Idle-Timeout und
+  eine zweite Zertifikatskette, ohne Nutzen für ein paar Handys im selben
+  Raum.

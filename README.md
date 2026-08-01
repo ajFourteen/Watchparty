@@ -50,15 +50,63 @@ Dann `http://localhost:8080`.
 
 ## Deployen
 
+Lokal im Container:
+
 ```bash
 docker build -t watchparty .
 docker run -p 8080:8080 watchparty
 ```
 
-Auf Fly.io / Railway / Render: **Instanzanzahl fest auf 1 setzen und
-Autoscaling deaktivieren** (ADR-005). Zwei Instanzen wären zwei getrennte
-Räume. Außerdem prüfen, ob die Plattform WebSockets durchreicht und wie lang
-ihr Idle-Timeout ist.
+Produktiv läuft die App auf Fly.io unter
+`https://watchparty.fourteen-it.de` (ADR-018):
+
+```bash
+fly deploy --ha=false
+fly machines list          # muss genau eine Maschine zeigen
+```
+
+Die Konfiguration steht in `fly.toml`. Die Werte dort sind keine
+Tuning-Parameter: `min_machines_running = 1` und `auto_stop_machines = false`
+setzen ADR-005 um. Zwei Instanzen wären zwei getrennte Räume, und eine
+gestoppte Maschine verliert den kompletten Raumzustand (ADR-004).
+
+**`--ha=false` ist nicht optional.** `fly deploy` legt sonst von sich aus
+eine zweite Maschine für High Availability an — auch bei
+`min_machines_running = 1`, die Einstellung verhindert das nicht. Beim ersten
+Deploy ist das genau so passiert. Deshalb nach jedem Deploy `fly machines
+list` prüfen; steht dort mehr als eine Maschine, korrigiert `fly scale count
+1` das. Zwei Maschinen heißt: Die Spieler landen zufällig in einem von zwei
+getrennten Räumen und sehen sich gegenseitig nicht.
+
+**Betriebsregel: nicht am Spieltag deployen.** Ein Deploy ist ein Neustart,
+und ein Neustart kostet nicht die laufende Runde, sondern die Punktestände
+des ganzen Abends. Die Tokens im localStorage zeigen danach ins Leere.
+
+### Domain einrichten (einmalig)
+
+Bei IONOS in der DNS-Verwaltung von `fourteen-it.de` einen Record anlegen:
+
+| Feld | Wert |
+|---|---|
+| Typ | CNAME |
+| Hostname | `watchparty` |
+| Zeigt auf | `watchparty-fourteen.fly.dev` |
+
+Nur das Label `watchparty` eintragen — IONOS hängt die Domain selbst an.
+Nicht die separate „Subdomain"-Funktion mit Weiterleitung benutzen, eine
+HTTP-Weiterleitung würde die WebSocket-Verbindung zerlegen. Danach:
+
+```bash
+fly certs add watchparty.fourteen-it.de
+fly certs show watchparty.fourteen-it.de
+```
+
+Fly holt das Let's-Encrypt-Zertifikat selbst und erneuert es automatisch.
+
+Der belastbare Test ist nicht das grüne Schloss, sondern zwei Handys, die
+über die Domain joinen und sich gegenseitig in der Teilnehmerliste sehen.
+Kommt der WebSocket-Upgrade nicht durch, lädt die Seite trotzdem und bleibt
+nur leer.
 
 ## Protokoll (Stand Skeleton)
 
