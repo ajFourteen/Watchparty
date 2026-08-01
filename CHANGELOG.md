@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/ajFourteen/Watchparty/compare/v1.0.0...v1.0.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* Health-Check, Rollback-Weg und Token-Ablauf dokumentieren ([3c10454](https://github.com/ajFourteen/Watchparty/commit/3c10454826e7ca61fde477add016fc17859736dd))
+
 # 1.0.0 (2026-08-01)
 
 
