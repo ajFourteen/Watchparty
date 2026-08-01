@@ -6,19 +6,18 @@ bzw. `docs/anforderungen.md` nachziehen.
 
 ## Fachlich
 
+**Kalibrierung der drei Parameter (3.1) am echten Spielabend.**
+Startguthaben 1000, Mindesteinsatz 25, Strafe 25 sind gesetzt und
+implementiert, aber noch nicht an einem echten Abend gegen das tatsächliche
+Spielgefühl geprüft (mvp-plan.md, Etappe 6). Bis dahin gelten sie als
+vorläufig, auch wenn sie in `anforderungen.md` schon als feste Werte stehen.
+
 **Weitere Markttypen.**
 Nur „Ausgang des nächsten Drives" ist definiert. Welche Märkte als Nächstes
 kommen und wie ihre Optionen aussehen, ist offen. Die Struktur ist laut
 ADR-017 darauf vorbereitet.
 
 ## Technisch
-
-**JSON-Nachrichtenschema.**
-Die erlaubten Ereignisse je Zustand stehen jetzt in ADR-020, das konkrete
-Schema der Nachrichten ist daraus noch abzuleiten. Richtung steht in
-`mvp-plan.md`, Etappe 4: ein vollständiges `STATE` mit phasenabhängigem
-Inhalt, dazu ein gezieltes `YOUR_BET` an die einzelne Session, damit der
-eigene Tipp sichtbar ist, ohne die verdeckte Phase aufzubrechen.
 
 **Verhalten bei sehr kleiner Runde.**
 Bei drei bis vier Spielern ist die Varianz hoch. Bewusst als Feature

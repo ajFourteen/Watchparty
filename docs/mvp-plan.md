@@ -1,5 +1,9 @@
 # Weg zum MVP
 
+**Status:** Etappen 1–5 sind umgesetzt, ein Spielabend ist durchspielbar.
+Offen ist Etappe 6 (Parameter-Kalibrierung am echten Abend, siehe
+`offene-entscheidungen.md`).
+
 Vom Walking Skeleton zur ersten spielbaren Fassung. Fachliche Grundlage ist
 `anforderungen.md`, technische `adrs.md`. Die hier getroffenen Entscheidungen
 sind aus `offene-entscheidungen.md` heraus entschieden und müssen dort und in

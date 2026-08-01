@@ -13,9 +13,10 @@ schauen. Über ihre Handys tippen sie auf den Ausgang des nächsten Drives,
 setzen dabei Punkte und teilen sich einen Pool nach Totalisator-Prinzip
 (pari-mutuel). Kein echtes Geld, keine Buchmacher-Quoten.
 
-Aktueller Stand: **Walking Skeleton**. Alle Schichten sind einmal
-durchstochen (Join, Broadcast, Host-Rolle, Deployment), die eigentliche
-Wett-Logik fehlt noch.
+Aktueller Stand: Der volle Rundenablauf aus `docs/mvp-plan.md` ist umgesetzt
+und durchspielbar (Etappen 1–5). Offen ist noch Etappe 6: die drei Parameter
+aus Anforderung 3.1 sind implementiert, aber nicht am echten Spielabend
+kalibriert (siehe `docs/offene-entscheidungen.md`).
 
 ## Stack
 
@@ -66,47 +67,34 @@ sie brechen würde, ist das ein Anlass nachzufragen, kein Detail.
 
 ```
 src/main/java/de/fourteenit/watchparty/
-  room/RoomActor.java      Eventloop; hier kommt die Spiellogik hinein
-  room/Room.java           Raumzustand; hier kommt der Zustandsautomat hinein
-  room/Player.java         Teilnehmer
+  room/RoomActor.java      Eventloop und Zustandsautomat (ADR-020): OPEN_MARKET,
+                           PLACE_BET, CLOSE_MARKET, RESOLVE, Auto-Close
+  room/Room.java           Raumzustand, Host-Rolle, Rundenverwaltung
+  room/Round.java          Eine Runde: Markt, closesAt, eingefrorener
+                           Teilnehmerkreis, Tipps, Ergebnis
+  room/Settlement.java     Abrechnung als reine Funktion (Anforderung 7/8)
+  room/Player.java         Teilnehmer, inkl. Verpasste-Runden-Zähler (8.1)
+  room/Phase.java          IDLE/OPEN/CLOSED/RESOLVED
+  room/Markets.java        Marktkatalog (ADR-017)
   ws/GameWebSocketHandler  Frames -> Kommandos, ändert selbst nichts
   ws/ClientSession.java    Verbindung mit eigener Ausgangs-Queue
-  protocol/Messages.java   Nachrichten Server -> Client
+  protocol/Messages.java   Nachrichten Server -> Client (STATE, YOUR_BET, ...)
 frontend/src/
-  useRoom.js               Verbindung, Reconnect, Token
-  App.jsx                  Join-Screen und Raumansicht
+  useRoom.js               Verbindung, Reconnect, Token, Uhren-Offset
+  App.jsx                  Phasen-Ansichten: Tippen, Countdown, Aufdeckung,
+                           Ergebnis, Leaderboard
 docs/                      Anforderungen, ADRs, MVP-Plan, offene Entscheidungen
 ```
 
 ## Nächster Schritt
 
-Der Zustandsautomat ist entschieden: Die erlaubten Ereignisse je Zustand
-stehen als Tabelle in ADR-020, die Parameter und Randfälle der Abrechnung in
-`anforderungen.md`. Zu tun ist die Umsetzung nach `docs/mvp-plan.md`, in
-dieser Reihenfolge:
-
-1. **Fundament.** `Clock` und ein `Scheduler`-Interface per Konstruktor in
-   `RoomActor`, dazu ein Testzugang, der auf das Leerlaufen der Queue wartet.
-   Es gibt bislang kein `src/test/`; ohne Kontrolle über die Zeit sind ADR-010
-   und ADR-011 nicht deterministisch prüfbar. Außerdem der Marktkatalog als
-   Daten (ADR-017).
-2. **Abrechnung.** Eine Klasse `Settlement` als reine Funktion, ohne Bezug zu
-   `Room`, `Player` oder Actor: Wetten und Kontostände rein, Deltas raus.
-   Damit liegt die Ökonomie im Unit-Test, bevor eine WebSocket-Nachricht
-   existiert. Der Property-Test dazu behauptet genau eine Sache: Die Summe
-   aller Deltas ist exakt 0.
-3. **Zustandsautomat** nach ADR-020 als neue `handle*`-Methoden in
-   `RoomActor`; Queue und Host-Prüfung existieren bereits.
-4. **Protokoll und Frontend**, siehe Etappen 4 und 5 des Plans.
-
-Zwei Fallen, die dabei schon bekannt sind:
-
-- Ein Auto-Close-Timer aus einer beendeten Runde darf die Folgerunde nicht
-  schließen. Jede Runde bekommt eine ID, das `CLOSE`-Ereignis trägt sie mit,
-  und der Handler ignoriert nicht passende IDs. Das Canceln der
-  `ScheduledFuture` ist nur eine Optimierung, nicht die Absicherung.
-- Ob ein Tipp noch zählt, entscheidet der Vergleich `serverNow < closesAt`
-  beim Abarbeiten — nicht die Frage, ob der Timer-Task schon gefeuert hat.
+Etappe 6 aus `docs/mvp-plan.md` (Härtung und Kalibrierung): Die drei
+Parameter aus Anforderung 3.1 an einem echten Spielabend gegen das
+tatsächliche Spielgefühl prüfen — das kann nur am Tisch passieren, nicht am
+Schreibtisch. Reconnect ist bereits über automatisierte Tests in jeder Phase
+durchgespielt (`ReconnectTest`); zusätzlich lohnt sich ein manueller Test mit
+mehreren echten Handys, da Mobile-Browser-Eigenheiten (Tab-Suspend, Wake
+Lock) sich nicht vollständig simulieren lassen.
 
 ## Konventionen
 
