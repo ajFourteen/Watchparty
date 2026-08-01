@@ -9,12 +9,12 @@ function socketUrl() {
 }
 
 /**
- * Haelt die Verbindung zum Server und den zuletzt empfangenen Raumzustand.
+ * Hält die Verbindung zum Server und den zuletzt empfangenen Raumzustand.
  *
  * Der Server ist die einzige Quelle der Wahrheit (ADR-003): Dieser Hook
- * rechnet nichts aus, er spiegelt nur, was ueber die Leitung kommt. Bei einem
+ * rechnet nichts aus, er spiegelt nur, was über die Leitung kommt. Bei einem
  * Reconnect wird der komplette Zustand neu geschickt, es gibt also keinen
- * lokalen Verlauf, den man zusammenfuehren muesste.
+ * lokalen Verlauf, den man zusammenführen müsste.
  */
 export function useRoom() {
   const [status, setStatus] = useState("connecting");
@@ -65,9 +65,9 @@ export function useRoom() {
           setError(null);
         } else if (message.type === "STATE") {
           clockOffsetRef.current = message.serverNow - Date.now();
-          // Eine neue Runde faengt bei OPEN frisch an -- der eigene Tipp der
+          // Eine neue Runde fängt bei OPEN frisch an -- der eigene Tipp der
           // vorherigen Runde gilt nicht mehr. Beim allerersten STATE (Join)
-          // nicht loeschen: YOUR_BET fuer eine laufende Runde kommt vorher an.
+          // nicht löschen: YOUR_BET für eine laufende Runde kommt vorher an.
           if (
             message.phase === "OPEN" &&
             lastRoundIdRef.current !== null &&

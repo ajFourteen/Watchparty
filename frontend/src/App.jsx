@@ -195,14 +195,14 @@ function HostControls({ phase, onOpenMarket, onCloseMarket }) {
   if (phase === "IDLE" || phase === "RESOLVED") {
     return (
       <button className="button primary" onClick={onOpenMarket}>
-        Markt oeffnen
+        Markt öffnen
       </button>
     );
   }
   if (phase === "OPEN") {
     return (
       <button className="button" onClick={onCloseMarket}>
-        Jetzt schliessen
+        Jetzt schließen
       </button>
     );
   }
@@ -246,7 +246,7 @@ export default function App() {
       </header>
 
       {state.phase === "IDLE" && (
-        <p className="hint">Der Host kann den naechsten Markt oeffnen.</p>
+        <p className="hint">Der Host kann den nächsten Markt öffnen.</p>
       )}
 
       {state.phase === "OPEN" && state.market && (
