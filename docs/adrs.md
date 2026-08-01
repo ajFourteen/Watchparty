@@ -384,9 +384,18 @@ Release löst per GitHub Actions den Fly-Deploy aus
 - `FLY_API_TOKEN` (App-gescoped über `fly tokens create deploy -a
   watchparty-fourteen`) liegt als GitHub-Actions-Secret im Repo, nicht im
   Code. `GITHUB_TOKEN` für Semantic Release selbst kommt automatisch von
-  Actions.
+  Actions. Auf ein Jahr befristet (gesetzt 2026-08-01), Erneuerung ist
+  manuell und ohne automatische Erinnerung — dokumentiert im README.
 - Der manuelle Weg (`fly deploy --ha=false`) bleibt für Notfälle bestehen,
   z. B. wenn ein Fix ohne Versionsbump sofort raus muss.
 - Kein `@semantic-release/npm`-Plugin: Das Projekt wird nicht auf npm
   veröffentlicht, Semantic Release dient hier ausschließlich als
   Release-/Deploy-Trigger.
+- Automatischer Deploy ohne Rollback-Weg wäre der Fehler, der erst am
+  Spielabend auffällt. `fly.toml` bekommt deshalb einen HTTP-Health-Check
+  (fängt Prozessabsturz/OOM/hängenden Server ab, nicht spezifisch einen
+  blockierten Raum-Thread — der bedient die Queue unabhängig von der
+  statischen Auslieferung, siehe ADR-009). Rollback per `fly deploy --image
+  <alte ImageRef>` ist im README dokumentiert. Ein Rollback ist ebenfalls
+  ein Neustart und kostet nach ADR-004 den Raumzustand — er macht den
+  Fehler nicht ungeschehen, nur schneller behoben.

@@ -42,6 +42,20 @@ primary_region = "fra"
     soft_limit = 150
     hard_limit = 200
 
+  # Ohne Check sieht Fly nur "Prozess laeuft", nicht "Anwendung antwortet".
+  # Faengt JVM-Absturz, OOM-Kill-Nachwehen und einen haengenden Embedded-
+  # Server ab. Kein Nachweis, dass der Raum-Thread selbst noch lebt (ADR-009)
+  # — der bedient WebSocket-Kommandos ueber die Queue, unabhaengig von der
+  # statischen Auslieferung unter "/". Ein Check, der wirklich durch die
+  # Actor-Queue geht, waere ein sinnvoller naechster Schritt, existiert aber
+  # noch nicht.
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/"
+
 [[vm]]
   size = "shared-cpu-1x"
   # 256 MB reichen fuer die JVM nicht; sie geriete in GC-Dauerlast oder

@@ -84,8 +84,13 @@ variables → Actions*:
   ```bash
   fly tokens create deploy -a watchparty-fourteen -x 8760h
   ```
-  (Ablauf hier auf ein Jahr begrenzt, statt der 20-Jahre-Voreinstellung.
-  Rechtzeitig vor Ablauf erneuern.)
+  Ablauf hier auf ein Jahr begrenzt, statt der 20-Jahre-Voreinstellung.
+  **Aktuelles Token gesetzt am 2026-08-01, läuft ca. 2027-08-01 ab.** Läuft
+  es aus, scheitert nur der `deploy`-Job beim nächsten `fix:`/`feat:`-Merge
+  (die laufende App ist davon nicht betroffen) — es gibt aber keine
+  automatische Erinnerung dafür, also selbst vormerken. Erneuern mit
+  demselben Befehl, danach den neuen Wert unter *Settings → Secrets and
+  variables → Actions* über `FLY_API_TOKEN` setzen.
 - `GITHUB_TOKEN` wird von GitHub Actions automatisch bereitgestellt, dafür
   ist nichts zu tun.
 
@@ -119,6 +124,26 @@ des ganzen Abends. Die Tokens im localStorage zeigen danach ins Leere. Beim
 automatischen Weg heißt das konkret: **release-relevante Commits
 (`fix:`/`feat:`) nicht am Spieltag nach `master` mergen** — der Merge selbst
 ist bereits der Auslöser.
+
+### Rollback
+
+Ein automatischer Deploy ist trotzdem ein Neustart — auch ein Rollback
+kostet den laufenden Raumzustand (ADR-004), genau wie das kaputte Release,
+das er ersetzt. Es gibt hier nichts, das eine laufende Runde retten könnte;
+das Ziel ist nur, schnell wieder eine funktionierende Version live zu haben.
+
+```bash
+fly releases -a watchparty-fourteen        # Versionen durchsehen
+fly deploy --ha=false --image <ImageRef-der-letzten-guten-Version>
+fly machines list                          # muss genau eine Maschine zeigen
+```
+
+`ImageRef` steht in der Ausgabe von `fly releases --json` je Version (Feld
+`ImageRef`, Format `registry.fly.io/watchparty-fourteen:deployment-…`).
+`fly apps rollback` existiert ebenfalls, wählt die Vorversion aber implizit
+aus — bei nur einer Maschine und der Bedeutung jedes Neustarts hier lieber
+explizit das Image angeben, damit klar ist, welche Version tatsächlich
+läuft.
 
 ### Domain einrichten (einmalig)
 
