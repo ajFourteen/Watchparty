@@ -1,3 +1,26 @@
+# [2.0.0](https://github.com/ajFourteen/Watchparty/compare/v1.0.1...v2.0.0) (2026-08-01)
+
+
+* feat!: Protokoll auf den vollen Rundenablauf umgestellt ([4757be9](https://github.com/ajFourteen/Watchparty/commit/4757be97c0ad551201f004552c27fa76ca271394))
+
+
+### Features
+
+* Abrechnung als reine Funktion (Settlement, Etappe 2) ([868e9c6](https://github.com/ajFourteen/Watchparty/commit/868e9c673f05d920f95e2340ffd5b0cf9d333ad6))
+* Frontend fuer den vollen Rundenablauf (Etappe 5) ([4f2e62c](https://github.com/ajFourteen/Watchparty/commit/4f2e62cb0820d9e976ab99aabe04743f054db3c8))
+* Zustandsautomat und Protokoll fuer Rundenablauf (Etappe 3+4) ([cb28ce3](https://github.com/ajFourteen/Watchparty/commit/cb28ce3c40bb40624b8a6a5a46ead7f9aa9dbf44))
+
+
+### BREAKING CHANGES
+
+* HOST_ACTION und das State-Feld hostActionCount sind
+ersatzlos entfallen (siehe cb28ce3). Sie waren nur der Skeleton-Beweis,
+dass eine Host-Aktion serverseitig ankommt. Jeder Client muss auf die
+vier echten Host-Aktionen (OPEN_MARKET, CLOSE_MARKET, RESOLVE) und das
+neue STATE-Schema umgestellt werden.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
 ## [1.0.1](https://github.com/ajFourteen/Watchparty/compare/v1.0.0...v1.0.1) (2026-08-01)
 
 
