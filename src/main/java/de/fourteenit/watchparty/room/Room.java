@@ -100,14 +100,14 @@ public class Room {
      * noch keine zwei Runden am Stueck verpasst hat — ab der dritten
      * verpassten Runde pausiert ein getrennter Spieler und zahlt nicht mehr.
      */
-    public Round openMarket(Market market, Instant now, Duration window) {
+    public Round openBet(Bet bet, Instant now, Duration window) {
         Set<String> participants = new LinkedHashSet<>();
         for (Player player : players()) {
             if (player.isConnected() || player.getMissedRounds() < 2) {
                 participants.add(player.getId());
             }
         }
-        currentRound = new Round(nextRoundId++, market, now.plus(window), participants);
+        currentRound = new Round(nextRoundId++, bet, now.plus(window), participants);
         return currentRound;
     }
 }

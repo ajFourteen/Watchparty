@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
  * Der Zustandsautomat aus ADR-020, durchgespielt als Ereignis-Sequenzen ueber
  * die oeffentlichen Eintrittspunkte von {@link RoomActor}. Prueft ueber
  * {@link RoomActor#getRoomForTest()} den Raumzustand direkt, statt das
- * JSON-Protokoll zu parsen — das ist Sache von {@code Etappe 4}.
+ * JSON-Protokoll zu parsen — das prueft der Rauchtest ueber die Leitung.
  */
 class RoomActorStateMachineTest {
 
@@ -53,7 +53,7 @@ class RoomActorStateMachineTest {
         ClientSession host = join("Host");
         join("Anna");
 
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
 
         Room room = actor.getRoomForTest();
@@ -63,23 +63,23 @@ class RoomActorStateMachineTest {
     }
 
     @Test
-    void nurDerHostDarfDenMarktOeffnen() {
+    void nurDerHostDarfEineWetteOeffnen() {
         join("Host");
         ClientSession anna = join("Anna");
 
-        actor.openMarket(anna);
+        actor.openBet(anna, null);
         actor.awaitIdle();
 
         assertThat(actor.getRoomForTest().getPhase()).isEqualTo(Phase.IDLE);
     }
 
     @Test
-    void openMarketWaehrendLaufenderRundeIstEinFehler() {
+    void openBetWaehrendLaufenderRundeIstEinFehler() {
         ClientSession host = join("Host");
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
 
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
 
         // Immer noch dieselbe Runde, keine zweite wurde angelegt.
@@ -89,45 +89,45 @@ class RoomActorStateMachineTest {
     @Test
     void tippAbgabeInnerhalbDesFensterWirdUebernommenMitMindesteinsatzAlsStandard() {
         ClientSession host = join("Host");
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
 
-        actor.placeBet(host, "touchdown", null);
+        actor.placePick(host, "touchdown", null);
         actor.awaitIdle();
 
-        Bet bet = actor.getRoomForTest().getCurrentRound().getBets().get(playerId(host));
-        assertThat(bet.outcomeId()).isEqualTo("touchdown");
-        assertThat(bet.stake()).isEqualTo(25);
+        Pick pick = actor.getRoomForTest().getCurrentRound().getPicks().get(playerId(host));
+        assertThat(pick.outcomeId()).isEqualTo("touchdown");
+        assertThat(pick.stake()).isEqualTo(25);
     }
 
     @Test
     void tippNachAblaufVonClosesAtZaehltNichtMehrAuchOhneDassDerTimerSchonGefeuertHat() {
         ClientSession host = join("Host");
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
 
         // ADR-011: Der Zeitvergleich beim Abarbeiten entscheidet, nicht ob
         // der geplante Auto-Close-Task schon gelaufen ist.
         clock.advance(Duration.ofSeconds(16));
-        actor.placeBet(host, "touchdown", null);
+        actor.placePick(host, "touchdown", null);
         actor.awaitIdle();
 
-        assertThat(actor.getRoomForTest().getCurrentRound().getBets()).isEmpty();
+        assertThat(actor.getRoomForTest().getCurrentRound().getPicks()).isEmpty();
     }
 
     @Test
     void zweiterTippDesselbenSpielersWirdAbgelehnt() {
         ClientSession host = join("Host");
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
 
-        actor.placeBet(host, "touchdown", 100);
-        actor.placeBet(host, "punt", 50);
+        actor.placePick(host, "touchdown", 100);
+        actor.placePick(host, "punt", 50);
         actor.awaitIdle();
 
-        Bet bet = actor.getRoomForTest().getCurrentRound().getBets().get(playerId(host));
-        assertThat(bet.stake()).isEqualTo(100);
-        assertThat(bet.outcomeId()).isEqualTo("touchdown");
+        Pick pick = actor.getRoomForTest().getCurrentRound().getPicks().get(playerId(host));
+        assertThat(pick.stake()).isEqualTo(100);
+        assertThat(pick.outcomeId()).isEqualTo("touchdown");
     }
 
     @Test
@@ -136,20 +136,20 @@ class RoomActorStateMachineTest {
         Player player = actor.getRoomForTest().byId(playerId(host));
         player.setPoints(10);
 
-        actor.openMarket(host);
-        actor.placeBet(host, "touchdown", 5);
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", 5);
         actor.awaitIdle();
 
-        Bet bet = actor.getRoomForTest().getCurrentRound().getBets().get(playerId(host));
-        assertThat(bet.stake()).isEqualTo(10);
+        Pick pick = actor.getRoomForTest().getCurrentRound().getPicks().get(playerId(host));
+        assertThat(pick.stake()).isEqualTo(10);
     }
 
     @Test
     void manuellesSchliessenBringtDieRundeNachClosedUndDeckdtTippsAufWennResolved() {
         ClientSession host = join("Host");
-        actor.openMarket(host);
-        actor.placeBet(host, "touchdown", null);
-        actor.closeMarket(host);
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", null);
+        actor.closeBet(host);
         actor.awaitIdle();
 
         assertThat(actor.getRoomForTest().getPhase()).isEqualTo(Phase.CLOSED);
@@ -158,9 +158,9 @@ class RoomActorStateMachineTest {
     @Test
     void doppeltesSchliessenWirdStillIgnoriert() {
         ClientSession host = join("Host");
-        actor.openMarket(host);
-        actor.closeMarket(host);
-        actor.closeMarket(host);
+        actor.openBet(host, null);
+        actor.closeBet(host);
+        actor.closeBet(host);
         actor.awaitIdle();
 
         assertThat(actor.getRoomForTest().getPhase()).isEqualTo(Phase.CLOSED);
@@ -169,7 +169,7 @@ class RoomActorStateMachineTest {
     @Test
     void autoCloseSchliesstDieRundeNachAblaufDesFensters() {
         ClientSession host = join("Host");
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
 
         clock.advance(Duration.ofSeconds(15));
@@ -183,13 +183,13 @@ class RoomActorStateMachineTest {
     void veralteterAutoCloseAusEinerVorherigenRundeSchliesstDieNeueRundeNicht() {
         ClientSession host = join("Host");
 
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
-        actor.closeMarket(host);
+        actor.closeBet(host);
         actor.resolve(host, "touchdown");
         actor.awaitIdle();
 
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
         assertThat(actor.getRoomForTest().getPhase()).isEqualTo(Phase.OPEN);
 
@@ -209,10 +209,10 @@ class RoomActorStateMachineTest {
         ClientSession host = join("Host");
         ClientSession anna = join("Anna");
 
-        actor.openMarket(host);
-        actor.placeBet(host, "touchdown", 100);
-        actor.placeBet(anna, "punt", 50);
-        actor.closeMarket(host);
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", 100);
+        actor.placePick(anna, "punt", 50);
+        actor.closeBet(host);
         actor.resolve(host, "touchdown");
         actor.awaitIdle();
 
@@ -228,14 +228,103 @@ class RoomActorStateMachineTest {
     void aufloesenOhneJedenTippAnnulliertDieRundeOhneVerrechnung() {
         ClientSession host = join("Host");
 
-        actor.openMarket(host);
-        actor.closeMarket(host);
+        actor.openBet(host, null);
+        actor.closeBet(host);
         actor.resolve(host, "touchdown");
         actor.awaitIdle();
 
         Room room = actor.getRoomForTest();
         assertThat(room.getCurrentRound().isAnnulled()).isTrue();
         assertThat(room.byId(playerId(host)).getPoints()).isEqualTo(Room.STARTING_POINTS);
+    }
+
+    /**
+     * Anforderung 8.6: Der Host bricht ab, weil die offene Wette nicht mehr
+     * zum Spiel passt. Entscheidend ist, dass trotz abgegebener Tipps kein
+     * einziger Punkt bewegt wird — weder Einsatz noch Strafe.
+     */
+    @Test
+    void annullierenAusOpenLaesstAlleKontenUnberuehrt() {
+        ClientSession host = join("Host");
+        ClientSession anna = join("Anna");
+        join("Ben"); // tippt nicht und darf trotzdem keine Strafe zahlen
+
+        actor.openBet(host, "field-goal-attempt");
+        actor.placePick(host, "good", 200);
+        actor.placePick(anna, "no-good", 100);
+        actor.annul(host);
+        actor.awaitIdle();
+
+        Room room = actor.getRoomForTest();
+        assertThat(room.getPhase()).isEqualTo(Phase.RESOLVED);
+        assertThat(room.getCurrentRound().isAnnulled()).isTrue();
+        assertThat(room.getCurrentRound().isAnnulledByHost()).isTrue();
+        assertThat(room.getCurrentRound().getPool()).isZero();
+        assertThat(room.players()).allSatisfy(
+                player -> assertThat(player.getPoints()).isEqualTo(Room.STARTING_POINTS));
+    }
+
+    @Test
+    void annullierenGehtAuchNachDemSchliessenUndZaehltKeineVerpassteRunde() {
+        ClientSession host = join("Host");
+        ClientSession anna = join("Anna");
+        String annaId = playerId(anna);
+
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", null);
+        actor.disconnected(anna);
+        actor.closeBet(host);
+        actor.annul(host);
+        actor.awaitIdle();
+
+        Room room = actor.getRoomForTest();
+        assertThat(room.getPhase()).isEqualTo(Phase.RESOLVED);
+        assertThat(room.getCurrentRound().isAnnulledByHost()).isTrue();
+        // Die Runde hat nicht stattgefunden, also faellt sie Anna auch nicht
+        // als verpasste Runde zur Last (Anforderung 8.1).
+        assertThat(room.byId(annaId).getMissedRounds()).isZero();
+        assertThat(room.byId(annaId).getPoints()).isEqualTo(Room.STARTING_POINTS);
+    }
+
+    /**
+     * Nach RESOLVED sind die Punkte verrechnet; ein Abbruch waere dann eine
+     * Rueckabwicklung und keine Notbremse mehr. Genauso wenig laesst sich in
+     * IDLE etwas annullieren.
+     */
+    @Test
+    void annullierenGehtWederInIdleNochNachDemAufloesen() {
+        ClientSession host = join("Host");
+
+        actor.annul(host);
+        actor.awaitIdle();
+        assertThat(actor.getRoomForTest().getPhase()).isEqualTo(Phase.IDLE);
+
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", 100);
+        actor.closeBet(host);
+        actor.resolve(host, "touchdown");
+        actor.awaitIdle();
+        int pointsAfterResolve = actor.getRoomForTest().byId(playerId(host)).getPoints();
+
+        actor.annul(host);
+        actor.awaitIdle();
+
+        Round round = actor.getRoomForTest().getCurrentRound();
+        assertThat(round.isAnnulled()).isFalse();
+        assertThat(round.getWinningOutcomeId()).isEqualTo("touchdown");
+        assertThat(actor.getRoomForTest().byId(playerId(host)).getPoints()).isEqualTo(pointsAfterResolve);
+    }
+
+    @Test
+    void nurDerHostDarfAnnullieren() {
+        ClientSession host = join("Host");
+        ClientSession anna = join("Anna");
+
+        actor.openBet(host, null);
+        actor.annul(anna);
+        actor.awaitIdle();
+
+        assertThat(actor.getRoomForTest().getPhase()).isEqualTo(Phase.OPEN);
     }
 
     @Test
@@ -261,7 +350,7 @@ class RoomActorStateMachineTest {
         assertThat(actor.getRoomForTest().byId(annaId).isPaused()).isTrue();
 
         // Runde 3: Anna ist pausiert, gehoert nicht mehr zum Teilnehmerkreis.
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
         assertThat(actor.getRoomForTest().getCurrentRound().getParticipants()).doesNotContain(annaId);
         playAndResolveRoundWithoutAnna(host);
@@ -270,9 +359,9 @@ class RoomActorStateMachineTest {
     }
 
     private void playAndResolveRoundWithoutAnna(ClientSession host) {
-        actor.openMarket(host);
-        actor.placeBet(host, "touchdown", null);
-        actor.closeMarket(host);
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", null);
+        actor.closeBet(host);
         actor.resolve(host, "touchdown");
         actor.awaitIdle();
     }
@@ -283,7 +372,7 @@ class RoomActorStateMachineTest {
         ClientSession anna = join("Anna");
         String hostId = playerId(host);
 
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.awaitIdle();
 
         // Host trennt sich mitten in OPEN: Verlust wirkt sofort.
@@ -296,7 +385,7 @@ class RoomActorStateMachineTest {
         assertThat(actor.getRoomForTest().getHostPlayerId()).isEqualTo(playerId(anna));
 
         // Erst beim Erreichen von RESOLVED reklamiert der fruehere Host die Rolle zurueck.
-        actor.closeMarket(anna);
+        actor.closeBet(anna);
         actor.resolve(anna, "touchdown");
         actor.awaitIdle();
         assertThat(actor.getRoomForTest().getHostPlayerId()).isEqualTo(hostId);

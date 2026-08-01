@@ -8,7 +8,7 @@ import java.time.Clock;
 /**
  * Bindet Uhr und Scheduler produktiv an {@link RoomActor}. Im Test tritt an
  * ihre Stelle eine Fake-Uhr und ein Scheduler, der Tasks nur sammelt und auf
- * Kommando feuert (mvp-plan.md, Etappe 1).
+ * Kommando feuert (ADR-010, ADR-011).
  */
 @Configuration
 public class TimeConfig {

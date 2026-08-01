@@ -8,9 +8,9 @@ import java.util.LinkedHashMap;
 
 /**
  * Die Punkte-Oekonomie einer Runde als reine Funktion, ohne Bezug zu
- * {@link Room}, {@link Player} oder {@code RoomActor} (mvp-plan.md,
- * Etappe 2). Liefert Deltas, wendet sie aber nicht an — das macht der
- * Actor beim Uebergang nach RESOLVED.
+ * {@link Room}, {@link Player} oder {@code RoomActor}. Liefert Deltas,
+ * wendet sie aber nicht an — das macht der Actor beim Uebergang nach
+ * RESOLVED. So ist die gesamte Punkte-Oekonomie ohne Raumzustand testbar.
  *
  * {@code balances} wird nur zum Kappen der Nicht-Tipper-Strafe auf den
  * Kontostand gebraucht (Anforderung 8.1); die Auszahlung selbst kennt keine
@@ -21,19 +21,19 @@ public final class Settlement {
     private Settlement() {
     }
 
-    public static Map<String, Integer> settle(List<Bet> bets, Set<String> nonBettors,
+    public static Map<String, Integer> settle(List<Pick> picks, Set<String> nonPickers,
             Map<String, Integer> balances, String winningOutcome, Params params) {
         Map<String, Integer> deltas = new LinkedHashMap<>();
 
         // 8.4: Ohne einen einzigen Tipp gibt es niemanden, der etwas gewinnen
         // oder verlieren koennte — die Runde wird annulliert, auch fuer
         // Nicht-Tipper.
-        if (bets.isEmpty()) {
+        if (picks.isEmpty()) {
             return deltas;
         }
 
         int collectedPenalties = 0;
-        for (String playerId : nonBettors) {
+        for (String playerId : nonPickers) {
             int balance = balances.getOrDefault(playerId, 0);
             int collected = Math.min(params.penalty(), balance);
             if (collected > 0) {
@@ -44,22 +44,22 @@ public final class Settlement {
 
         // Jeder Einsatz wandert erstmal in den Pool (Anforderung 7); wer
         // gewinnt, bekommt seinen Anteil per distributeShares zurueckaddiert.
-        for (Bet bet : bets) {
-            deltas.merge(bet.playerId(), -bet.stake(), Integer::sum);
+        for (Pick pick : picks) {
+            deltas.merge(pick.playerId(), -pick.stake(), Integer::sum);
         }
-        int totalStakes = bets.stream().mapToInt(Bet::stake).sum();
+        int totalStakes = picks.stream().mapToInt(Pick::stake).sum();
 
-        List<Bet> winners = bets.stream()
-                .filter(bet -> bet.outcomeId().equals(winningOutcome))
+        List<Pick> winners = picks.stream()
+                .filter(pick -> pick.outcomeId().equals(winningOutcome))
                 .toList();
 
         if (winners.isEmpty()) {
             // 8.2 Push: kein Ausgang getroffen, Einsaetze zurueck, nur die
             // Strafen werden anteilig unter allen Tippern verteilt.
-            for (Bet bet : bets) {
-                deltas.merge(bet.playerId(), bet.stake(), Integer::sum);
+            for (Pick pick : picks) {
+                deltas.merge(pick.playerId(), pick.stake(), Integer::sum);
             }
-            distributeShares(bets, collectedPenalties, params, deltas);
+            distributeShares(picks, collectedPenalties, params, deltas);
             return deltas;
         }
 
@@ -74,7 +74,7 @@ public final class Settlement {
      * Groesste-Reste-Verfahren (Hamilton, 7.2), damit die Summe der
      * Auszahlungen exakt {@code pool} ergibt.
      */
-    private static void distributeShares(List<Bet> recipients, int pool, Params params,
+    private static void distributeShares(List<Pick> recipients, int pool, Params params,
             Map<String, Integer> deltas) {
         if (pool <= 0 || recipients.isEmpty()) {
             return;
@@ -82,11 +82,11 @@ public final class Settlement {
 
         List<String> order = new ArrayList<>();
         Map<String, Integer> shareOf = new LinkedHashMap<>();
-        for (Bet bet : recipients) {
-            if (!shareOf.containsKey(bet.playerId())) {
-                order.add(bet.playerId());
+        for (Pick pick : recipients) {
+            if (!shareOf.containsKey(pick.playerId())) {
+                order.add(pick.playerId());
             }
-            shareOf.merge(bet.playerId(), Math.max(bet.stake(), params.minStake()), Integer::sum);
+            shareOf.merge(pick.playerId(), Math.max(pick.stake(), params.minStake()), Integer::sum);
         }
         int totalShares = shareOf.values().stream().mapToInt(Integer::intValue).sum();
 

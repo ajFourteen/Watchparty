@@ -58,6 +58,21 @@ class BetsTest {
         }
     }
 
+    /**
+     * Der Versuch nach dem Touchdown deckt beide Varianten in einer Wette ab
+     * (Anforderung 4.3). Faellt eine davon weg, muesste der Host die
+     * Entscheidung des Teams vorwegnehmen und stuende ohne passenden Ausgang
+     * da, wenn er falsch liegt.
+     */
+    @Test
+    void derVersuchNachDemTouchdownKenntKickUndZweiPunkte() {
+        assertThat(Bets.TRY_AFTER_TOUCHDOWN.outcomes())
+                .extracting(Outcome::id)
+                .containsExactly(
+                        "extra-point-good", "extra-point-no-good",
+                        "two-point-good", "two-point-no-good");
+    }
+
     @Test
     void byIdLiefertNullStattEinerAusnahmeBeiUnbekannterId() {
         assertThat(Bets.byId("drive-outcome")).isSameAs(Bets.DRIVE_OUTCOME);

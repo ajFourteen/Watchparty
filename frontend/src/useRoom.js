@@ -21,14 +21,17 @@ export function useRoom() {
   const [state, setState] = useState(null);
   const [playerId, setPlayerId] = useState(null);
   const [error, setError] = useState(null);
-  const [yourBet, setYourBet] = useState(null);
+  const [yourPick, setYourPick] = useState(null);
+
+  /** Der Wettkatalog kommt mit WELCOME und ändert sich über den Abend nicht. */
+  const [catalog, setCatalog] = useState([]);
 
   const socketRef = useRef(null);
   const retryRef = useRef(null);
   const closedByUs = useRef(false);
   const lastRoundIdRef = useRef(null);
 
-  /** serverNow minus Date.now(); einmal pro STATE gebildet, lokal interpoliert (Etappe 4). */
+  /** serverNow minus Date.now(); einmal pro STATE gebildet, lokal interpoliert (ADR-003). */
   const clockOffsetRef = useRef(0);
 
   const send = useCallback((message) => {
@@ -62,23 +65,24 @@ export function useRoom() {
         if (message.type === "WELCOME") {
           window.localStorage.setItem(TOKEN_KEY, message.token);
           setPlayerId(message.playerId);
+          setCatalog(message.catalog ?? []);
           setError(null);
         } else if (message.type === "STATE") {
           clockOffsetRef.current = message.serverNow - Date.now();
           // Eine neue Runde fängt bei OPEN frisch an -- der eigene Tipp der
           // vorherigen Runde gilt nicht mehr. Beim allerersten STATE (Join)
-          // nicht löschen: YOUR_BET für eine laufende Runde kommt vorher an.
+          // nicht löschen: YOUR_PICK für eine laufende Runde kommt vorher an.
           if (
             message.phase === "OPEN" &&
             lastRoundIdRef.current !== null &&
             message.roundId !== lastRoundIdRef.current
           ) {
-            setYourBet(null);
+            setYourPick(null);
           }
           lastRoundIdRef.current = message.roundId;
           setState(message);
-        } else if (message.type === "YOUR_BET") {
-          setYourBet({ outcomeId: message.outcomeId, stake: message.stake });
+        } else if (message.type === "YOUR_PICK") {
+          setYourPick({ outcomeId: message.outcomeId, stake: message.stake });
         } else if (message.type === "ERROR") {
           setError(message.message);
         }
@@ -108,15 +112,16 @@ export function useRoom() {
     [send]
   );
 
-  const openMarket = useCallback(() => send({ type: "OPEN_MARKET" }), [send]);
-  const closeMarket = useCallback(() => send({ type: "CLOSE_MARKET" }), [send]);
-  const placeBet = useCallback(
-    (outcomeId, stake) => send({ type: "PLACE_BET", outcomeId, stake }),
+  const openBet = useCallback((betId) => send({ type: "OPEN_BET", betId }), [send]);
+  const closeBet = useCallback(() => send({ type: "CLOSE_BET" }), [send]);
+  const placePick = useCallback(
+    (outcomeId, stake) => send({ type: "PLACE_PICK", outcomeId, stake }),
     [send]
   );
   const resolve = useCallback((outcomeId) => send({ type: "RESOLVE", outcomeId }), [send]);
+  const annul = useCallback(() => send({ type: "ANNUL" }), [send]);
 
-  /** Serverzeit jetzt, aus dem einmal gebildeten Offset interpoliert (nur Anzeige, siehe Etappe 4). */
+  /** Serverzeit jetzt, aus dem einmal gebildeten Offset interpoliert — nur Anzeige, der Server entscheidet (ADR-011). */
   const serverNow = useCallback(() => Date.now() + clockOffsetRef.current, []);
 
   return {
@@ -124,12 +129,14 @@ export function useRoom() {
     state,
     playerId,
     error,
-    yourBet,
+    yourPick,
+    catalog,
     join,
-    openMarket,
-    closeMarket,
-    placeBet,
+    openBet,
+    closeBet,
+    placePick,
     resolve,
+    annul,
     serverNow,
   };
 }

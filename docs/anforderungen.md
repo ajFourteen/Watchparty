@@ -2,7 +2,7 @@
 
 ## 1. Zweck und Kontext
 
-Die App richtet sich an Freunde, die gemeinsam vor Ort ein Football-Spiel schauen und das Zuschauen spannender machen wollen. Über ihre Handys wetten sie live auf Football-Ereignisse (zunächst: der Ausgang des nächsten Drives). Es geht um Spaß und ein gemeinsames Punkte-Ranking, nicht um echtes Geld.
+Die App richtet sich an Freunde, die gemeinsam vor Ort ein Football-Spiel schauen und das Zuschauen spannender machen wollen. Über ihre Handys wetten sie live auf Football-Ereignisse — der Ausgang des nächsten Drives, ein Big Play, ein einzelner Kick. Es geht um Spaß und ein gemeinsames Punkte-Ranking, nicht um echtes Geld.
 
 **Rahmenbedingungen:**
 - Alle Teilnehmer sitzen vor demselben Fernseher (nur Vor-Ort-Nutzung, kein Remote-Play).
@@ -39,15 +39,15 @@ Das sind 40 Mindesteinsätze Puffer bei etwa 25 Drives pro Abend; ein echter Ban
 
 Die Werte sind am realen Spielgefühl zu justieren; sie stehen an einer Stelle im Code, nicht verstreut.
 
-## 4. Märkte
+## 4. Wetten
 
-- Ein Markt ist fachlich eine **Frage mit einer festen Liste möglicher Ausgänge** und einer späteren Auflösung. Er wird als eigenständige Struktur behandelt, nicht als Sonderfall im Code, damit später weitere Markttypen ohne Umbau ergänzt werden können.
-- **Zum Start gibt es genau einen Markttyp: „Ausgang des nächsten Drives".**
-- Weitere feste Märkte folgen später.
+- Eine **Wette** ist fachlich eine **Frage mit einer festen Liste möglicher Ausgänge** und einer späteren Auflösung. Sie wird als eigenständige Struktur behandelt, nicht als Sonderfall im Code, damit weitere Wetten ohne Umbau ergänzt werden können.
+- Der Wettkatalog steht auf dem Server. Der Host wählt beim Öffnen aus, welche Wette läuft; welche gerade passt, sieht nur er vor dem Fernseher.
+- Die Ausgänge einer Wette sind **lückenlos und überschneidungsfrei**: Jeder reale Verlauf fällt in genau einen Eimer. Wo das nicht offensichtlich ist, gehört die Abgrenzung als Anmerkung dazu — der Host löst von Hand auf und braucht eine Regel, über die am Tisch nicht gestritten wird. Diese Anmerkungen müssen in der Oberfläche sichtbar sein.
 
-### 4.1 Kanonische Ausgänge „Ausgang des nächsten Drives"
+### 4.1 Ausgang des nächsten Drives
 
-Jeder reale Drive-Ausgang fällt in genau einen Eimer (lückenlos und überschneidungsfrei):
+Die Grundwette, die über den Abend am häufigsten läuft.
 
 | Ausgang | Anmerkung |
 |---|---|
@@ -59,14 +59,35 @@ Jeder reale Drive-Ausgang fällt in genau einen Eimer (lückenlos und überschne
 | Safety | |
 | End of Half / Game | Drive läuft mit Halbzeit- oder Spielende aus |
 
-Diese Zuordnung ist eine festgelegte Konvention und muss in der Oberfläche sichtbar sein, damit es beim Auflösen keinen Streit gibt.
+### 4.2 Big Play im nächsten Drive?
+
+Ja / Nein. **Big Play = ein einzelner Spielzug mit Lauf ab 20, Pass ab 30 oder Return ab 50 Yards.**
+
+Die drei Schwellen sind eine gesetzte Konvention, keine Liga-Statistik: Sie sind am Tisch merkbar und werden im Fernsehen eingeblendet. Getrennt nach Spielzugart, weil zwanzig Yards am Boden etwas anderes wert sind als zwanzig durch die Luft.
+
+### 4.3 Field Goal: gut?
+
+Gut / Kein Field Goal. Verschossen oder geblockt zählt als „Kein Field Goal".
+
+### 4.4 Versuch nach dem Touchdown?
+
+| Ausgang | Anmerkung |
+|---|---|
+| Extrapunkt gut | der Kick sitzt, 1 Punkt |
+| Extrapunkt vergeben | verschossen, geblockt oder durch Strafe vertan |
+| Two-Point gut | 2 Punkte |
+| Two-Point gescheitert | auch wenn die Verteidigung den Ball zurückträgt |
+
+**Kick und Two-Point sind eine Wette, nicht zwei.** Beim Öffnen weiß niemand, welche Variante kommt — genau das ist die Frage. Zwei getrennte Wetten hätten den Host gezwungen, die Entscheidung des Teams vorwegzunehmen; läge er falsch, gäbe es keinen passenden Ausgang. Nebeneffekt: Die beiden Two-Point-Ausgänge werden selten getippt und zahlen deshalb gut.
+
+**Verantwortung des Hosts:** Die Field-Goal-Wette setzt weiterhin die Situation voraus, auf die sie sich bezieht — sie gehört auf den Field-Goal-Versuch, nicht auf gut Glück.
 
 ## 5. Wettfenster und Timing
 
-- Der **Host** entscheidet, wann ein Markt öffnet.
+- Der **Host** entscheidet, welche Wette wann öffnet.
 - Nach dem Öffnen bleibt das Fenster **15 Sekunden** offen und schließt dann automatisch.
 - Zusätzlich hat der Host einen **„Jetzt schließen"-Knopf** als Notbremse. Das Fenster schließt bei Ablauf der 15 Sekunden **oder** beim Host-Klick — je nachdem, was zuerst eintritt.
-- Verantwortung des Hosts: das Fenster so öffnen, dass die 15 Sekunden **vor dem Snap** des Drives ablaufen. Danach läuft der Drive, es wird nicht mehr getippt.
+- Verantwortung des Hosts: das Fenster so öffnen, dass die 15 Sekunden **vor dem Snap** ablaufen. Danach läuft der Spielzug, es wird nicht mehr getippt.
 
 ## 6. Wettmechanik
 
@@ -98,7 +119,7 @@ Die Auszahlung trennt zwei Dinge: die **echten Punkte** im Pool und die **Anteil
 - Wer in einer Runde gar nicht tippt, zahlt eine kleine Strafe, die in den Pool fließt.
 - Die Strafe trifft jeden im Raum, der nicht getippt hat — unabhängig vom Grund (auch bei eingeschlafenem Handy). Innerhalb des 15-Sekunden-Fensters ist der Grund nicht unterscheidbar.
 
-**Wer zum Teilnehmerkreis gehört, wird beim Öffnen des Markts eingefroren.** Wer während des offenen Fensters dazukommt, darf tippen und gewinnen, wird aber nicht bestraft. Niemand zahlt für eine Runde, die schon lief, als er kam.
+**Wer zum Teilnehmerkreis gehört, wird beim Öffnen der Wette eingefroren.** Wer während des offenen Fensters dazukommt, darf tippen und gewinnen, wird aber nicht bestraft. Niemand zahlt für eine Runde, die schon lief, als er kam.
 
 **Die Strafe wird auf den Kontostand gekappt.** Eingesammelt wird `min(Strafe, Kontostand)`; der Pool besteht aus dem, was tatsächlich eingesammelt wurde. Damit bleibt die Nullsumme exakt erhalten und ein Konto wird nie negativ. Ein Spieler bei 0 Punkten zahlt faktisch nichts mehr — die Strafe darf die Null nicht doch zu einem absorbierenden Zustand machen (siehe 8.3).
 
@@ -119,20 +140,30 @@ Die Auszahlung trennt zwei Dinge: die **echten Punkte** im Pool und die **Anteil
 ### 8.5 Alle tippen denselben, richtigen Ausgang
 - Der Pool besteht dann nur aus den eigenen Einsätzen der Gewinner; jeder bekommt näherungsweise seinen Einsatz zurück (netto ≈ null). Das ist gewollt: In dieser Situation gab es nichts zu gewinnen.
 
+### 8.6 Runde annullieren (Host)
+
+Der Host kann eine laufende Runde abbrechen, solange sie **offen oder geschlossen** ist. Dann passiert nichts: keine Einsätze, keine Strafen, keine Auszahlung, kein Eintrag auf dem Verpasste-Runden-Zähler. Die Runde hat nicht stattgefunden.
+
+Das ist der Ausweg für den Fall, dass die offene Wette nicht mehr zum Spiel passt — etwa wenn das Team statt des Field Goals doch auf den vierten Versuch geht. Ohne ihn müsste der Host einen Ausgang wählen, den es nicht gegeben hat.
+
+**Nach dem Auflösen geht es nicht mehr.** Ab da sind die Punkte verrechnet; ein Abbruch wäre eine Rückabwicklung und keine Notbremse. Vorher ist er dagegen billig: Punkte werden ohnehin erst beim Auflösen bewegt, es gibt also nichts zurückzurechnen und die Nullsumme kann gar nicht kaputtgehen.
+
+**Der Knopf ist bewusst unscheinbar.** Er ist die Ausnahme, und ein Fehlgriff kostet allen die Runde.
+
 ## 9. Ablauf einer Runde (fachliche Sicht)
 
-1. **Leerlauf** — der Host kann einen Markt öffnen.
-2. **Öffnen** — Host öffnet den Markt; die 15-Sekunden-Uhr läuft.
+1. **Leerlauf** — der Host kann eine Wette öffnen.
+2. **Öffnen** — Host wählt eine Wette aus dem Katalog und öffnet sie; die 15-Sekunden-Uhr läuft.
 3. **Tippen (verdeckt)** — Spieler tippen; sichtbar ist nur die Anzahl der abgegebenen Tipps.
-4. **Schließen** — nach 15 Sekunden oder per Host-Notbremse. **Ab jetzt werden alle abgegebenen Tipps offen angezeigt.** Es kann nicht mehr getippt werden. Der Drive läuft im Fernsehen.
+4. **Schließen** — nach 15 Sekunden oder per Host-Notbremse. **Ab jetzt werden alle abgegebenen Tipps offen angezeigt.** Es kann nicht mehr getippt werden. Der Spielzug läuft im Fernsehen.
 5. **Auflösen** — der Host wählt den tatsächlichen Ausgang. **Erst jetzt** werden Punkte verrechnet: Pool bilden, Strafen einsammeln, Gewinner nach Anteilen auszahlen, Leaderboard aktualisieren.
 6. Zurück zu Leerlauf.
 
-**Wichtig:** Aufdeckung der Tipps erfolgt bei **Marktschluss** (Schritt 4). Die **Punkte-Verrechnung** erfolgt getrennt davon erst beim **Auflösen** (Schritt 5).
+**Wichtig:** Aufdeckung der Tipps erfolgt beim **Schließen** (Schritt 4). Die **Punkte-Verrechnung** erfolgt getrennt davon erst beim **Auflösen** (Schritt 5).
 
 ## 10. Rollen
 
-- **Host:** hat zusätzlich die Steuerknöpfe (Markt öffnen, Markt jetzt schließen, Ausgang auflösen). Ansonsten normaler Spieler.
+- **Host:** hat zusätzlich die Steuerknöpfe (Wette auswählen und öffnen, jetzt schließen, Ausgang auflösen, Runde annullieren). Ansonsten normaler Spieler.
 - **Spieler:** tippen, sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard.
 
 ## 11. Bewusst nicht enthalten (out of scope)
@@ -145,5 +176,5 @@ Die Auszahlung trennt zwei Dinge: die **echten Punkte** im Pool und die **Anteil
 
 ## 12. Offene Punkte / spätere Erweiterungen
 
-- Weitere feste Markttypen über den Drive-Ausgang hinaus.
+- Weitere Wetten über die fünf aus Abschnitt 4 hinaus.
 - Nachjustierung der Parameter aus 3.1 am realen Spielgefühl.

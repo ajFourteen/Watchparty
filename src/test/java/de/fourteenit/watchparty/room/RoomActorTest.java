@@ -13,7 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Prueft den in Etappe 1 eingefuehrten Testzugang {@code awaitIdle()}: Ohne
+ * Prueft den Testzugang {@code awaitIdle()}: Ohne
  * ihn waere jede Assertion nach einem {@code loop.execute(...)} race-behaftet,
  * weil die Verarbeitung asynchron auf dem Raum-Thread laeuft.
  */

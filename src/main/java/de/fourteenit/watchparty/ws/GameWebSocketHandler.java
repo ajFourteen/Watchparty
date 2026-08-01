@@ -72,13 +72,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         client,
                         node.path("name").asText(null),
                         node.path("token").asText(null));
-                case "OPEN_MARKET" -> roomActor.openMarket(client);
-                case "PLACE_BET" -> roomActor.placeBet(
+                case "OPEN_BET" -> roomActor.openBet(client, node.path("betId").asText(null));
+                case "PLACE_PICK" -> roomActor.placePick(
                         client,
                         node.path("outcomeId").asText(null),
                         node.hasNonNull("stake") ? node.path("stake").asInt() : null);
-                case "CLOSE_MARKET" -> roomActor.closeMarket(client);
+                case "CLOSE_BET" -> roomActor.closeBet(client);
                 case "RESOLVE" -> roomActor.resolve(client, node.path("outcomeId").asText(null));
+                case "ANNUL" -> roomActor.annul(client);
                 default -> log.debug("Unbekannter Nachrichtentyp: {}", type);
             }
         } catch (Exception e) {

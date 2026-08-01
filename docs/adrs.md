@@ -15,17 +15,18 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-008 | Spring Boot mit Gradle als Server-Stack | Akzeptiert |
 | ADR-009 | Nebenläufigkeit über Single-Thread-Eventloop (Actor) | Akzeptiert |
 | ADR-010 | Runden-ID-Wache gegen veraltete Timer | Akzeptiert |
-| ADR-011 | Bet-Validierung gegen `closesAt`-Zeitstempel | Akzeptiert |
+| ADR-011 | Tipp-Validierung gegen `closesAt`-Zeitstempel | Akzeptiert |
 | ADR-012 | Senden vom Raum-Thread entkoppeln | Akzeptiert |
 | ADR-013 | Verdeckte Tipps über den Server erzwungen | Akzeptiert |
 | ADR-014 | Reconnect über Token im localStorage | Akzeptiert |
 | ADR-015 | React mit Build-Schritt als Frontend | Akzeptiert |
 | ADR-016 | Erster Joiner wird Host, Rolle wandert bei Verlust | Akzeptiert (präzisiert durch ADR-021) |
-| ADR-017 | Markt als Datenstruktur, nicht als Sonderfall im Code | Akzeptiert |
+| ADR-017 | Wette als Datenstruktur, nicht als Sonderfall im Code | Akzeptiert |
 | ADR-018 | Fly.io als Hosting, Subdomain bei IONOS | Akzeptiert |
 | ADR-019 | Deploy automatisiert über Semantic Release | Akzeptiert |
 | ADR-020 | Rundenablauf als Zustandsautomat mit eigenem RESOLVED | Akzeptiert |
 | ADR-021 | Host-Rolle nach Beitrittsreihenfolge, Übergabe asymmetrisch | Akzeptiert |
+| ADR-022 | „Wette" statt „Markt", Tipp heißt im Code `Pick` | Akzeptiert |
 
 ---
 
@@ -187,7 +188,7 @@ Cancellation ist nur Optimierung.
 - Kein versehentliches Schließen einer Folgerunde.
 - ID-Vergabe pro Runde und ID-Prüfung im Close-Handler nötig.
 
-## ADR-011: Bet-Validierung gegen `closesAt`-Zeitstempel
+## ADR-011: Tipp-Validierung gegen `closesAt`-Zeitstempel
 
 **Status:** Akzeptiert
 
@@ -282,20 +283,23 @@ Spieler — sonst wäre der Raum steuerlos.
 - Die ursprünglich offene Teilfrage — bekommt ein per Token zurückkehrender
   Host seine Rolle wieder? — ist mit ADR-021 beantwortet.
 
-## ADR-017: Markt als Datenstruktur, nicht als Sonderfall im Code
+## ADR-017: Wette als Datenstruktur, nicht als Sonderfall im Code
 
 **Status:** Akzeptiert
 
 **Kontext:** Zum Start gibt es nur „Ausgang des nächsten Drives", später
-sollen weitere feste Märkte dazukommen.
+sollen weitere feste Wetten dazukommen.
 
-**Entscheidung:** Ein Markt ist fachlich eine Frage plus eine Liste von
+**Entscheidung:** Eine Wette ist fachlich eine Frage plus eine Liste von
 Optionen plus eine Auflösung. Der Drive-Ausgang ist nur die erste Instanz
 davon, kein eingebauter Spezialfall.
 
 **Konsequenzen:**
-- Weitere Märkte sind später ein neuer Datensatz, kein Umbau der Wett-Engine.
-- Kostet heute kaum etwas, spart den Bruch beim zweiten Markt.
+- Weitere Wetten sind später ein neuer Datensatz, kein Umbau der Wett-Engine.
+- Kostet heute kaum etwas, spart den Bruch bei der zweiten Wette.
+- Eingelöst mit dem Katalog aus Anforderung 4: Die Wetten nach dem
+  Drive-Ausgang waren reine Datensätze in `Bets`, plus die Auswahl beim
+  Öffnen. Die Wett-Engine blieb unberührt.
 
 ## ADR-018: Fly.io als Hosting, Subdomain bei IONOS
 
@@ -412,7 +416,7 @@ jedes Ereignis offen, ob es in einem fremden Zustand ignoriert wird, einen
 Fehler auslöst oder gar nicht erst gesendet werden darf — und das JSON-Schema
 lässt sich nicht ableiten.
 
-**Entscheidung:** Ein Markt ist genau eine Runde mit monoton steigender
+**Entscheidung:** Eine geöffnete Wette ist genau eine Runde mit monoton steigender
 `roundId`. Erlaubt sind:
 
 | Ereignis | IDLE | OPEN | CLOSED | RESOLVED |
@@ -478,3 +482,42 @@ Die Übergabe ist dabei asymmetrisch:
   Wake-Lock würde das zusätzlich beruhigen.
 - Wer den localStorage leert und neu beitritt, rutscht ans Ende der Reihe.
   Das ist hinnehmbar und für den Notfall sogar nützlich.
+
+## ADR-022: „Wette" statt „Markt", Tipp heißt im Code `Pick`
+
+**Status:** Akzeptiert
+
+**Kontext:** „Markt" stammt aus der Buchmacher-Welt und war von Anfang an ein
+Fremdkörper: Es gibt hier keinen Buchmacher, keine Quoten und nichts, was
+gehandelt wird (ADR-001). Am Tisch sagt niemand „öffne den Markt". Mit dem
+zweiten bis fünften Eintrag im Katalog wurde der Begriff außerdem sichtbarer
+— er steht jetzt in einer Auswahlliste, nicht nur in einem einzigen Knopf.
+
+**Entscheidung:** Der Fachbegriff ist **Wette**: die Frage, auf die getippt
+wird. Was ein Spieler abgibt, bleibt der **Tipp**.
+
+Im Code heißt die Wette `Bet` und der Tipp `Pick`. Die naheliegende Variante
+— `Bet` bleibt der Tipp, die Wette wird `Wager` — wurde verworfen: `Wager`
+und `Bet` sind im Englischen nahezu synonym, die Unterscheidung müsste man
+sich merken statt sie zu lesen. `Pick` ist im Football für genau diese Sache
+gebräuchlich.
+
+| Deutsch | Code |
+|---|---|
+| Wette | `Bet` (vorher `Market`) |
+| Tipp | `Pick` (vorher `Bet`) |
+| Einsatz | `stake` |
+| Ausgang | `Outcome` |
+
+**Konsequenzen:**
+- Bruch im Protokoll: `OPEN_MARKET`/`CLOSE_MARKET`/`PLACE_BET`/`YOUR_BET`
+  heißen `OPEN_BET`/`CLOSE_BET`/`PLACE_PICK`/`YOUR_PICK`, im STATE
+  `market`→`bet`, `betCount`→`pickCount`, `revealedBets`→`revealedPicks`.
+  Folgenlos, weil es keine Persistenz gibt (ADR-004), genau eine Instanz
+  läuft (ADR-005) und das Frontend aus demselben Jar kommt (ADR-015) — ein
+  Deploy tauscht beide Seiten gleichzeitig.
+- Ein alter Client im Browser-Cache spricht nach dem Deploy die alte Sprache.
+  Er bekommt auf jede Aktion einen Fehler, ein Neuladen behebt es. Für ein
+  Partyspiel ohne laufende Sitzungen zwischen Abenden hinnehmbar.
+- `OPEN_BET` ohne `betId` öffnet weiterhin den Drive-Ausgang. Das hält den
+  häufigsten Fall billig und macht das Feld optional statt zwingend.

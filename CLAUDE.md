@@ -3,8 +3,8 @@
 Kontext für die Arbeit an diesem Projekt. Bei fachlichen Fragen zuerst
 `docs/anforderungen.md` lesen, bei technischen `docs/adrs.md`. Was noch nicht
 entschieden ist, steht in `docs/offene-entscheidungen.md` — dort bitte nichts
-stillschweigend festlegen, sondern nachfragen. Der Weg zur ersten spielbaren
-Fassung steht in `docs/mvp-plan.md`.
+stillschweigend festlegen, sondern nachfragen. Was am ersten echten Spielabend
+zu beobachten ist, steht in `docs/probelauf.md`.
 
 ## Was das ist
 
@@ -13,10 +13,11 @@ schauen. Über ihre Handys tippen sie auf den Ausgang des nächsten Drives,
 setzen dabei Punkte und teilen sich einen Pool nach Totalisator-Prinzip
 (pari-mutuel). Kein echtes Geld, keine Buchmacher-Quoten.
 
-Aktueller Stand: Der volle Rundenablauf aus `docs/mvp-plan.md` ist umgesetzt
-und durchspielbar (Etappen 1–5). Offen ist noch Etappe 6: die drei Parameter
-aus Anforderung 3.1 sind implementiert, aber nicht am echten Spielabend
-kalibriert (siehe `docs/offene-entscheidungen.md`).
+Aktueller Stand: Fachlich vollständig. Der volle Rundenablauf ist umgesetzt
+und durchspielbar, dazu der Wettkatalog aus Anforderung 4 mit vier Wetten,
+eine Kurzanleitung im Spiel und der Broadcast-Look. Was fehlt, lässt sich
+nicht mehr am Schreibtisch klären: Die drei Parameter aus Anforderung 3.1
+sind implementiert, aber nicht am echten Spielabend kalibriert.
 
 ## Stack
 
@@ -67,39 +68,47 @@ sie brechen würde, ist das ein Anlass nachzufragen, kein Detail.
 
 ```
 src/main/java/de/fourteenit/watchparty/
-  room/RoomActor.java      Eventloop und Zustandsautomat (ADR-020): OPEN_MARKET,
-                           PLACE_BET, CLOSE_MARKET, RESOLVE, Auto-Close
+  room/RoomActor.java      Eventloop und Zustandsautomat (ADR-020): OPEN_BET,
+                           PLACE_PICK, CLOSE_BET, RESOLVE, ANNUL, Auto-Close
   room/Room.java           Raumzustand, Host-Rolle, Rundenverwaltung
-  room/Round.java          Eine Runde: Markt, closesAt, eingefrorener
+  room/Round.java          Eine Runde: Wette, closesAt, eingefrorener
                            Teilnehmerkreis, Tipps, Ergebnis
   room/Settlement.java     Abrechnung als reine Funktion (Anforderung 7/8)
   room/Player.java         Teilnehmer, inkl. Verpasste-Runden-Zähler (8.1)
   room/Phase.java          IDLE/OPEN/CLOSED/RESOLVED
-  room/Markets.java        Marktkatalog (ADR-017)
+  room/Bets.java           Wettkatalog (ADR-017), einzige Quelle für Wetten
+  room/Bet.java            Eine Wette: Frage, Regel, Ausgänge
+  room/Pick.java           Ein abgegebener Tipp (ADR-022)
   ws/GameWebSocketHandler  Frames -> Kommandos, ändert selbst nichts
   ws/ClientSession.java    Verbindung mit eigener Ausgangs-Queue
-  protocol/Messages.java   Nachrichten Server -> Client (STATE, YOUR_BET, ...)
+  protocol/Messages.java   Nachrichten Server -> Client (STATE, YOUR_PICK, ...)
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token, Uhren-Offset
   App.jsx                  Phasen-Ansichten: Tippen, Countdown, Aufdeckung,
                            Ergebnis, Leaderboard
-docs/                      Anforderungen, ADRs, MVP-Plan, offene Entscheidungen
+  Guide.jsx                Kurzanleitung als Overlay, baut den Wettkatalog
+                           aus den Serverdaten auf
+docs/                      Anforderungen, ADRs, offene Entscheidungen,
+                           Beobachtungsbogen für den Probelauf
 ```
 
 ## Nächster Schritt
 
-Etappe 6 aus `docs/mvp-plan.md` (Härtung und Kalibrierung): Die drei
-Parameter aus Anforderung 3.1 an einem echten Spielabend gegen das
-tatsächliche Spielgefühl prüfen — das kann nur am Tisch passieren, nicht am
-Schreibtisch. Reconnect ist bereits über automatisierte Tests in jeder Phase
-durchgespielt (`ReconnectTest`); zusätzlich lohnt sich ein manueller Test mit
-mehreren echten Handys, da Mobile-Browser-Eigenheiten (Tab-Suspend, Wake
-Lock) sich nicht vollständig simulieren lassen.
+Der erste Probelauf an einem echten Spielabend. Was dabei zu beobachten ist
+— Parameter, Fensterlänge, Größe des Wettkatalogs, Verhalten der Handys —
+steht als Beobachtungsbogen in `docs/probelauf.md`. Reconnect ist über
+automatisierte Tests in jeder Phase durchgespielt (`ReconnectTest`); was
+bleibt, sind Mobile-Browser-Eigenheiten (Tab-Suspend, Wake Lock), die sich
+nicht simulieren lassen.
 
 ## Konventionen
 
 - Sprache im Code: Bezeichner englisch, Kommentare und Dokumentation deutsch.
 - Kommentare erklären das *Warum* (meist einen ADR), nicht das *Was*.
 - Der Host ist eine Rolle, kein Gerät: nur zusätzliche Steuerknöpfe.
-- Fachbegriffe konsistent halten: Markt, Wettfenster, Runde, Tipp, Einsatz,
-  Anteil, Pool, Strafe, Auflösen.
+- Fachbegriffe konsistent halten: Wette, Wettfenster, Runde, Tipp, Einsatz,
+  Anteil, Pool, Strafe, Auflösen. Es heißt **nicht** Markt (ADR-022).
+- Zwei Begriffe, die sich im Code leicht verwechseln (ADR-022): eine `Bet`
+  ist die *Wette*, also die Frage; ein `Pick` ist der *Tipp* eines Spielers.
+- Sichtbare Texte stehen mit Umlauten im Quelltext; die Kodierung ist in
+  `build.gradle.kts` auf UTF-8 festgenagelt.

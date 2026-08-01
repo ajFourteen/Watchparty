@@ -12,9 +12,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Etappe 6 (Haertung): Reconnect gezielt in jeder Phase durchspielen. Das
- * Handy mitten im offenen Fenster zu sperren ist der Realfall, nicht die
- * Ausnahme (mvp-plan.md). Ueber die WebSocket-Ebene laesst sich das
+ * Reconnect gezielt in jeder Phase durchspielen (ADR-014). Das Handy mitten
+ * im offenen Fenster zu sperren ist der Realfall, nicht die Ausnahme —
+ * deshalb jede Phase einzeln. Ueber die WebSocket-Ebene laesst sich das
  * deterministisch nachstellen, indem dieselbe ClientSession disconnected und
  * eine neue mit demselben Token wieder verbunden wird (ADR-014).
  */
@@ -73,15 +73,15 @@ class ReconnectTest {
         ClientSession anna = join("Anna");
         String token = actor.getRoomForTest().byId(anna.getPlayerId()).getToken();
 
-        actor.openMarket(host);
+        actor.openBet(host, null);
         actor.disconnected(anna);
         actor.awaitIdle();
 
         ClientSession back = reconnect("Anna", token);
-        actor.placeBet(back, "touchdown", null);
+        actor.placePick(back, "touchdown", null);
         actor.awaitIdle();
 
-        assertThat(actor.getRoomForTest().getCurrentRound().hasBet(back.getPlayerId())).isTrue();
+        assertThat(actor.getRoomForTest().getCurrentRound().hasPick(back.getPlayerId())).isTrue();
     }
 
     @Test
@@ -91,17 +91,17 @@ class ReconnectTest {
         String annaId = anna.getPlayerId();
         String token = actor.getRoomForTest().byId(annaId).getToken();
 
-        actor.openMarket(host);
-        actor.placeBet(anna, "punt", 40);
+        actor.openBet(host, null);
+        actor.placePick(anna, "punt", 40);
         actor.disconnected(anna);
         actor.awaitIdle();
 
         // Reconnect mitten in OPEN: der Server kennt den Tipp weiterhin --
-        // er geht separat als YOUR_BET erneut an die neue Session (Etappe 4).
+        // er geht separat als YOUR_PICK erneut an die neue Session (ADR-013).
         reconnect("Anna", token);
-        Bet bet = actor.getRoomForTest().getCurrentRound().getBets().get(annaId);
-        assertThat(bet.outcomeId()).isEqualTo("punt");
-        assertThat(bet.stake()).isEqualTo(40);
+        Pick pick = actor.getRoomForTest().getCurrentRound().getPicks().get(annaId);
+        assertThat(pick.outcomeId()).isEqualTo("punt");
+        assertThat(pick.stake()).isEqualTo(40);
     }
 
     @Test
@@ -110,17 +110,17 @@ class ReconnectTest {
         ClientSession anna = join("Anna");
         String token = actor.getRoomForTest().byId(anna.getPlayerId()).getToken();
 
-        actor.openMarket(host);
-        actor.placeBet(host, "touchdown", 100);
-        actor.placeBet(anna, "punt", 50);
-        actor.closeMarket(host);
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", 100);
+        actor.placePick(anna, "punt", 50);
+        actor.closeBet(host);
         actor.disconnected(anna);
         actor.awaitIdle();
 
         reconnect("Anna", token);
 
         assertThat(actor.getRoomForTest().getPhase()).isEqualTo(Phase.CLOSED);
-        assertThat(actor.getRoomForTest().getCurrentRound().getBets()).hasSize(2);
+        assertThat(actor.getRoomForTest().getCurrentRound().getPicks()).hasSize(2);
     }
 
     @Test
@@ -129,10 +129,10 @@ class ReconnectTest {
         ClientSession anna = join("Anna");
         String token = actor.getRoomForTest().byId(anna.getPlayerId()).getToken();
 
-        actor.openMarket(host);
-        actor.placeBet(host, "touchdown", 100);
-        actor.placeBet(anna, "punt", 50);
-        actor.closeMarket(host);
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", 100);
+        actor.placePick(anna, "punt", 50);
+        actor.closeBet(host);
         actor.resolve(host, "touchdown");
         actor.disconnected(anna);
         actor.awaitIdle();
@@ -155,9 +155,9 @@ class ReconnectTest {
         actor.disconnected(anna);
         actor.awaitIdle();
 
-        actor.openMarket(host);
-        actor.placeBet(host, "touchdown", null);
-        actor.closeMarket(host);
+        actor.openBet(host, null);
+        actor.placePick(host, "touchdown", null);
+        actor.closeBet(host);
         actor.resolve(host, "touchdown");
         actor.awaitIdle();
         assertThat(actor.getRoomForTest().byId(annaId).getMissedRounds()).isEqualTo(1);

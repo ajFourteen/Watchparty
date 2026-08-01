@@ -15,12 +15,12 @@ class SettlementTest {
 
     @Test
     void normalfallVerteiltPoolNachAnteilenUndZiehtVerliererAb() {
-        List<Bet> bets = List.of(
-                new Bet("a", "td", 100),
-                new Bet("b", "td", 50),
-                new Bet("c", "punt", 25));
+        List<Pick> picks = List.of(
+                new Pick("a", "td", 100),
+                new Pick("b", "td", 50),
+                new Pick("c", "punt", 25));
 
-        Map<String, Integer> deltas = Settlement.settle(bets, Set.of(), Map.of(), "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS);
 
         assertThat(deltas.get("a")).isEqualTo(17);
         assertThat(deltas.get("b")).isEqualTo(8);
@@ -30,12 +30,12 @@ class SettlementTest {
 
     @Test
     void pushGibtEinsaetzeZurueckUndVerteiltStrafenAnAlleTipper() {
-        List<Bet> bets = List.of(
-                new Bet("a", "punt", 50),
-                new Bet("b", "punt", 25));
+        List<Pick> picks = List.of(
+                new Pick("a", "punt", 50),
+                new Pick("b", "punt", 25));
         Map<String, Integer> balances = Map.of("d", 1000);
 
-        Map<String, Integer> deltas = Settlement.settle(bets, Set.of("d"), balances, "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS);
 
         assertThat(deltas.get("a")).isEqualTo(17);
         assertThat(deltas.get("b")).isEqualTo(8);
@@ -53,11 +53,11 @@ class SettlementTest {
 
     @Test
     void alleTippenDenselbenRichtigenAusgangErgibtNettoNull() {
-        List<Bet> bets = List.of(
-                new Bet("a", "td", 25),
-                new Bet("b", "td", 25));
+        List<Pick> picks = List.of(
+                new Pick("a", "td", 25),
+                new Pick("b", "td", 25));
 
-        Map<String, Integer> deltas = Settlement.settle(bets, Set.of(), Map.of(), "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS);
 
         assertThat(deltas.get("a")).isZero();
         assertThat(deltas.get("b")).isZero();
@@ -65,12 +65,12 @@ class SettlementTest {
 
     @Test
     void spielerMitNullPunktenGehtAllInUndGewinntEchtePunkte() {
-        List<Bet> bets = List.of(
-                new Bet("a", "td", 0),
-                new Bet("b", "punt", 100));
+        List<Pick> picks = List.of(
+                new Pick("a", "td", 0),
+                new Pick("b", "punt", 100));
         Map<String, Integer> balances = Map.of("a", 0);
 
-        Map<String, Integer> deltas = Settlement.settle(bets, Set.of(), balances, "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), balances, "td", PARAMS);
 
         assertThat(deltas.get("a")).isEqualTo(100);
         assertThat(deltas.get("b")).isEqualTo(-100);
@@ -79,12 +79,12 @@ class SettlementTest {
 
     @Test
     void mindestAnteilGreiftBeiEinsatzUnterDemMinimum() {
-        List<Bet> bets = List.of(
-                new Bet("a", "td", 10),
-                new Bet("b", "td", 25),
-                new Bet("c", "punt", 50));
+        List<Pick> picks = List.of(
+                new Pick("a", "td", 10),
+                new Pick("b", "td", 25),
+                new Pick("c", "punt", 50));
 
-        Map<String, Integer> deltas = Settlement.settle(bets, Set.of(), Map.of(), "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS);
 
         // a hat nur 10 gesetzt, zaehlt aber wie b mit dem Mindesteinsatz 25 (7.1).
         assertThat(deltas.get("a")).isEqualTo(33);
@@ -95,13 +95,13 @@ class SettlementTest {
 
     @Test
     void restVerteilungNachGroesstenRestenTrifftExaktDenPool() {
-        List<Bet> bets = List.of(
-                new Bet("a", "td", 25),
-                new Bet("b", "td", 25),
-                new Bet("c", "td", 25));
+        List<Pick> picks = List.of(
+                new Pick("a", "td", 25),
+                new Pick("b", "td", 25),
+                new Pick("c", "td", 25));
         Map<String, Integer> balances = Map.of("d", 1000);
 
-        Map<String, Integer> deltas = Settlement.settle(bets, Set.of("d"), balances, "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS);
 
         assertThat(deltas.get("a")).isEqualTo(9);
         assertThat(deltas.get("b")).isEqualTo(8);
@@ -112,10 +112,10 @@ class SettlementTest {
 
     @Test
     void strafeWirdAufDenKontostandGekappt() {
-        List<Bet> bets = List.of(new Bet("a", "td", 25));
+        List<Pick> picks = List.of(new Pick("a", "td", 25));
         Map<String, Integer> balances = Map.of("d", 10);
 
-        Map<String, Integer> deltas = Settlement.settle(bets, Set.of("d"), balances, "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS);
 
         assertThat(deltas.get("d")).isEqualTo(-10);
         assertThat(deltas.get("a")).isEqualTo(10);
@@ -134,30 +134,30 @@ class SettlementTest {
 
         for (int run = 0; run < 500; run++) {
             int playerCount = 1 + random.nextInt(8);
-            List<Bet> bets = new java.util.ArrayList<>();
+            List<Pick> picks = new java.util.ArrayList<>();
             Map<String, Integer> balances = new java.util.HashMap<>();
-            java.util.Set<String> nonBettors = new java.util.HashSet<>();
+            java.util.Set<String> nonPickers = new java.util.HashSet<>();
 
             for (int i = 0; i < playerCount; i++) {
                 String playerId = "p" + i;
                 int balance = random.nextInt(500);
                 balances.put(playerId, balance);
 
-                boolean bets_ = random.nextBoolean();
-                if (bets_) {
+                boolean picks_ = random.nextBoolean();
+                if (picks_) {
                     int minStake = PARAMS.minStake();
                     int stake = balance < minStake ? balance : minStake + random.nextInt(Math.max(1, balance - minStake + 1));
-                    bets.add(new Bet(playerId, outcomes.get(random.nextInt(outcomes.size())), stake));
+                    picks.add(new Pick(playerId, outcomes.get(random.nextInt(outcomes.size())), stake));
                 } else {
-                    nonBettors.add(playerId);
+                    nonPickers.add(playerId);
                 }
             }
 
             String winningOutcome = outcomes.get(random.nextInt(outcomes.size()));
-            Map<String, Integer> deltas = Settlement.settle(bets, nonBettors, balances, winningOutcome, PARAMS);
+            Map<String, Integer> deltas = Settlement.settle(picks, nonPickers, balances, winningOutcome, PARAMS);
 
             assertThat(sumOf(deltas))
-                    .as("Lauf %d: bets=%s nonBettors=%s balances=%s winner=%s", run, bets, nonBettors, balances,
+                    .as("Lauf %d: picks=%s nonPickers=%s balances=%s winner=%s", run, picks, nonPickers, balances,
                             winningOutcome)
                     .isZero();
         }

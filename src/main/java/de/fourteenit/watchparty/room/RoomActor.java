@@ -33,7 +33,7 @@ import java.util.concurrent.TimeoutException;
  *
  * Dadurch ist die gesamte Logik in {@code handle*} gewoehnlicher
  * Single-Thread-Code: kein synchronized, kein volatile, keine Concurrent-
- * Collections. Timer-vs-Bet und manueller-vs-automatischer Marktschluss loesen
+ * Collections. Timer-vs-Pick und manueller-vs-automatischer Schluss loesen
  * sich allein ueber die Reihenfolge in dieser Queue auf (ADR-010, ADR-011).
  */
 @Component
@@ -90,20 +90,24 @@ public class RoomActor {
         loop.execute(() -> handleJoin(session, name, token));
     }
 
-    public void openMarket(ClientSession session) {
-        loop.execute(() -> handleOpenMarket(session));
+    public void openBet(ClientSession session, String betId) {
+        loop.execute(() -> handleOpenBet(session, betId));
     }
 
-    public void placeBet(ClientSession session, String outcomeId, Integer stake) {
-        loop.execute(() -> handlePlaceBet(session, outcomeId, stake));
+    public void placePick(ClientSession session, String outcomeId, Integer stake) {
+        loop.execute(() -> handlePlacePick(session, outcomeId, stake));
     }
 
-    public void closeMarket(ClientSession session) {
-        loop.execute(() -> handleCloseMarket(session));
+    public void closeBet(ClientSession session) {
+        loop.execute(() -> handleCloseBet(session));
     }
 
     public void resolve(ClientSession session, String outcomeId) {
         loop.execute(() -> handleResolve(session, outcomeId));
+    }
+
+    public void annul(ClientSession session) {
+        loop.execute(() -> handleAnnul(session));
     }
 
     // --- Verarbeitung (laeuft ausschliesslich auf dem Raum-Thread) -----------
@@ -129,8 +133,8 @@ public class RoomActor {
         session.setPlayerId(player.getId());
         reassignHost();
 
-        sendTo(session, new Messages.Welcome(player.getId(), player.getToken()));
-        sendYourBetIfAny(session, player.getId());
+        sendTo(session, new Messages.Welcome(player.getId(), player.getToken(), catalogView()));
+        sendYourPickIfAny(session, player.getId());
         broadcastState();
         log.info("{} ist dabei ({} Spieler im Raum)", player.getName(), room.players().size());
     }
@@ -154,28 +158,35 @@ public class RoomActor {
         broadcastState();
     }
 
-    private void handleOpenMarket(ClientSession session) {
+    private void handleOpenBet(ClientSession session, String betId) {
         if (!room.isHost(session.getPlayerId())) {
-            sendTo(session, new Messages.Error("Nur der Host kann den Markt oeffnen."));
+            sendTo(session, new Messages.Error("Nur der Host kann eine Wette öffnen."));
             return;
         }
         Phase phase = room.getPhase();
         if (phase == Phase.OPEN || phase == Phase.CLOSED) {
-            sendTo(session, new Messages.Error("Es laeuft schon eine Runde."));
+            sendTo(session, new Messages.Error("Es läuft schon eine Runde."));
+            return;
+        }
+        // Ohne Angabe der Drive-Ausgang: die mit Abstand haeufigste Wette, und
+        // aeltere Clients kennen die Auswahl noch nicht.
+        Bet bet = betId == null ? Bets.DRIVE_OUTCOME : Bets.byId(betId);
+        if (bet == null) {
+            sendTo(session, new Messages.Error("Unbekannte Wette."));
             return;
         }
 
         if (autoCloseTask != null) {
             autoCloseTask.cancel();
         }
-        Round round = room.openMarket(Markets.DRIVE_OUTCOME, clock.instant(), BETTING_WINDOW);
+        Round round = room.openBet(bet, clock.instant(), BETTING_WINDOW);
         long roundId = round.getId();
         autoCloseTask = scheduler.schedule(() -> loop.execute(() -> handleAutoClose(roundId)), BETTING_WINDOW);
 
         broadcastState();
     }
 
-    private void handlePlaceBet(ClientSession session, String outcomeId, Integer requestedStake) {
+    private void handlePlacePick(ClientSession session, String outcomeId, Integer requestedStake) {
         String playerId = session.getPlayerId();
         Player player = playerId == null ? null : room.byId(playerId);
         if (player == null) {
@@ -190,11 +201,11 @@ public class RoomActor {
             sendTo(session, new Messages.Error("Das Wettfenster ist nicht offen."));
             return;
         }
-        if (round.hasBet(playerId)) {
+        if (round.hasPick(playerId)) {
             sendTo(session, new Messages.Error("Du hast in dieser Runde schon getippt."));
             return;
         }
-        boolean validOutcome = round.getMarket().outcomes().stream()
+        boolean validOutcome = round.getBet().outcomes().stream()
                 .anyMatch(outcome -> outcome.id().equals(outcomeId));
         if (!validOutcome) {
             sendTo(session, new Messages.Error("Unbekannter Ausgang."));
@@ -202,9 +213,9 @@ public class RoomActor {
         }
 
         int stake = resolveStake(player, requestedStake);
-        round.addBet(new Bet(playerId, outcomeId, stake));
+        round.addPick(new Pick(playerId, outcomeId, stake));
 
-        sendTo(session, new Messages.YourBet(outcomeId, stake));
+        sendTo(session, new Messages.YourPick(outcomeId, stake));
         broadcastState();
     }
 
@@ -223,14 +234,14 @@ public class RoomActor {
         return Math.max(minStake, Math.min(wanted, points));
     }
 
-    private void handleCloseMarket(ClientSession session) {
+    private void handleCloseBet(ClientSession session) {
         if (!room.isHost(session.getPlayerId())) {
-            sendTo(session, new Messages.Error("Nur der Host kann das Fenster schliessen."));
+            sendTo(session, new Messages.Error("Nur der Host kann das Fenster schließen."));
             return;
         }
         Phase phase = room.getPhase();
         if (phase == Phase.IDLE || phase == Phase.RESOLVED) {
-            sendTo(session, new Messages.Error("Kein offener Markt."));
+            sendTo(session, new Messages.Error("Keine offene Wette."));
             return;
         }
         if (phase == Phase.CLOSED) {
@@ -257,33 +268,72 @@ public class RoomActor {
         round.setPhase(Phase.CLOSED);
     }
 
+    /**
+     * Anforderung 8.6: Die offene Wette passt nicht mehr zum Spiel — etwa weil
+     * das Team statt des Field Goals doch auf den vierten Versuch geht. Dann
+     * gibt es keinen ehrlichen Ausgang, und der Host dreht die Runde zurueck.
+     *
+     * Das ist deshalb billig, weil Punkte erst beim Aufloesen verrechnet werden
+     * (ADR-020): Vor RESOLVED gibt es nichts zurueckzurechnen, keine Strafe ist
+     * eingesammelt, kein Pool gebildet. Die Nullsumme kann hier gar nicht
+     * kaputtgehen. Nach RESOLVED ist deshalb auch Schluss — dann waere es kein
+     * Abbruch mehr, sondern eine Rueckabwicklung.
+     */
+    private void handleAnnul(ClientSession session) {
+        if (!room.isHost(session.getPlayerId())) {
+            sendTo(session, new Messages.Error("Nur der Host kann eine Runde annullieren."));
+            return;
+        }
+        Round round = room.getCurrentRound();
+        Phase phase = room.getPhase();
+        if (round == null || (phase != Phase.OPEN && phase != Phase.CLOSED)) {
+            sendTo(session, new Messages.Error("Es läuft keine Runde, die sich annullieren ließe."));
+            return;
+        }
+
+        if (autoCloseTask != null) {
+            autoCloseTask.cancel();
+        }
+        round.setDeltas(Map.of());
+        round.setPool(0);
+        round.setAnnulled(true);
+        round.setAnnulledByHost(true);
+        round.setPhase(Phase.RESOLVED);
+
+        // RESOLVED erlaubt das Zurueckholen der Host-Rolle (ADR-021).
+        reassignHost();
+
+        log.info("Runde {} vom Host annulliert", round.getId());
+        broadcastState();
+    }
+
     private void handleResolve(ClientSession session, String winningOutcomeId) {
         if (!room.isHost(session.getPlayerId())) {
-            sendTo(session, new Messages.Error("Nur der Host kann aufloesen."));
+            sendTo(session, new Messages.Error("Nur der Host kann auflösen."));
             return;
         }
         Round round = room.getCurrentRound();
         if (round == null || round.getPhase() != Phase.CLOSED) {
-            sendTo(session, new Messages.Error("Der Markt ist nicht geschlossen."));
+            sendTo(session, new Messages.Error("Die Wette ist nicht geschlossen."));
             return;
         }
-        boolean validOutcome = round.getMarket().outcomes().stream()
+        boolean validOutcome = round.getBet().outcomes().stream()
                 .anyMatch(outcome -> outcome.id().equals(winningOutcomeId));
         if (!validOutcome) {
             sendTo(session, new Messages.Error("Unbekannter Ausgang."));
             return;
         }
 
-        List<Bet> bets = List.copyOf(round.getBets().values());
-        Set<String> nonBettors = new LinkedHashSet<>(round.getParticipants());
-        nonBettors.removeAll(round.getBets().keySet());
+        List<Pick> picks = List.copyOf(round.getPicks().values());
+        Set<String> nonPickers = new LinkedHashSet<>(round.getParticipants());
+        nonPickers.removeAll(round.getPicks().keySet());
 
         Map<String, Integer> balances = new LinkedHashMap<>();
         for (Player player : room.players()) {
             balances.put(player.getId(), player.getPoints());
         }
 
-        Map<String, Integer> deltas = Settlement.settle(bets, nonBettors, balances, winningOutcomeId, PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, nonPickers, balances, winningOutcomeId, PARAMS);
         for (Map.Entry<String, Integer> entry : deltas.entrySet()) {
             Player player = room.byId(entry.getKey());
             if (player != null) {
@@ -293,11 +343,11 @@ public class RoomActor {
 
         // 8.4: Ohne einen einzigen Tipp gibt es keinen Pool und keine
         // Auszahlung; die Runde ist annulliert.
-        boolean annulled = bets.isEmpty();
+        boolean annulled = picks.isEmpty();
         int pool = 0;
         if (!annulled) {
-            int totalStakes = bets.stream().mapToInt(Bet::stake).sum();
-            int collectedPenalties = nonBettors.stream()
+            int totalStakes = picks.stream().mapToInt(Pick::stake).sum();
+            int collectedPenalties = nonPickers.stream()
                     .mapToInt(id -> Math.min(PARAMS.penalty(), balances.getOrDefault(id, 0)))
                     .sum();
             pool = totalStakes + collectedPenalties;
@@ -305,8 +355,8 @@ public class RoomActor {
 
         // Anforderung 8.1: Nur getrennte Nicht-Tipper zaehlen fuer die Pause;
         // wer verbunden ist und nicht tippt, zahlt jede Runde ohne Pause.
-        for (String nonBettorId : nonBettors) {
-            Player player = room.byId(nonBettorId);
+        for (String nonPickerId : nonPickers) {
+            Player player = room.byId(nonPickerId);
             if (player != null && !player.isConnected()) {
                 player.incrementMissedRounds();
             }
@@ -330,14 +380,14 @@ public class RoomActor {
         room.reassignHostIfNeeded(allowPickup);
     }
 
-    private void sendYourBetIfAny(ClientSession session, String playerId) {
+    private void sendYourPickIfAny(ClientSession session, String playerId) {
         Round round = room.getCurrentRound();
         if (round == null || round.getPhase() != Phase.OPEN) {
             return;
         }
-        Bet bet = round.getBets().get(playerId);
-        if (bet != null) {
-            sendTo(session, new Messages.YourBet(bet.outcomeId(), bet.stake()));
+        Pick pick = round.getPicks().get(playerId);
+        if (pick != null) {
+            sendTo(session, new Messages.YourPick(pick.outcomeId(), pick.stake()));
         }
     }
 
@@ -368,44 +418,53 @@ public class RoomActor {
 
         Round round = room.getCurrentRound();
         Phase phase = room.getPhase();
-        Messages.MarketView market = null;
+        Messages.BetView bet = null;
         Long roundId = null;
         Long closesAt = null;
-        Integer betCount = null;
+        Integer pickCount = null;
         Integer participantCount = null;
-        List<Messages.RevealedBet> revealedBets = null;
+        List<Messages.RevealedPick> revealedPicks = null;
         String winningOutcomeId = null;
         Integer pool = null;
         Boolean annulled = null;
+        String annulReason = null;
         Map<String, Integer> deltas = null;
 
         if (round != null) {
             roundId = round.getId();
-            market = new Messages.MarketView(
-                    round.getMarket().id(), round.getMarket().question(), round.getMarket().outcomes());
+            bet = toView(round.getBet());
 
             if (phase == Phase.OPEN) {
                 // Invariante 4 / ADR-013: waehrend OPEN nur der Zaehler, nie
                 // einzelne Tipps.
                 closesAt = round.getClosesAt().toEpochMilli();
-                betCount = round.getBets().size();
+                pickCount = round.getPicks().size();
                 participantCount = round.getParticipants().size();
             } else if (phase == Phase.CLOSED || phase == Phase.RESOLVED) {
-                revealedBets = round.getBets().values().stream()
-                        .map(bet -> new Messages.RevealedBet(bet.playerId(), bet.outcomeId(), bet.stake()))
+                revealedPicks = round.getPicks().values().stream()
+                        .map(pick -> new Messages.RevealedPick(pick.playerId(), pick.outcomeId(), pick.stake()))
                         .toList();
                 if (phase == Phase.RESOLVED) {
                     winningOutcomeId = round.getWinningOutcomeId();
                     pool = round.getPool();
                     annulled = round.isAnnulled();
+                    annulReason = annulled ? (round.isAnnulledByHost() ? "HOST" : "NO_PICKS") : null;
                     deltas = round.getDeltas();
                 }
             }
         }
 
-        return new Messages.State(views, room.getHostPlayerId(), phase.name(), roundId, market,
-                closesAt, clock.instant().toEpochMilli(), betCount, participantCount, revealedBets,
-                winningOutcomeId, pool, annulled, deltas);
+        return new Messages.State(views, room.getHostPlayerId(), phase.name(), roundId, bet,
+                closesAt, clock.instant().toEpochMilli(), pickCount, participantCount, revealedPicks,
+                winningOutcomeId, pool, annulled, annulReason, deltas);
+    }
+
+    private static Messages.BetView toView(Bet bet) {
+        return new Messages.BetView(bet.id(), bet.question(), bet.note(), bet.outcomes());
+    }
+
+    private static List<Messages.BetView> catalogView() {
+        return Bets.CATALOG.stream().map(RoomActor::toView).toList();
     }
 
     private void sendTo(ClientSession session, Object message) {

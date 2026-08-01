@@ -9,13 +9,13 @@ bzw. `docs/anforderungen.md` nachziehen.
 **Kalibrierung der drei Parameter (3.1) am echten Spielabend.**
 Startguthaben 1000, Mindesteinsatz 25, Strafe 25 sind gesetzt und
 implementiert, aber noch nicht an einem echten Abend gegen das tatsächliche
-Spielgefühl geprüft (mvp-plan.md, Etappe 6). Bis dahin gelten sie als
+Spielgefühl geprüft (`probelauf.md`). Bis dahin gelten sie als
 vorläufig, auch wenn sie in `anforderungen.md` schon als feste Werte stehen.
 
-**Weitere Markttypen.**
-Nur „Ausgang des nächsten Drives" ist definiert. Welche Märkte als Nächstes
-kommen und wie ihre Optionen aussehen, ist offen. Die Struktur ist laut
-ADR-017 darauf vorbereitet.
+**Länge des Wettfensters je Wette.**
+Die 15 Sekunden aus Anforderung 5 gelten für alle Wetten gleich. Ob ein Kick
+ein kürzeres und der Drive-Ausgang ein längeres Fenster braucht, zeigt sich
+erst am Spielabend. Bis dahin bleibt es bei einem Wert für alle.
 
 ## Technisch
 
@@ -40,3 +40,6 @@ Damit diese Fragen nicht versehentlich wieder aufgemacht werden:
   auf — bewusst, um die Broadcast-Verzögerung zu umgehen und synchron zum
   Fernsehbild im Raum zu bleiben.
 - Kein echtes Geld.
+- Der Begriff „Markt" (ADR-022). Es heißt Wette.
+- Was passiert, wenn die offene Wette nicht mehr zum Spiel passt: Der Host
+  annulliert die Runde (Anforderung 8.6).

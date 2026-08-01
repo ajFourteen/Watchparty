@@ -1,18 +1,26 @@
-# Watchparty — Walking Skeleton
+# Watchparty
 
-Lauffähiges Gerüst für die Live-Wett-App. Es enthält noch keine Wett-Logik,
-sondern durchsticht einmal alle Schichten, die laut ADRs tragend sind:
+Live-Wett-App für Freunde, die gemeinsam vor Ort ein Football-Spiel schauen.
+Über ihre Handys tippen sie auf den Ausgang des nächsten Drives, ein Big Play,
+einen Field-Goal-Versuch oder den Versuch nach dem Touchdown, setzen dabei
+Punkte und teilen sich einen Pool nach Totalisator-Prinzip. Kein echtes Geld,
+keine Buchmacher-Quoten (`docs/anforderungen.md`).
+
+**Was es kann:** Beitreten über einen Link, ohne Account. Der Host öffnet eine
+Wette aus dem Katalog, alle tippen 15 Sekunden lang verdeckt, danach werden
+die Tipps gleichzeitig aufgedeckt. Der Host löst auf, der Pool wird ganzzahlig
+und nullsummen-treu verteilt, das Leaderboard aktualisiert sich. Wer die
+Verbindung verliert, ist beim Zurückkommen sofort wieder im selben Konto.
+
+Tragende Entscheidungen (Details in `docs/adrs.md`):
 
 - Spring Boot liefert Assets **und** WebSocket aus einem Prozess (ADR-002/003)
-- Raumzustand im Arbeitsspeicher (ADR-004)
+- Raumzustand im Arbeitsspeicher, genau eine Instanz (ADR-004/005)
 - Single-Thread-Eventloop als Raum-Actor (ADR-009)
 - Senden vom Raum-Thread entkoppelt (ADR-012)
+- Verdeckte Tipps über den Server erzwungen, nicht über die UI (ADR-013)
 - Reconnect über Token im localStorage (ADR-014)
-- Erster Joiner wird Host
-
-**Was es kann:** Namen eingeben, beitreten, alle sehen die aktualisierte
-Teilnehmerliste mit Punktekonten. Der Host sieht einen Steuerknopf, dessen
-Klick serverseitig geprüft und an alle verteilt wird.
+- Host ist der am frühesten beigetretene verbundene Spieler (ADR-021)
 
 ## Voraussetzungen
 
@@ -179,22 +187,29 @@ Client → Server:
 
 ```json
 { "type": "JOIN", "name": "Andreas", "token": "…optional…" }
-{ "type": "OPEN_MARKET" }
-{ "type": "PLACE_BET", "outcomeId": "touchdown", "stake": 100 }
-{ "type": "CLOSE_MARKET" }
+{ "type": "OPEN_BET", "betId": "drive-outcome" }
+{ "type": "PLACE_PICK", "outcomeId": "touchdown", "stake": 100 }
+{ "type": "CLOSE_BET" }
 { "type": "RESOLVE", "outcomeId": "touchdown" }
+{ "type": "ANNUL" }
 ```
 
-`OPEN_MARKET`, `CLOSE_MARKET` und `RESOLVE` sind Host-Aktionen (ADR-021). Bei
-`PLACE_BET` ist `stake` optional — ohne Angabe gilt der Mindesteinsatz; wer
-weniger Punkte als den Mindesteinsatz hat, geht serverseitig zwangsweise
-All-in (Anforderung 6/8.3), unabhängig vom angefragten Wert.
+`OPEN_BET`, `CLOSE_BET`, `RESOLVE` und `ANNUL` sind Host-Aktionen (ADR-021).
+`ANNUL` bricht die laufende Runde ab und wirkt nur in OPEN und CLOSED
+(Anforderung 8.6). `betId`
+wählt eine Wette aus dem Katalog; ohne Angabe öffnet der Drive-Ausgang, die
+mit Abstand häufigste Wette. Bei `PLACE_PICK` ist `stake` optional — ohne
+Angabe gilt der Mindesteinsatz; wer weniger Punkte als den Mindesteinsatz
+hat, geht serverseitig zwangsweise All-in (Anforderung 6/8.3), unabhängig vom
+angefragten Wert.
 
 Server → Client:
 
 ```json
-{ "type": "WELCOME", "playerId": "…", "token": "…" }
-{ "type": "YOUR_BET", "outcomeId": "touchdown", "stake": 100 }
+{ "type": "WELCOME", "playerId": "…", "token": "…",
+  "catalog": [{ "id": "drive-outcome", "question": "…",
+                "note": "…optional…", "outcomes": [ … ] }] }
+{ "type": "YOUR_PICK", "outcomeId": "touchdown", "stake": 100 }
 { "type": "ERROR", "message": "…" }
 {
   "type": "STATE",
@@ -203,27 +218,43 @@ Server → Client:
   "hostPlayerId": "…",
   "phase": "OPEN",
   "roundId": 1,
-  "market": { "id": "drive-outcome", "question": "…", "outcomes": [ … ] },
+  "bet": { "id": "drive-outcome", "question": "…", "outcomes": [ … ] },
   "closesAt": 1785624019729,
   "serverNow": 1785624004738,
-  "betCount": 1,
+  "pickCount": 1,
   "participantCount": 2,
-  "revealedBets": [{ "playerId": "…", "outcomeId": "…", "stake": 100 }],
+  "revealedPicks": [{ "playerId": "…", "outcomeId": "…", "stake": 100 }],
   "winningOutcomeId": "touchdown",
   "pool": 150,
   "annulled": false,
+  "annulReason": "HOST",
   "deltas": { "playerId": 50 }
 }
 ```
 
+Der **Wettkatalog** hängt an `WELCOME` und nicht an `STATE`: Er ist über den
+ganzen Abend unverändert und müsste sonst bei jedem Zustandswechsel
+mitgeschickt werden. Beim Reconnect kommt `WELCOME` erneut, der Client hat
+ihn also immer.
+
 `STATE` ist immer vollständig (Reconnect zieht den kompletten Zustand neu,
-ADR-014), aber phasenabhängig gefüllt: `closesAt`/`betCount`/
-`participantCount` nur in OPEN, `revealedBets` ab CLOSED, `winningOutcomeId`/
-`pool`/`annulled`/`deltas` nur in RESOLVED. Solange OPEN läuft, verlässt kein
-einzelner Tipp den Server außer im gezielten `YOUR_BET` an die eigene Session
+ADR-014), aber phasenabhängig gefüllt: `closesAt`/`pickCount`/
+`participantCount` nur in OPEN, `revealedPicks` ab CLOSED, `winningOutcomeId`/
+`pool`/`annulled`/`annulReason`/`deltas` nur in RESOLVED. `annulReason` sagt,
+warum annulliert wurde — `NO_PICKS`, wenn niemand getippt hat (8.4), oder
+`HOST` beim Abbruch (8.6); für die Punkte macht es keinen Unterschied, für
+den Satz auf dem Handy schon. Solange OPEN läuft, verlässt kein
+einzelner Tipp den Server außer im gezielten `YOUR_PICK` an die eigene Session
 (ADR-013) — wer die Frames mitliest, erfährt nur den Zähler.
 
-**Breaking Change gegenüber dem Walking Skeleton:** `HOST_ACTION` und
-`hostActionCount` sind ersatzlos entfallen; sie waren nur ein Platzhalter, um
-zu beweisen, dass eine Host-Aktion serverseitig ankommt. Jeder Client, der
-noch dagegen spricht, muss auf die vier echten Aktionen umgestellt werden.
+**Breaking Changes.** Gegenüber dem Walking Skeleton sind `HOST_ACTION` und
+`hostActionCount` ersatzlos entfallen; sie waren nur ein Platzhalter, um zu
+beweisen, dass eine Host-Aktion serverseitig ankommt.
+
+Mit ADR-022 heißt die Wette überall `bet` und der Tipp `pick`: aus
+`OPEN_MARKET`/`CLOSE_MARKET`/`PLACE_BET`/`YOUR_BET` wurden
+`OPEN_BET`/`CLOSE_BET`/`PLACE_PICK`/`YOUR_PICK`, im `STATE` aus `market`
+`bet`, aus `betCount` `pickCount` und aus `revealedBets` `revealedPicks`.
+Server und Frontend kommen aus demselben Jar (ADR-015), ein Deploy tauscht
+also beide Seiten gleichzeitig; nur ein alter Client im Browser-Cache muss
+neu geladen werden.

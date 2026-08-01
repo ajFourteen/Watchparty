@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { useRoom } from "./useRoom.js";
+import { Guide } from "./Guide.jsx";
 
 const STATUS_LABEL = {
   connecting: "Verbinde",
-  online: "Verbunden",
+  online: "Live",
   offline: "Getrennt",
 };
 
 const MIN_STAKE = 25;
+
+/** Merkt sich, dass die Anleitung schon einmal von selbst aufging. */
+const GUIDE_SEEN_KEY = "watchparty.guideSeen";
 
 function JoinScreen({ onJoin, status }) {
   const [name, setName] = useState(
@@ -45,13 +49,14 @@ function Leaderboard({ players, playerId }) {
   const sorted = [...players].sort((a, b) => b.points - a.points);
   return (
     <ol className="roster">
-      {sorted.map((player) => (
+      {sorted.map((player, index) => (
         <li
           key={player.id}
           className={`row${player.connected ? "" : " away"}${
             player.id === playerId ? " self" : ""
           }`}
         >
+          <span className="rank">{index + 1}</span>
           <span className="name">
             {player.name}
             {player.host && <span className="tag">Host</span>}
@@ -67,7 +72,7 @@ function Leaderboard({ players, playerId }) {
   );
 }
 
-/** Countdown aus closesAt und dem einmal gebildeten Uhren-Offset (Etappe 4/5). */
+/** Countdown aus closesAt und dem einmal gebildeten Uhren-Offset (ADR-003). */
 function Countdown({ closesAt, serverNow }) {
   const [, tick] = useState(0);
   useEffect(() => {
@@ -75,22 +80,28 @@ function Countdown({ closesAt, serverNow }) {
     return () => window.clearInterval(id);
   }, []);
   const remainingMs = Math.max(0, closesAt - serverNow());
-  return <p className="countdown">{Math.ceil(remainingMs / 1000)}s</p>;
+  const seconds = Math.ceil(remainingMs / 1000);
+  return (
+    <p className={`countdown${seconds <= 5 ? " urgent" : ""}`}>
+      {String(seconds).padStart(2, "0")}
+    </p>
+  );
 }
 
-function outcomeLabel(market, outcomeId) {
-  return market?.outcomes.find((outcome) => outcome.id === outcomeId)?.label ?? outcomeId;
+function outcomeLabel(bet, outcomeId) {
+  return bet?.outcomes.find((outcome) => outcome.id === outcomeId)?.label ?? outcomeId;
 }
 
-function BettingForm({ market, ownPoints, onPlaceBet }) {
+function PickForm({ bet, ownPoints, onPlacePick }) {
   const [outcomeId, setOutcomeId] = useState(null);
   const [stake, setStake] = useState(Math.min(MIN_STAKE, ownPoints));
 
   return (
-    <div className="market">
-      <h2 className="display">{market.question}</h2>
+    <div className="bet">
+      <h2 className="display">{bet.question}</h2>
+      {bet.note && <p className="rule">{bet.note}</p>}
       <ul className="options">
-        {market.outcomes.map((outcome) => (
+        {bet.outcomes.map((outcome) => (
           <li key={outcome.id}>
             <button
               className={`button option${outcomeId === outcome.id ? " selected" : ""}`}
@@ -105,7 +116,7 @@ function BettingForm({ market, ownPoints, onPlaceBet }) {
 
       {ownPoints < MIN_STAKE ? (
         <p className="hint">
-          Du hast weniger als den Mindesteinsatz ({MIN_STAKE}) -- ein Tipp geht automatisch
+          Du hast weniger als den Mindesteinsatz ({MIN_STAKE}) — ein Tipp geht automatisch
           All-in mit deinen {ownPoints} Punkten.
         </p>
       ) : (
@@ -126,7 +137,7 @@ function BettingForm({ market, ownPoints, onPlaceBet }) {
       <button
         className="button primary"
         disabled={!outcomeId}
-        onClick={() => onPlaceBet(outcomeId, stake)}
+        onClick={() => onPlacePick(outcomeId, stake)}
       >
         Tipp abgeben
       </button>
@@ -134,28 +145,29 @@ function BettingForm({ market, ownPoints, onPlaceBet }) {
   );
 }
 
-function RevealedBets({ bets, players, market }) {
+function RevealedPicks({ picks, players, bet }) {
   const nameOf = (id) => players.find((player) => player.id === id)?.name ?? "?";
   return (
     <ul className="reveal">
-      {bets.length === 0 && <li className="hint">Niemand hat getippt.</li>}
-      {bets.map((bet) => (
-        <li key={bet.playerId}>
-          <span className="name">{nameOf(bet.playerId)}</span>
-          <span>{outcomeLabel(market, bet.outcomeId)}</span>
-          <span className="points">{bet.stake}</span>
+      {picks.length === 0 && <li className="hint">Niemand hat getippt.</li>}
+      {picks.map((pick) => (
+        <li key={pick.playerId}>
+          <span className="name">{nameOf(pick.playerId)}</span>
+          <span>{outcomeLabel(bet, pick.outcomeId)}</span>
+          <span className="points">{pick.stake}</span>
         </li>
       ))}
     </ul>
   );
 }
 
-function ResolveForm({ market, onResolve }) {
+function ResolveForm({ bet, onResolve }) {
   return (
-    <div className="market">
+    <div className="bet">
+      <p className="eyebrow">Auflösen</p>
       <p className="hint">Welcher Ausgang war es wirklich?</p>
       <ul className="options">
-        {market.outcomes.map((outcome) => (
+        {bet.outcomes.map((outcome) => (
           <li key={outcome.id}>
             <button className="button option" onClick={() => onResolve(outcome.id)}>
               {outcome.label}
@@ -167,18 +179,25 @@ function ResolveForm({ market, onResolve }) {
   );
 }
 
-function ResultView({ round, players }) {
+function ResultView({ bet, winningOutcomeId, pool, annulled, annulReason, deltas, players }) {
   const nameOf = (id) => players.find((player) => player.id === id)?.name ?? "?";
-  if (round.annulled) {
-    return <p className="hint">Niemand hat getippt -- die Runde wurde annulliert.</p>;
+  if (annulled) {
+    return (
+      <p className="hint">
+        {annulReason === "HOST"
+          ? "Der Host hat die Runde abgebrochen — keine Punkte, keine Strafen."
+          : "Niemand hat getippt — die Runde wurde annulliert."}
+      </p>
+    );
   }
-  const deltas = Object.entries(round.deltas ?? {});
+  const entries = Object.entries(deltas ?? {});
   return (
     <div className="result">
-      <p className="display">{outcomeLabel(round.market, round.winningOutcomeId)}</p>
-      <p className="hint">Pool: {round.pool} Punkte</p>
+      <p className="eyebrow">Ergebnis</p>
+      <p className="display">{outcomeLabel(bet, winningOutcomeId)}</p>
+      <p className="hint">Pool: {pool} Punkte</p>
       <ul className="reveal">
-        {deltas.map(([id, delta]) => (
+        {entries.map(([id, delta]) => (
           <li key={id}>
             <span className="name">{nameOf(id)}</span>
             <span className={delta >= 0 ? "positive" : "negative"}>
@@ -191,19 +210,43 @@ function ResultView({ round, players }) {
   );
 }
 
-function HostControls({ phase, onOpenMarket, onCloseMarket }) {
-  if (phase === "IDLE" || phase === "RESOLVED") {
+/**
+ * Die Wett-Auswahl steht nur in IDLE und RESOLVED offen; welche Wette passt,
+ * weiß nur der Host vor dem Fernseher (Anforderung 5).
+ */
+function HostControls({ phase, catalog, onOpenBet, onCloseBet, onAnnul }) {
+  if (phase === "OPEN" || phase === "CLOSED") {
     return (
-      <button className="button primary" onClick={onOpenMarket}>
-        Markt öffnen
-      </button>
+      <div className="chooser">
+        {phase === "OPEN" && (
+          <button className="button danger" onClick={onCloseBet}>
+            Jetzt schließen
+          </button>
+        )}
+        {/* Der Notausgang, wenn die offene Wette nicht mehr zum Spiel passt
+            (Anforderung 8.6). Bewusst unscheinbar: Er ist die Ausnahme, und
+            ein Fehlgriff kostet allen die Runde. */}
+        <button className="button ghost wide" onClick={onAnnul}>
+          Runde annullieren
+        </button>
+      </div>
     );
   }
-  if (phase === "OPEN") {
+  if (phase === "IDLE" || phase === "RESOLVED") {
     return (
-      <button className="button" onClick={onCloseMarket}>
-        Jetzt schließen
-      </button>
+      <div className="chooser">
+        <p className="eyebrow">Nächste Wette öffnen</p>
+        <ul className="options">
+          {catalog.map((bet) => (
+            <li key={bet.id}>
+              <button className="button option" onClick={() => onOpenBet(bet.id)}>
+                {bet.question}
+                {bet.note && <span className="note">{bet.note}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     );
   }
   return null;
@@ -215,15 +258,28 @@ export default function App() {
     state,
     playerId,
     error,
-    yourBet,
+    yourPick,
+    catalog,
     join,
-    openMarket,
-    closeMarket,
-    placeBet,
+    openBet,
+    closeBet,
+    placePick,
     resolve,
+    annul,
     serverNow,
   } = useRoom();
+
+  const [guideOpen, setGuideOpen] = useState(false);
   const joined = Boolean(playerId) && Boolean(state);
+
+  // Beim ersten Abend geht die Anleitung von selbst auf; danach nur noch auf
+  // Wunsch, damit sie niemandem jede Runde im Weg steht.
+  useEffect(() => {
+    if (joined && !window.localStorage.getItem(GUIDE_SEEN_KEY)) {
+      window.localStorage.setItem(GUIDE_SEEN_KEY, "1");
+      setGuideOpen(true);
+    }
+  }, [joined]);
 
   if (!joined) {
     return (
@@ -240,62 +296,84 @@ export default function App() {
 
   return (
     <main className="shell">
-      <header className="header">
-        <p className="eyebrow">Im Raum</p>
-        <h1 className="display">{state.players.length} dabei</h1>
+      <header className="scorebug">
+        <span className="brand">Watchparty</span>
+        <span className="bug-stat">
+          <span className="bug-label">Punkte</span>
+          <span className="bug-value">{ownPoints}</span>
+        </span>
+        <span className="bug-stat">
+          <span className="bug-label">Dabei</span>
+          <span className="bug-value">{state.players.length}</span>
+        </span>
+        <button className="button ghost" onClick={() => setGuideOpen(true)} aria-label="Anleitung">
+          ?
+        </button>
       </header>
 
-      {state.phase === "IDLE" && (
-        <p className="hint">Der Host kann den nächsten Markt öffnen.</p>
+      {state.phase === "IDLE" && !isHost && (
+        <p className="hint">Der Host öffnet die nächste Wette.</p>
       )}
 
-      {state.phase === "OPEN" && state.market && (
-        <>
+      {state.phase === "OPEN" && state.bet && (
+        <section className="stage">
           <Countdown closesAt={state.closesAt} serverNow={serverNow} />
           <p className="counter">
-            {state.betCount} von {state.participantCount} haben getippt
+            {state.pickCount} von {state.participantCount} haben getippt
           </p>
-          {yourBet ? (
-            <p className="hint">
-              Du hast auf <strong>{outcomeLabel(state.market, yourBet.outcomeId)}</strong> mit{" "}
-              {yourBet.stake} Punkten getippt.
+          {yourPick ? (
+            <p className="locked">
+              Dein Tipp: <strong>{outcomeLabel(state.bet, yourPick.outcomeId)}</strong> mit{" "}
+              {yourPick.stake} Punkten.
             </p>
           ) : (
-            <BettingForm market={state.market} ownPoints={ownPoints} onPlaceBet={placeBet} />
+            <PickForm bet={state.bet} ownPoints={ownPoints} onPlacePick={placePick} />
           )}
-        </>
-      )}
-
-      {state.phase === "CLOSED" && state.market && (
-        <>
-          <h2 className="display">{state.market.question}</h2>
-          <RevealedBets bets={state.revealedBets ?? []} players={state.players} market={state.market} />
-          {isHost && <ResolveForm market={state.market} onResolve={resolve} />}
-        </>
-      )}
-
-      {state.phase === "RESOLVED" && state.market && (
-        <ResultView
-          round={{
-            market: state.market,
-            winningOutcomeId: state.winningOutcomeId,
-            pool: state.pool,
-            annulled: state.annulled,
-            deltas: state.deltas,
-          }}
-          players={state.players}
-        />
-      )}
-
-      {isHost ? (
-        <section className="host">
-          <HostControls phase={state.phase} onOpenMarket={openMarket} onCloseMarket={closeMarket} />
         </section>
-      ) : (
-        state.phase === "IDLE" && <p className="hint">Der Host steuert die Runden.</p>
+      )}
+
+      {state.phase === "CLOSED" && state.bet && (
+        <section className="stage">
+          <p className="eyebrow">Geschlossen</p>
+          <h2 className="display">{state.bet.question}</h2>
+          <RevealedPicks
+            picks={state.revealedPicks ?? []}
+            players={state.players}
+            bet={state.bet}
+          />
+          {isHost && <ResolveForm bet={state.bet} onResolve={resolve} />}
+        </section>
+      )}
+
+      {state.phase === "RESOLVED" && state.bet && (
+        <section className="stage">
+          <ResultView
+            bet={state.bet}
+            winningOutcomeId={state.winningOutcomeId}
+            pool={state.pool}
+            annulled={state.annulled}
+            annulReason={state.annulReason}
+            deltas={state.deltas}
+            players={state.players}
+          />
+        </section>
+      )}
+
+      {isHost && (
+        <section className="host">
+          <HostControls
+            phase={state.phase}
+            catalog={catalog}
+            onOpenBet={openBet}
+            onCloseBet={closeBet}
+            onAnnul={annul}
+          />
+        </section>
       )}
 
       <Leaderboard players={state.players} playerId={playerId} />
+
+      {guideOpen && <Guide catalog={catalog} onClose={() => setGuideOpen(false)} />}
 
       {error && <p className="error">{error}</p>}
       <footer className={`status ${status}`}>{STATUS_LABEL[status]}</footer>

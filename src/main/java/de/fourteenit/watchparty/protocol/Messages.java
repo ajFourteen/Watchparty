@@ -18,7 +18,13 @@ public final class Messages {
     private Messages() {
     }
 
-    public record Welcome(String playerId, String token) {
+    /**
+     * Der Wettkatalog haengt hier und nicht an STATE: Er ist ueber den ganzen
+     * Abend unveraendert, muesste sonst aber bei jedem Zustandswechsel
+     * mitgeschickt werden. Beim Reconnect kommt WELCOME erneut, der Client
+     * hat ihn also immer (Invariante 3).
+     */
+    public record Welcome(String playerId, String token, List<BetView> catalog) {
         @JsonProperty("type")
         public String type() {
             return "WELCOME";
@@ -26,9 +32,9 @@ public final class Messages {
     }
 
     /**
-     * Ein vollstaendiger Zustand statt vieler Deltas (Etappe 4), weil bei
+     * Ein vollstaendiger Zustand statt vieler Deltas, weil bei
      * Reconnect ohnehin alles neu geschickt wird (Invariante 3). Der Inhalt
-     * haengt an der Phase — in OPEN nur der Tipp-Zaehler (Invariante 4,
+     * haengt an der Phase — in OPEN nur der Pick-Zaehler (Invariante 4,
      * ADR-013), in CLOSED zusaetzlich alle Tipps offen, in RESOLVED
      * zusaetzlich Ergebnis, Pool und Deltas. Ungenutzte Felder bleiben null
      * und werden nicht serialisiert.
@@ -39,15 +45,17 @@ public final class Messages {
             String hostPlayerId,
             String phase,
             Long roundId,
-            MarketView market,
+            BetView bet,
             Long closesAt,
             long serverNow,
-            Integer betCount,
+            Integer pickCount,
             Integer participantCount,
-            List<RevealedBet> revealedBets,
+            List<RevealedPick> revealedPicks,
             String winningOutcomeId,
             Integer pool,
             Boolean annulled,
+            /** {@code NO_PICKS} (Anforderung 8.4) oder {@code HOST} (8.6). */
+            String annulReason,
             Map<String, Integer> deltas) {
         @JsonProperty("type")
         public String type() {
@@ -58,10 +66,11 @@ public final class Messages {
     public record PlayerView(String id, String name, int points, boolean connected, boolean paused, boolean host) {
     }
 
-    public record MarketView(String id, String question, List<Outcome> outcomes) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record BetView(String id, String question, String note, List<Outcome> outcomes) {
     }
 
-    public record RevealedBet(String playerId, String outcomeId, int stake) {
+    public record RevealedPick(String playerId, String outcomeId, int stake) {
     }
 
     /**
@@ -70,10 +79,10 @@ public final class Messages {
      * seinen eigenen Tipp, ohne dass STATE je einzelne Tipps waehrend des
      * offenen Fensters an alle verteilt (ADR-013).
      */
-    public record YourBet(String outcomeId, int stake) {
+    public record YourPick(String outcomeId, int stake) {
         @JsonProperty("type")
         public String type() {
-            return "YOUR_BET";
+            return "YOUR_PICK";
         }
     }
 
