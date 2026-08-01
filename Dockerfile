@@ -20,4 +20,8 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=backend /app/build/libs/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# MaxRAMPercentage bindet den Heap an das Container-Limit statt an den
+# Arbeitsspeicher des Hosts. Ohne das rechnet die JVM auf der 512-MB-Maschine
+# (ADR-018) daran vorbei und riskiert einen OOM-Kill — der kostet nicht die
+# laufende Runde, sondern den kompletten Raumzustand (ADR-004).
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]
