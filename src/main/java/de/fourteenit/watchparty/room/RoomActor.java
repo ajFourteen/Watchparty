@@ -9,13 +9,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Der Eventloop des Raums (ADR-009).
@@ -45,6 +49,20 @@ public class RoomActor {
 
     /** Nur vom Raum-Thread beruehrt, daher eine gewoehnliche HashMap. */
     private final Map<String, ClientSession> sessions = new LinkedHashMap<>();
+
+    /**
+     * Massgebliche Uhr fuer {@code closesAt}-Vergleiche (ADR-011) und
+     * Scheduler fuer den Auto-Close-Task (ADR-010). Per Konstruktor injiziert,
+     * damit Tests eine Fake-Uhr und einen Scheduler unterschieben koennen, der
+     * Tasks nur sammelt statt sie zeitgesteuert zu feuern.
+     */
+    private final Clock clock;
+    private final Scheduler scheduler;
+
+    public RoomActor(Clock clock, Scheduler scheduler) {
+        this.clock = clock;
+        this.scheduler = scheduler;
+    }
 
     // --- Eintrittspunkte (aufgerufen von WebSocket-Threads) ------------------
 
@@ -157,6 +175,22 @@ public class RoomActor {
         } catch (JsonProcessingException e) {
             log.error("Nachricht nicht serialisierbar", e);
             return null;
+        }
+    }
+
+    /**
+     * Paket-privater Testzugang: blockiert, bis alle bis hierhin eingereihten
+     * Kommandos abgearbeitet sind. Ohne ihn waeren Actor-Tests race-behaftet,
+     * weil {@code loop.execute(...)} asynchron ist.
+     */
+    void awaitIdle() {
+        try {
+            loop.submit(() -> null).get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Warten auf den Raum-Thread unterbrochen", e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new IllegalStateException("Raum-Thread wurde nicht rechtzeitig leer", e);
         }
     }
 
