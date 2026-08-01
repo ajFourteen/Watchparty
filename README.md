@@ -171,30 +171,59 @@ Der belastbare Test ist nicht das grüne Schloss, sondern zwei Handys, die
 Kommt der WebSocket-Upgrade nicht durch, lädt die Seite trotzdem und bleibt
 nur leer.
 
-## Protokoll (Stand Skeleton)
+## Protokoll
+
+Der Zustandsautomat ist ADR-020 (IDLE → OPEN → CLOSED → RESOLVED).
 
 Client → Server:
 
 ```json
 { "type": "JOIN", "name": "Andreas", "token": "…optional…" }
-{ "type": "HOST_ACTION" }
+{ "type": "OPEN_MARKET" }
+{ "type": "PLACE_BET", "outcomeId": "touchdown", "stake": 100 }
+{ "type": "CLOSE_MARKET" }
+{ "type": "RESOLVE", "outcomeId": "touchdown" }
 ```
+
+`OPEN_MARKET`, `CLOSE_MARKET` und `RESOLVE` sind Host-Aktionen (ADR-021). Bei
+`PLACE_BET` ist `stake` optional — ohne Angabe gilt der Mindesteinsatz; wer
+weniger Punkte als den Mindesteinsatz hat, geht serverseitig zwangsweise
+All-in (Anforderung 6/8.3), unabhängig vom angefragten Wert.
 
 Server → Client:
 
 ```json
 { "type": "WELCOME", "playerId": "…", "token": "…" }
-{ "type": "STATE", "players": [{ "id": "…", "name": "…", "points": 1000,
-  "connected": true, "host": true }], "hostPlayerId": "…", "hostActionCount": 0 }
+{ "type": "YOUR_BET", "outcomeId": "touchdown", "stake": 100 }
 { "type": "ERROR", "message": "…" }
+{
+  "type": "STATE",
+  "players": [{ "id": "…", "name": "…", "points": 1000,
+    "connected": true, "paused": false, "host": true }],
+  "hostPlayerId": "…",
+  "phase": "OPEN",
+  "roundId": 1,
+  "market": { "id": "drive-outcome", "question": "…", "outcomes": [ … ] },
+  "closesAt": 1785624019729,
+  "serverNow": 1785624004738,
+  "betCount": 1,
+  "participantCount": 2,
+  "revealedBets": [{ "playerId": "…", "outcomeId": "…", "stake": 100 }],
+  "winningOutcomeId": "touchdown",
+  "pool": 150,
+  "annulled": false,
+  "deltas": { "playerId": 50 }
+}
 ```
 
-Das vollständige Schema entsteht mit dem Zustandsautomaten
-(IDLE → OPEN → CLOSED → RESOLVED).
+`STATE` ist immer vollständig (Reconnect zieht den kompletten Zustand neu,
+ADR-014), aber phasenabhängig gefüllt: `closesAt`/`betCount`/
+`participantCount` nur in OPEN, `revealedBets` ab CLOSED, `winningOutcomeId`/
+`pool`/`annulled`/`deltas` nur in RESOLVED. Solange OPEN läuft, verlässt kein
+einzelner Tipp den Server außer im gezielten `YOUR_BET` an die eigene Session
+(ADR-013) — wer die Frames mitliest, erfährt nur den Zähler.
 
-## Wo die nächste Arbeit ansetzt
-
-- `RoomActor` — hier kommen `HOST_OPEN`, `PLACE_BET`, `CLOSE`, `HOST_RESOLVE`
-  hinein. Die Queue existiert bereits, es sind neue `handle*`-Methoden.
-- `Room` — Zustandsautomat, aktuelle Runde, Runden-ID (ADR-010).
-- `Messages` — Aufdeckung bei Schluss und Ergebnis beim Auflösen (ADR-013).
+**Breaking Change gegenüber dem Walking Skeleton:** `HOST_ACTION` und
+`hostActionCount` sind ersatzlos entfallen; sie waren nur ein Platzhalter, um
+zu beweisen, dass eine Host-Aktion serverseitig ankommt. Jeder Client, der
+noch dagegen spricht, muss auf die vier echten Aktionen umgestellt werden.
