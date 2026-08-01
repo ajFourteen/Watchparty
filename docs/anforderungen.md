@@ -25,6 +25,19 @@ Es gibt keinen Buchmacher und kein Wahrscheinlichkeitsmodell. Die Wett-Ökonomie
 - Jeder Spieler startet mit einem festen Punkte-Startguthaben.
 - Punkte sind ganzzahlig. Es gibt keine Bruchteile von Punkten.
 - Ein Leaderboard zeigt die aktuellen Kontostände.
+- Ein Konto wird nie negativ.
+
+### 3.1 Parameter
+
+| Parameter | Wert |
+|---|---|
+| Startguthaben | 1000 |
+| Mindesteinsatz | 25 |
+| Nicht-Tipper-Strafe | 25 |
+
+Das sind 40 Mindesteinsätze Puffer bei etwa 25 Drives pro Abend; ein echter Bankrott ist damit unwahrscheinlich. Strafe gleich Mindesteinsatz sorgt dafür, dass Aussitzen strikt dominiert ist: gleicher Preis wie ein Mindest-Tipp, aber ohne Gewinnchance. Ein Einsatz von 100 bis 200 ist damit eine sichtbare Ansage.
+
+Die Werte sind am realen Spielgefühl zu justieren; sie stehen an einer Stelle im Code, nicht verstreut.
 
 ## 4. Märkte
 
@@ -71,6 +84,7 @@ Die Auszahlung trennt zwei Dinge: die **echten Punkte** im Pool und die **Anteil
 
 - Für die Verteilung zählt jeder Gewinner mindestens mit dem Anteil, der dem Mindesteinsatz entspricht — **auch wenn er weniger oder 0 Punkte gesetzt hat**. So bekommt auch ein Spieler mit 0 Punkten eine echte Auszahlung und kann sich erholen.
 - Wer mehr als den Mindesteinsatz gesetzt hat, erhält entsprechend mehr Anteile.
+- Als Formel: **Anteil = max(Einsatz, Mindesteinsatz)**. Ist der garantierte Mindest-Anteil größer als der tatsächliche Einsatz, zählt der Mindest-Anteil, sonst der Einsatz.
 - Dadurch sind „gesetzte Punkte" und „Anteile am Gewinn" entkoppelt. Der Pool aus echten Punkten bleibt fix; die Anteile bestimmen nur die Aufteilung. Die Nullsumme bleibt erhalten — größere Scheiben Einzelner gehen zulasten der anderen Gewinner, nicht aus dem Nichts.
 
 ### 7.2 Ganzzahlige Verteilung
@@ -84,9 +98,16 @@ Die Auszahlung trennt zwei Dinge: die **echten Punkte** im Pool und die **Anteil
 - Wer in einer Runde gar nicht tippt, zahlt eine kleine Strafe, die in den Pool fließt.
 - Die Strafe trifft jeden im Raum, der nicht getippt hat — unabhängig vom Grund (auch bei eingeschlafenem Handy). Innerhalb des 15-Sekunden-Fensters ist der Grund nicht unterscheidbar.
 
+**Wer zum Teilnehmerkreis gehört, wird beim Öffnen des Markts eingefroren.** Wer während des offenen Fensters dazukommt, darf tippen und gewinnen, wird aber nicht bestraft. Niemand zahlt für eine Runde, die schon lief, als er kam.
+
+**Die Strafe wird auf den Kontostand gekappt.** Eingesammelt wird `min(Strafe, Kontostand)`; der Pool besteht aus dem, was tatsächlich eingesammelt wurde. Damit bleibt die Nullsumme exakt erhalten und ein Konto wird nie negativ. Ein Spieler bei 0 Punkten zahlt faktisch nichts mehr — die Strafe darf die Null nicht doch zu einem absorbierenden Zustand machen (siehe 8.3).
+
+**Ein getrennter Spieler pausiert ab der dritten verpassten Runde.** Er zahlt für die erste und zweite verpasste Runde die Strafe; danach fällt er aus dem Teilnehmerkreis und zahlt nicht mehr. Bei Reconnect ist er sofort wieder dabei, der Zähler beginnt von vorn. Damit zahlt das eingeschlafene Handy weiterhin — Wegdösen ist nicht die günstigste Strategie —, aber wer früh nach Hause geht, blutet nicht über zwanzig Runden aus und verzerrt das Leaderboard. Die Pause greift ausdrücklich nur bei getrennter Verbindung: Wer verbunden ist und nicht tippt, zahlt jede Runde.
+
 ### 8.2 Verteilung bei „niemand liegt richtig" (Push)
 - Tippt niemand den Gewinner-Ausgang, gibt es keine Gewinner. Alle Wetter bekommen ihren Einsatz zurück.
 - Die eingezahlten **Strafen** werden in diesem Fall anteilig auf **alle Spieler verteilt, die überhaupt getippt haben** (egal ob richtig oder falsch). Auf einem Push ist „überhaupt getippt zu haben" die einzige belohnbare Leistung.
+- „Anteilig" meint dieselben Anteile wie in 7.1, also `max(Einsatz, Mindesteinsatz)`, Rest nach dem Größte-Reste-Verfahren. Eine Anteilsdefinition für beide Fälle statt zweier — und der All-in-Spieler mit 0 Punkten bekommt auch beim Push etwas ab.
 
 ### 8.3 Spieler mit 0 Punkten
 - Auch mit 0 Punkten darf jeder mitwetten (All-in mit 0).
@@ -125,4 +146,4 @@ Die Auszahlung trennt zwei Dinge: die **echten Punkte** im Pool und die **Anteil
 ## 12. Offene Punkte / spätere Erweiterungen
 
 - Weitere feste Markttypen über den Drive-Ausgang hinaus.
-- Konkrete Startwerte für Startguthaben, Mindesteinsatz und Strafe (Parameter so wählen, dass ein echter Bankrott an einem Abend selten ist).
+- Nachjustierung der Parameter aus 3.1 am realen Spielgefühl.

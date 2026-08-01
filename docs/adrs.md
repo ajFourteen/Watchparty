@@ -20,10 +20,12 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-013 | Verdeckte Tipps über den Server erzwungen | Akzeptiert |
 | ADR-014 | Reconnect über Token im localStorage | Akzeptiert |
 | ADR-015 | React mit Build-Schritt als Frontend | Akzeptiert |
-| ADR-016 | Erster Joiner wird Host, Rolle wandert bei Verlust | Akzeptiert (Teilfrage offen) |
+| ADR-016 | Erster Joiner wird Host, Rolle wandert bei Verlust | Akzeptiert (präzisiert durch ADR-021) |
 | ADR-017 | Markt als Datenstruktur, nicht als Sonderfall im Code | Akzeptiert |
 | ADR-018 | Fly.io als Hosting, Subdomain bei IONOS | Akzeptiert |
 | ADR-019 | Deploy automatisiert über Semantic Release | Akzeptiert |
+| ADR-020 | Rundenablauf als Zustandsautomat mit eigenem RESOLVED | Akzeptiert |
+| ADR-021 | Host-Rolle nach Beitrittsreihenfolge, Übergabe asymmetrisch | Akzeptiert |
 
 ---
 
@@ -277,8 +279,8 @@ Spieler — sonst wäre der Raum steuerlos.
 
 **Konsequenzen:**
 - Kein zusätzlicher Einstiegsschritt, passt zu „so einfach wie möglich".
-- **Offen:** Kommt der ursprüngliche Host per Token zurück, ist er derzeit
-  nicht mehr Host. Ob die Rolle am Token kleben soll, ist noch zu klären.
+- Die ursprünglich offene Teilfrage — bekommt ein per Token zurückkehrender
+  Host seine Rolle wieder? — ist mit ADR-021 beantwortet.
 
 ## ADR-017: Markt als Datenstruktur, nicht als Sonderfall im Code
 
@@ -399,3 +401,80 @@ Release löst per GitHub Actions den Fly-Deploy aus
   <alte ImageRef>` ist im README dokumentiert. Ein Rollback ist ebenfalls
   ein Neustart und kostet nach ADR-004 den Raumzustand — er macht den
   Fehler nicht ungeschehen, nur schneller behoben.
+
+## ADR-020: Rundenablauf als Zustandsautomat mit eigenem RESOLVED
+
+**Status:** Akzeptiert
+
+**Kontext:** Die Richtung `IDLE → OPEN → CLOSED → RESOLVED → IDLE` stand fest,
+die erlaubten Ereignisse je Zustand aber nicht. Ohne diese Tabelle bleibt für
+jedes Ereignis offen, ob es in einem fremden Zustand ignoriert wird, einen
+Fehler auslöst oder gar nicht erst gesendet werden darf — und das JSON-Schema
+lässt sich nicht ableiten.
+
+**Entscheidung:** Ein Markt ist genau eine Runde mit monoton steigender
+`roundId`. Erlaubt sind:
+
+| Ereignis | IDLE | OPEN | CLOSED | RESOLVED |
+|---|---|---|---|---|
+| `OPEN_MARKET` (Host) | → OPEN | Fehler | Fehler | → OPEN |
+| `PLACE_BET` (Spieler) | Fehler | annehmen, wenn `now < closesAt` | Fehler | Fehler |
+| `CLOSE_MARKET` (Host) | Fehler | → CLOSED | still ignorieren | Fehler |
+| `AUTO_CLOSE(roundId)` | ignorieren | → CLOSED, wenn ID passt | ignorieren | ignorieren |
+| `RESOLVE(outcome)` (Host) | Fehler | Fehler | → RESOLVED, verrechnen | Fehler |
+| Join / Disconnect | in jedem Zustand erlaubt | | | |
+
+`RESOLVED` ist ein eigener Zustand und nicht einfach `IDLE`: Das Ergebnis der
+letzten Runde bleibt stehen, bis der Host die nächste öffnet. Der Übergang
+`RESOLVED → IDLE` aus dem Diagramm passiert damit implizit beim nächsten
+`OPEN_MARKET`.
+
+**Konsequenzen:**
+- Das Nachrichtenschema folgt der Tabelle: Der Inhalt von `STATE` hängt an der
+  Phase — in OPEN nur der Zähler (ADR-013), in CLOSED die aufgedeckten Tipps,
+  in RESOLVED zusätzlich Ergebnis und Deltas.
+- Ein doppeltes Schließen ist kein Fehlerfall, sondern wird still ignoriert:
+  Manueller und automatischer Schluss treffen sich regelmäßig, und die
+  Reihenfolge in der Queue entscheidet (ADR-009/010).
+- Die Ereignisse lassen sich als Sequenzen durchspielen und damit
+  deterministisch testen — vorausgesetzt, Uhr und Scheduler sind im
+  `RoomActor` von außen setzbar. Ohne das ist weder ADR-010 noch ADR-011
+  prüfbar.
+
+## ADR-021: Host-Rolle nach Beitrittsreihenfolge, Übergabe asymmetrisch
+
+**Status:** Akzeptiert
+
+**Kontext:** ADR-016 ließ offen, ob ein per Token zurückkehrender Host seine
+Rolle wiederbekommt. Die naheliegende Formulierung „die Rolle klebt am Token
+des ursprünglichen Hosts" kennt aber nur zwei Beteiligte und beantwortet den
+realistischen Fall nicht: Auch der Vertreter sperrt sein Handy, und er kann
+zurückkommen, während der ursprüngliche Host noch weg ist.
+
+**Entscheidung:** **Host ist immer der am frühesten beigetretene verbundene
+Spieler.** Damit gilt „erster Joiner wird Host" nicht nur einmal beim Start,
+sondern dauerhaft, und jede Kombination aus Weggehen und Zurückkommen ist
+abgedeckt, ohne dass es ein gesondertes Original-Host-Token bräuchte.
+
+Die Übergabe ist dabei asymmetrisch:
+
+- **Verlieren wirkt sofort, in jeder Phase.** Sonst wäre der Raum mitten im
+  offenen Fenster steuerlos — genau dann, wenn jemand schließen können muss.
+- **Zurückholen wirkt erst in IDLE oder RESOLVED.** Kehrt ein höherrangiger
+  Spieler während OPEN oder CLOSED zurück, wird die Übergabe vorgemerkt und
+  beim Erreichen von RESOLVED ausgeführt. Sonst rutschen dem Vertreter die
+  Steuerknöpfe mitten in einer laufenden Runde weg.
+
+**Konsequenzen:**
+- `Room.reassignHostIfNeeded()` sucht bereits den ersten verbundenen Spieler
+  in Einfügereihenfolge. Es ändert sich im Wesentlichen nur, wann die Methode
+  läuft: künftig bei jeder Änderung der Verbundenheit statt nur beim Wegfall
+  des aktuellen Hosts — plus die Phasensperre für den Aufwärts-Fall.
+- Ein nach 8.1 pausierter Spieler ist per Definition getrennt und damit
+  ohnehin nicht wählbar; beide Regeln kommen sich nicht ins Gehege.
+- Die Rolle kann über den Abend zwischen den Runden mehrfach wandern, wenn
+  Handys ein- und aufwachen. Sie landet dabei immer bei dem, der am längsten
+  dabei ist — in der Praxis der, der die Fernbedienung hat. Das notierte
+  Wake-Lock würde das zusätzlich beruhigen.
+- Wer den localStorage leert und neu beitritt, rutscht ans Ende der Reihe.
+  Das ist hinnehmbar und für den Notfall sogar nützlich.

@@ -3,7 +3,8 @@
 Kontext für die Arbeit an diesem Projekt. Bei fachlichen Fragen zuerst
 `docs/anforderungen.md` lesen, bei technischen `docs/adrs.md`. Was noch nicht
 entschieden ist, steht in `docs/offene-entscheidungen.md` — dort bitte nichts
-stillschweigend festlegen, sondern nachfragen.
+stillschweigend festlegen, sondern nachfragen. Der Weg zur ersten spielbaren
+Fassung steht in `docs/mvp-plan.md`.
 
 ## Was das ist
 
@@ -53,10 +54,11 @@ sie brechen würde, ist das ein Anlass nachzufragen, kein Detail.
 4. **Verdeckte Tipps sind eine Anforderung an die Leitung, nicht an die UI.**
    Solange ein Wettfenster offen ist, darf der Server keinen einzelnen Tipp
    senden, nur den Zähler. Wer die Frames mitliest, darf nichts erfahren.
-5. **Punkte sind ganzzahlig und nullsumme.** Der Pool ist exakt Einsätze plus
-   Strafen; die Summe aller Auszahlungen entspricht exakt dem Pool. Keine
-   Fließkommazahlen für Punkte. Reste werden nach dem Größte-Reste-Verfahren
-   verteilt.
+5. **Punkte sind ganzzahlig und nullsumme.** Der Pool ist exakt die Einsätze
+   plus die *tatsächlich eingesammelten* Strafen — die Strafe wird auf den
+   Kontostand gekappt (Anforderung 8.1), damit kein Konto negativ wird. Die
+   Summe aller Auszahlungen entspricht exakt dem Pool. Keine Fließkommazahlen
+   für Punkte. Reste werden nach dem Größte-Reste-Verfahren verteilt.
 6. **Genau eine Server-Instanz.** Kein Autoscaling, kein Sharding. Zwei
    Instanzen wären zwei getrennte Räume.
 
@@ -73,15 +75,29 @@ src/main/java/de/fourteenit/watchparty/
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token
   App.jsx                  Join-Screen und Raumansicht
-docs/                      Anforderungen, ADRs, offene Entscheidungen
+docs/                      Anforderungen, ADRs, MVP-Plan, offene Entscheidungen
 ```
 
 ## Nächster Schritt
 
-Der Zustandsautomat `IDLE → OPEN → CLOSED → RESOLVED → IDLE`. Erlaubte
-Ereignisse je Zustand festlegen, dann fällt das JSON-Schema fast von selbst.
-Die Queue und die Host-Prüfung existieren bereits; es kommen im Wesentlichen
-neue `handle*`-Methoden in `RoomActor` dazu.
+Der Zustandsautomat ist entschieden: Die erlaubten Ereignisse je Zustand
+stehen als Tabelle in ADR-020, die Parameter und Randfälle der Abrechnung in
+`anforderungen.md`. Zu tun ist die Umsetzung nach `docs/mvp-plan.md`, in
+dieser Reihenfolge:
+
+1. **Fundament.** `Clock` und ein `Scheduler`-Interface per Konstruktor in
+   `RoomActor`, dazu ein Testzugang, der auf das Leerlaufen der Queue wartet.
+   Es gibt bislang kein `src/test/`; ohne Kontrolle über die Zeit sind ADR-010
+   und ADR-011 nicht deterministisch prüfbar. Außerdem der Marktkatalog als
+   Daten (ADR-017).
+2. **Abrechnung.** Eine Klasse `Settlement` als reine Funktion, ohne Bezug zu
+   `Room`, `Player` oder Actor: Wetten und Kontostände rein, Deltas raus.
+   Damit liegt die Ökonomie im Unit-Test, bevor eine WebSocket-Nachricht
+   existiert. Der Property-Test dazu behauptet genau eine Sache: Die Summe
+   aller Deltas ist exakt 0.
+3. **Zustandsautomat** nach ADR-020 als neue `handle*`-Methoden in
+   `RoomActor`; Queue und Host-Prüfung existieren bereits.
+4. **Protokoll und Frontend**, siehe Etappen 4 und 5 des Plans.
 
 Zwei Fallen, die dabei schon bekannt sind:
 
