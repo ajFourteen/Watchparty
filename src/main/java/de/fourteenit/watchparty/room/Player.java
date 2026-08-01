@@ -13,6 +13,14 @@ public class Player {
     private int points;
     private boolean connected = true;
 
+    /**
+     * Zaehlt Runden, die getrennt am Stueck verpasst wurden (Anforderung 8.1).
+     * Wird bei Reconnect auf 0 zurueckgesetzt; ab 2 gilt der Spieler als
+     * pausiert und wird beim naechsten {@code OPEN_MARKET} nicht mehr in den
+     * Teilnehmerkreis eingefroren.
+     */
+    private int missedRounds;
+
     public Player(String id, String token, String name, int points) {
         this.id = id;
         this.token = token;
@@ -50,5 +58,22 @@ public class Player {
 
     public void setConnected(boolean connected) {
         this.connected = connected;
+    }
+
+    public int getMissedRounds() {
+        return missedRounds;
+    }
+
+    public void incrementMissedRounds() {
+        missedRounds++;
+    }
+
+    public void resetMissedRounds() {
+        missedRounds = 0;
+    }
+
+    /** Getrennt und schon zwei Runden am Stueck verpasst (Anforderung 8.1). */
+    public boolean isPaused() {
+        return !connected && missedRounds >= 2;
     }
 }

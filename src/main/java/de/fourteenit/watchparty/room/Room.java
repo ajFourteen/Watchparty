@@ -1,8 +1,12 @@
 package de.fourteenit.watchparty.room;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Der eine Raum, komplett im Arbeitsspeicher (ADR-004).
@@ -22,12 +26,8 @@ public class Room {
 
     private String hostPlayerId;
 
-    /**
-     * Nur fuer das Skeleton: beweist, dass eine Host-Aktion serverseitig
-     * verarbeitet und an alle verteilt wird. Faellt weg, sobald der echte
-     * Zustandsautomat (IDLE/OPEN/CLOSED/RESOLVED) einzieht.
-     */
-    private int hostActionCount;
+    private Round currentRound;
+    private long nextRoundId = 1;
 
     public Player addPlayer(String id, String token, String name) {
         Player player = new Player(id, token, name, STARTING_POINTS);
@@ -64,13 +64,17 @@ public class Room {
     }
 
     /**
-     * Uebergibt die Host-Rolle an den naechsten verbundenen Spieler.
-     * Ohne das waere der Raum steuerlos, sobald der erste Joiner den Browser
-     * schliesst (siehe Anmerkung zur Host-Regel).
+     * Uebergibt die Host-Rolle an den am fruehesten beigetretenen verbundenen
+     * Spieler (ADR-021). Verlieren wirkt immer sofort, sonst waere der Raum
+     * mitten im offenen Fenster steuerlos. Zurueckholen — ein frueher
+     * beigetretener Spieler kommt zurueck und soll die Rolle reklamieren —
+     * wirkt nur, wenn {@code allowPickup} gilt, also in IDLE oder RESOLVED;
+     * sonst rutschen dem Vertreter die Steuerknoepfe mitten in der Runde weg.
      */
-    public void reassignHostIfNeeded() {
+    public void reassignHostIfNeeded(boolean allowPickup) {
         Player host = hostPlayerId == null ? null : playersById.get(hostPlayerId);
-        if (host != null && host.isConnected()) {
+        boolean hostLost = host == null || !host.isConnected();
+        if (!hostLost && !allowPickup) {
             return;
         }
         hostPlayerId = players().stream()
@@ -80,11 +84,30 @@ public class Room {
                 .orElse(null);
     }
 
-    public int getHostActionCount() {
-        return hostActionCount;
+    // --- Zustandsautomat der aktuellen Runde (ADR-020) ------------------------
+
+    public Phase getPhase() {
+        return currentRound == null ? Phase.IDLE : currentRound.getPhase();
     }
 
-    public int bumpHostActionCount() {
-        return ++hostActionCount;
+    public Round getCurrentRound() {
+        return currentRound;
+    }
+
+    /**
+     * Oeffnet eine neue Runde. Der Teilnehmerkreis wird jetzt eingefroren
+     * (Anforderung 8.1): dabei, wer verbunden ist, plus wer getrennt ist aber
+     * noch keine zwei Runden am Stueck verpasst hat — ab der dritten
+     * verpassten Runde pausiert ein getrennter Spieler und zahlt nicht mehr.
+     */
+    public Round openMarket(Market market, Instant now, Duration window) {
+        Set<String> participants = new LinkedHashSet<>();
+        for (Player player : players()) {
+            if (player.isConnected() || player.getMissedRounds() < 2) {
+                participants.add(player.getId());
+            }
+        }
+        currentRound = new Round(nextRoundId++, market, now.plus(window), participants);
+        return currentRound;
     }
 }
