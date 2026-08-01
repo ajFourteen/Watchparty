@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/ajFourteen/Watchparty/compare/v2.0.0...v2.0.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* Umlaute ([3ef9582](https://github.com/ajFourteen/Watchparty/commit/3ef9582e064741d532f66325cce7b1af92c9771e))
+
 # [2.0.0](https://github.com/ajFourteen/Watchparty/compare/v1.0.1...v2.0.0) (2026-08-01)
 
 
