@@ -21,10 +21,21 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+
+    // Ab Gradle 9 liegt der Launcher nicht mehr automatisch auf dem
+    // Test-Classpath; ohne ihn startet der Test-Executor gar nicht erst.
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// Die Wett-Texte und Fehlermeldungen gehen unveraendert in die Oberflaeche,
+// deshalb muss die Quelltext-Kodierung festgelegt sein statt von der
+// Plattform-Voreinstellung abzuhaengen — sonst zerfallen Umlaute im Jar.
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
 }
 
 // --- Frontend-Build -------------------------------------------------------
