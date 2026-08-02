@@ -113,4 +113,6 @@ nicht simulieren lassen.
 - Sichtbare Texte stehen mit Umlauten im Quelltext; die Kodierung ist in
   `build.gradle.kts` auf UTF-8 festgenagelt.
 - Jede abgeschlossene Änderung bekommt einen eigenen Commit, direkt wenn sie
-  fertig ist — nicht auf spätere Sammel-Commits warten.
+  fertig ist — nicht auf spätere Sammel-Commits warten. Commit-Messages
+  folgen Conventional Commits (`fix:`, `feat:`, `docs:`, `refactor:`,
+  `test:`, `chore:` ...).
