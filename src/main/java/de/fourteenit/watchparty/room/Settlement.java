@@ -21,15 +21,30 @@ public final class Settlement {
     private Settlement() {
     }
 
-    public static Map<String, Integer> settle(List<Pick> picks, Set<String> nonPickers,
+    /**
+     * Das vollstaendige Ergebnis einer Abrechnung. Pool und Annullierung
+     * gehoeren hierher und nicht zum Aufrufer: Beide folgen aus denselben
+     * Regeln wie die Deltas, und wer sie danebenher selbst ausrechnet,
+     * pflegt das Kappen der Strafe (8.1) zwangslaeufig doppelt.
+     *
+     * {@code pool} ist der Pool im Sinn von Anforderung 7: alle Einsaetze
+     * plus die *tatsaechlich eingesammelten* Strafen. Beim Push (8.2) ist er
+     * deshalb groesser als das, was umverteilt wird — die Einsaetze gehen
+     * zurueck, verteilt werden nur die Strafen. Das ist Absicht: Der Pool
+     * beschreibt, was hineingeflossen ist.
+     */
+    public record Result(Map<String, Integer> deltas, int pool, boolean annulled) {
+    }
+
+    public static Result settle(List<Pick> picks, Set<String> nonPickers,
             Map<String, Integer> balances, String winningOutcome, Params params) {
         Map<String, Integer> deltas = new LinkedHashMap<>();
 
         // 8.4: Ohne einen einzigen Tipp gibt es niemanden, der etwas gewinnen
         // oder verlieren koennte — die Runde wird annulliert, auch fuer
-        // Nicht-Tipper.
+        // Nicht-Tipper. Kein Pool, keine Strafen.
         if (picks.isEmpty()) {
-            return deltas;
+            return new Result(deltas, 0, true);
         }
 
         int collectedPenalties = 0;
@@ -48,6 +63,7 @@ public final class Settlement {
             deltas.merge(pick.playerId(), -pick.stake(), Integer::sum);
         }
         int totalStakes = picks.stream().mapToInt(Pick::stake).sum();
+        int pool = totalStakes + collectedPenalties;
 
         List<Pick> winners = picks.stream()
                 .filter(pick -> pick.outcomeId().equals(winningOutcome))
@@ -60,12 +76,11 @@ public final class Settlement {
                 deltas.merge(pick.playerId(), pick.stake(), Integer::sum);
             }
             distributeShares(picks, collectedPenalties, params, deltas);
-            return deltas;
+            return new Result(deltas, pool, false);
         }
 
-        int pool = totalStakes + collectedPenalties;
         distributeShares(winners, pool, params, deltas);
-        return deltas;
+        return new Result(deltas, pool, false);
     }
 
     /**

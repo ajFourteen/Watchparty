@@ -429,24 +429,15 @@ public class RoomActor {
             balances.put(player.getId(), player.getPoints());
         }
 
-        Map<String, Integer> deltas = Settlement.settle(picks, nonPickers, balances, winningOutcomeId, PARAMS);
-        for (Map.Entry<String, Integer> entry : deltas.entrySet()) {
+        // Die gesamte Punkte-Oekonomie steckt in dieser einen Zeile: Deltas,
+        // Pool und die Annullierung nach 8.4 kommen aus derselben Rechnung.
+        // Der Actor wendet sie nur an (ADR-020).
+        Settlement.Result settlement = Settlement.settle(picks, nonPickers, balances, winningOutcomeId, PARAMS);
+        for (Map.Entry<String, Integer> entry : settlement.deltas().entrySet()) {
             Player player = room.byId(entry.getKey());
             if (player != null) {
                 player.setPoints(player.getPoints() + entry.getValue());
             }
-        }
-
-        // 8.4: Ohne einen einzigen Tipp gibt es keinen Pool und keine
-        // Auszahlung; die Runde ist annulliert.
-        boolean annulled = picks.isEmpty();
-        int pool = 0;
-        if (!annulled) {
-            int totalStakes = picks.stream().mapToInt(Pick::stake).sum();
-            int collectedPenalties = nonPickers.stream()
-                    .mapToInt(id -> Math.min(PARAMS.penalty(), balances.getOrDefault(id, 0)))
-                    .sum();
-            pool = totalStakes + collectedPenalties;
         }
 
         // Anforderung 8.1: Nur getrennte Nicht-Tipper zaehlen fuer die Pause;
@@ -459,9 +450,9 @@ public class RoomActor {
         }
 
         round.setWinningOutcomeId(winningOutcomeId);
-        round.setDeltas(deltas);
-        round.setPool(pool);
-        round.setAnnulled(annulled);
+        round.setDeltas(settlement.deltas());
+        round.setPool(settlement.pool());
+        round.setAnnulled(settlement.annulled());
         round.setPhase(Phase.RESOLVED);
 
         // RESOLVED erlaubt das Zurueckholen der Host-Rolle (ADR-021).

@@ -20,7 +20,7 @@ class SettlementTest {
                 new Pick("b", "td", 50),
                 new Pick("c", "punt", 25));
 
-        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS).deltas();
 
         assertThat(deltas.get("a")).isEqualTo(17);
         assertThat(deltas.get("b")).isEqualTo(8);
@@ -35,7 +35,7 @@ class SettlementTest {
                 new Pick("b", "punt", 25));
         Map<String, Integer> balances = Map.of("d", 1000);
 
-        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS).deltas();
 
         assertThat(deltas.get("a")).isEqualTo(17);
         assertThat(deltas.get("b")).isEqualTo(8);
@@ -46,7 +46,7 @@ class SettlementTest {
     @Test
     void niemandTipptAnnulliertDieRundeOhneStrafenUndOhneAuszahlung() {
         Map<String, Integer> deltas = Settlement.settle(
-                List.of(), Set.of("a", "b"), Map.of("a", 1000, "b", 1000), "td", PARAMS);
+                List.of(), Set.of("a", "b"), Map.of("a", 1000, "b", 1000), "td", PARAMS).deltas();
 
         assertThat(deltas).isEmpty();
     }
@@ -57,7 +57,7 @@ class SettlementTest {
                 new Pick("a", "td", 25),
                 new Pick("b", "td", 25));
 
-        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS).deltas();
 
         assertThat(deltas.get("a")).isZero();
         assertThat(deltas.get("b")).isZero();
@@ -70,7 +70,7 @@ class SettlementTest {
                 new Pick("b", "punt", 100));
         Map<String, Integer> balances = Map.of("a", 0);
 
-        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), balances, "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), balances, "td", PARAMS).deltas();
 
         assertThat(deltas.get("a")).isEqualTo(100);
         assertThat(deltas.get("b")).isEqualTo(-100);
@@ -84,7 +84,7 @@ class SettlementTest {
                 new Pick("b", "td", 25),
                 new Pick("c", "punt", 50));
 
-        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of(), Map.of(), "td", PARAMS).deltas();
 
         // a hat nur 10 gesetzt, zaehlt aber wie b mit dem Mindesteinsatz 25 (7.1).
         assertThat(deltas.get("a")).isEqualTo(33);
@@ -101,7 +101,7 @@ class SettlementTest {
                 new Pick("c", "td", 25));
         Map<String, Integer> balances = Map.of("d", 1000);
 
-        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS).deltas();
 
         assertThat(deltas.get("a")).isEqualTo(9);
         assertThat(deltas.get("b")).isEqualTo(8);
@@ -115,11 +115,56 @@ class SettlementTest {
         List<Pick> picks = List.of(new Pick("a", "td", 25));
         Map<String, Integer> balances = Map.of("d", 10);
 
-        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS);
+        Map<String, Integer> deltas = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS).deltas();
 
         assertThat(deltas.get("d")).isEqualTo(-10);
         assertThat(deltas.get("a")).isEqualTo(10);
         assertThat(sumOf(deltas)).isZero();
+    }
+
+    /**
+     * Der Pool zaehlt nur, was wirklich eingesammelt wurde (Anforderung 8.1):
+     * Der Nicht-Tipper hat 10 Punkte, die Strafe waere 25 — in den Pool gehen
+     * 10. Diese Regel stand frueher zusaetzlich im Actor; der Test haelt fest,
+     * dass sie jetzt nur noch aus einer Rechnung kommt.
+     */
+    @Test
+    void poolZaehltNurTatsaechlichEingesammelteStrafen() {
+        List<Pick> picks = List.of(new Pick("a", "td", 25));
+        Map<String, Integer> balances = Map.of("d", 10);
+
+        Settlement.Result result = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS);
+
+        assertThat(result.pool()).isEqualTo(35);
+        assertThat(result.annulled()).isFalse();
+    }
+
+    @Test
+    void ohneEinenEinzigenTippIstDieRundeAnnulliertUndDerPoolLeer() {
+        Settlement.Result result = Settlement.settle(
+                List.of(), Set.of("a", "b"), Map.of("a", 1000, "b", 1000), "td", PARAMS);
+
+        assertThat(result.annulled()).isTrue();
+        assertThat(result.pool()).isZero();
+        assertThat(result.deltas()).isEmpty();
+    }
+
+    /**
+     * 8.2: Beim Push gehen die Einsaetze zurueck, verteilt werden nur die
+     * Strafen — der Pool bleibt trotzdem Einsaetze plus Strafen, weil er
+     * beschreibt, was hineingeflossen ist (Anforderung 7).
+     */
+    @Test
+    void poolBeimPushEnthaeltDieEinsaetzeObwohlSieZurueckgehen() {
+        List<Pick> picks = List.of(
+                new Pick("a", "punt", 50),
+                new Pick("b", "punt", 25));
+        Map<String, Integer> balances = Map.of("d", 1000);
+
+        Settlement.Result result = Settlement.settle(picks, Set.of("d"), balances, "td", PARAMS);
+
+        assertThat(result.pool()).isEqualTo(100);
+        assertThat(result.annulled()).isFalse();
     }
 
     /**
@@ -154,12 +199,15 @@ class SettlementTest {
             }
 
             String winningOutcome = outcomes.get(random.nextInt(outcomes.size()));
-            Map<String, Integer> deltas = Settlement.settle(picks, nonPickers, balances, winningOutcome, PARAMS);
+            Settlement.Result result = Settlement.settle(picks, nonPickers, balances, winningOutcome, PARAMS);
 
-            assertThat(sumOf(deltas))
+            assertThat(sumOf(result.deltas()))
                     .as("Lauf %d: picks=%s nonPickers=%s balances=%s winner=%s", run, picks, nonPickers, balances,
                             winningOutcome)
                     .isZero();
+            assertThat(result.annulled())
+                    .as("Lauf %d ist genau dann annulliert, wenn niemand getippt hat", run)
+                    .isEqualTo(picks.isEmpty());
         }
     }
 
