@@ -7,6 +7,7 @@ import de.fourteenit.watchparty.ws.ClientSession;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -71,9 +72,18 @@ public class RoomActor {
     /** Nur eine Optimierung (ADR-010): die Absicherung ist der Runden-ID-Vergleich in handleAutoClose. */
     private Scheduler.ScheduledTask autoCloseTask;
 
-    public RoomActor(Clock clock, Scheduler scheduler) {
+    private final SnapshotStore snapshotStore;
+
+    @Autowired
+    public RoomActor(Clock clock, Scheduler scheduler, SnapshotStore snapshotStore) {
         this.clock = clock;
         this.scheduler = scheduler;
+        this.snapshotStore = snapshotStore;
+    }
+
+    /** Bequemlichkeitskonstruktor fuer Tests, die keinen Snapshot brauchen: Persistenz bleibt aus. */
+    RoomActor(Clock clock, Scheduler scheduler) {
+        this(clock, scheduler, new SnapshotStore(null));
     }
 
     // --- Eintrittspunkte (aufgerufen von WebSocket-Threads) ------------------
@@ -396,12 +406,15 @@ public class RoomActor {
     private void broadcastState() {
         Messages.State state = snapshot();
         String payload = serialize(state);
-        if (payload == null) {
-            return;
+        if (payload != null) {
+            for (ClientSession session : sessions.values()) {
+                session.send(payload);
+            }
         }
-        for (ClientSession session : sessions.values()) {
-            session.send(payload);
-        }
+        // "Zustand geaendert, aber nicht gespeichert" soll gar nicht erst
+        // als Zustand existieren (ADR-023) -- deshalb an derselben Stelle
+        // wie das Senden, nicht an einer eigenen.
+        snapshotStore.save(room.toSnapshot(clock.instant().toEpochMilli()));
     }
 
     private Messages.State snapshot() {
