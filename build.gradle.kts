@@ -20,7 +20,12 @@ repositories {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // Ohne Mockito: Test Doubles werden von Hand geschrieben (ADR-025). Der
+    // Ausschluss macht daraus eine Regel statt einer Absprache -- ein
+    // versehentliches mock(...) kompiliert gar nicht erst.
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude(group = "org.mockito")
+    }
 
     // Haelt die Ringregel aus ADR-024 als Test fest.
     testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
