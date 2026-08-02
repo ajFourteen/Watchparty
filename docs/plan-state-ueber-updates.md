@@ -220,51 +220,119 @@ beigetretener Spieler mit falschem Namen, ein Abend, der nach der
 Verfallszeit doch noch als Snapshot herumliegt. Ein `RESET` ist deshalb Teil
 dieser Änderung, nicht ein späteres Extra.
 
-Vorschlag:
+Entschieden am 2026-08-02: `RESET` räumt den Raum vollständig leer, auch
+die Spieler.
 
 - Neues Kommando `RESET`, wie `OPEN_BET`/`RESOLVE` nur für den Host, über
   dieselbe Actor-Queue (Invariante 1).
-- Wirkung: laufende Runde verwerfen (Auto-Close-Task abbrechen, Phase
-  `IDLE`, `nextRoundId` zurück auf 1), alle Punkte auf das Startguthaben,
-  `missedRounds` auf 0. **Spieler, Tokens und Host-Rolle bleiben** — am
-  Tisch will man den Spielstand löschen, nicht die Runde neu einsammeln.
-  Getrennte Spieler fallen dabei raus, damit versehentliche Beitritte
-  verschwinden.
+- Wirkung: Der `Room` wird ersetzt. Weg sind Spieler, Tokens, Punkte,
+  Host-Rolle und die laufende Runde; der Auto-Close-Task wird abgebrochen,
+  `nextRoundId` fängt wieder bei 1 an. Die `ClientSession`s bleiben offen,
+  verlieren aber ihre `playerId` — sie zeigen auf niemanden mehr.
 - Der Snapshot wird über denselben Weg geschrieben wie jede andere
-  Änderung. Sonst wäre der Raum nach dem nächsten Neustart wieder da.
+  Änderung, hier also ein leerer. Sonst wäre der alte Raum nach dem
+  nächsten Neustart wieder da.
 - Invariante 5 (Nullsumme) gilt innerhalb eines Spiels. `RESET` beendet das
   Spiel, es verschiebt keine Punkte — das gehört als Kommentar an die
   Stelle, sonst liest es sich wie ein Bruch.
 - Oberfläche: Host-Knopf mit Rückfrage, deutlich abgesetzt von `Auflösen`
   und `Annullieren`. Ein Fehlgriff mitten in der Runde kostet den Abend.
-- Kein neuer Nachrichtentyp Richtung Client; `STATE` transportiert das
-  Ergebnis ohnehin.
+
+Zwei Punkte, die daran hängen und ohne die das Zurücksetzen nur halb
+funktioniert:
+
+**Die Clients müssen es merken.** Sie bauen die Verbindung nicht neu auf,
+denn die Sockets bleiben offen — `useRoom.js` schickt `JOIN` nur beim
+Öffnen der Verbindung. Nach dem `RESET` bekämen alle einen leeren `STATE`
+und blieben in einer Ansicht sitzen, deren eigener Spieler nicht mehr
+existiert. Nötig ist deshalb im Frontend: Taucht die eigene `playerId` nicht
+mehr in der Spielerliste auf, werden Token und Name im `localStorage`
+verworfen und die Beitrittsansicht kommt zurück. Der Client rechnet dabei
+nichts aus, er reagiert nur auf `STATE` — Invariante 3 bleibt heil. Kein
+neuer Nachrichtentyp nötig.
+
+Bewusst kein automatisches Wiederbeitreten: Das würde den Raum in derselben
+Sekunde mit denselben Namen wieder füllen und das Zurücksetzen zur reinen
+Anzeige machen. Wer wieder mitspielen will, tippt seinen Namen erneut ein.
+
+**Die Host-Rolle wird neu vergeben, und zwar an den Schnellsten.** Nach
+ADR-016 wird der erste Joiner Host. Wer zurücksetzt, ist danach nicht
+automatisch wieder Host — es wird, wer als Erster seinen Namen abschickt.
+Der Host kann sich also mit dem eigenen Knopf entmachten. Das ist die
+ehrliche Folge von „alle Spieler weg". Die Rolle ist nach ADR-016 ohnehin
+keine feste Zuordnung, und in einem leeren Raum ist der Schaden gering — es
+gibt nichts zu steuern, bis wieder jemand da ist. Falls es am Tisch stört,
+wäre die kleinste Korrektur, den zurücksetzenden Spieler als Einzigen
+stehen zu lassen; das steht bewusst nicht im Plan, weil es „alle Spieler
+weg" aufweicht.
 
 Der Schritt gehört als eigener Commit vor Schritt 3 aus Abschnitt 10 —
 sobald geladen wird, will man auch löschen können.
 
 ## 13. Fragen, die vorab beantwortet werden müssen
 
-**A. Ist der Nachtrag zu ADR-004 gewollt?** Der Ausschluss „keine
-Persistenz, keine Datenbank" steht ausdrücklich in
-`offene-entscheidungen.md`. Der Plan bleibt bei „keine Datenbank", legt aber
-eine Datei an. Ohne ein Ja hierzu passiert nichts.
-
-**B. Was passiert mit einer Runde, deren Fenster während des Neustarts
-abgelaufen ist?** Vorschlag: `CLOSED`, der Host entscheidet — annullieren
-kann er mit einem Knopf (8.6). Alternative wäre automatisches Annullieren,
-weil der Neustart Tippzeit gestohlen hat. Beides vertretbar; der Vorschlag
-kommt ohne neuen Mechanismus aus.
-
-**C. Wie lang ist die Verfallszeit?** Sie trennt „Neustart mitten im Abend"
-von „nächster Spielabend". Vorschlag: 6 Stunden — länger als ein Spiel
-inklusive Verlängerung und Pausen, kürzer als der Abstand zum nächsten
-Spieltag.
+**A. Ist der Nachtrag zu ADR-004 gewollt?** — *Entschieden am 2026-08-02:
+ja.* ADR-023 wird als Nachtrag geschrieben, `offene-entscheidungen.md` und
+`anforderungen.md` (Zeile „Keine Persistenz über Spielabende hinweg") werden
+nachgezogen: Der Satz bleibt richtig, er meint ab jetzt ausdrücklich die
+Abende, nicht den einzelnen Neustart.
 
 **D. Ist das Fly-Volume in Ordnung?** — *Entschieden am 2026-08-02: ja.*
 
-**E. Behält `RESET` die Spieler oder räumt es den Raum komplett leer?**
-Vorschlag: Spieler und Tokens bleiben, nur der Spielstand fällt (Abschnitt
-12). Wer den Raum wirklich leer will, hat mit der Verfallszeit aus Frage C
-ohnehin den nächsten Abend frisch. Die harte Variante — alles weg, alle
-müssen neu beitreten — wäre einen zweiten Knopf wert, aber nicht denselben.
+**E. Behält `RESET` die Spieler oder räumt es den Raum komplett leer?** —
+*Entschieden am 2026-08-02: komplett leer, siehe Abschnitt 12.*
+
+### Offen: B und C
+
+Beide sind keine Architekturfragen mehr, sondern Zahlen und ein
+Fairness-Gefühl. Beide sind außerdem billiger geworden, seit `RESET`
+feststeht: Wenn die Voreinstellung nicht passt, ist es ein Knopfdruck, kein
+Deploy. Deshalb hier jeweils, was zur Entscheidung fehlt.
+
+**B. Was passiert mit einer Runde, deren Fenster während des Neustarts
+abgelaufen ist?**
+
+Zur Auswahl steht `CLOSED` (die abgegebenen Tipps zählen, der Host löst
+normal auf) oder automatisches Annullieren (niemand verliert etwas, die
+Runde wird wiederholt).
+
+Was dafür fehlt:
+
+1. *Wie lange dauert der Neustart wirklich?* Bei deutlich mehr als 15
+   Sekunden — Fly-Deploy plus JVM-Start dürfte darüber liegen — ist „Fenster
+   noch offen" der seltene Fall und „abgelaufen" der Normalfall. Ist er
+   kürzer, greift meist die Restzeit-Variante und B verliert an Gewicht.
+   Das ist messbar, aber nicht am Schreibtisch: gehört auf den
+   Beobachtungsbogen in `probelauf.md`.
+2. *Ist es unfair, wenn getippt bleibt, was getippt war?* Wer schon getippt
+   hatte, hat sich entschieden. Wer noch nicht getippt hatte, verliert die
+   Restzeit — bei einem 15-Sekunden-Fenster kann das die ganze Zeit sein.
+   Genau darauf zielt sonst die Strafe aus 8.1, und die träfe hier
+   jemanden, der nichts falsch gemacht hat.
+
+Punkt 2 spricht inzwischen eher fürs automatische Annullieren: Vor `RESOLVED`
+ist noch nichts verrechnet (siehe `handleAnnul`), es kostet niemanden etwas,
+und es nimmt dem Host eine Entscheidung ab, die er mitten im Spiel treffen
+müsste, ohne zu wissen, wer wann getippt hat. Der Grund `HOST` wäre dann
+falsch — es bräuchte einen dritten `annulReason` (etwa `RESTART`), damit die
+Oberfläche nicht lügt. Das ist der einzige Mehraufwand.
+
+**C. Wie lang ist die Verfallszeit?**
+
+Sie trennt „Neustart mitten im Abend" (wiederherstellen) von „nächster
+Spielabend" (frisch anfangen).
+
+Was dafür fehlt — zwei Zahlen aus deinem Alltag:
+
+1. *Die längste Pause innerhalb eines Abends, nach der der Stand noch
+   stehen soll.* Anstoß bis Abpfiff sind gut drei bis dreieinhalb Stunden;
+   die Frage ist, ob das Handy vorher schon dabei ist und ob nach dem Spiel
+   noch weitergespielt wird.
+2. *Der kürzeste Abstand zum nächsten Mal.* Zwei Abende hintereinander
+   (Sonntag und Monday Night) liegen rund 20 Stunden auseinander — alles
+   unter etwa 12 Stunden ist damit unbedenklich.
+
+Die Fehler sind nicht gleich teuer: Zu kurz kostet den laufenden Abend, zu
+lang kostet einen Druck auf `RESET`. Also großzügig wählen. Vorschlag
+bleibt 6 Stunden, als Property gesetzt und damit ohne Codeänderung
+korrigierbar.
