@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.fourteenit.watchparty.protocol.Messages;
 import de.fourteenit.watchparty.ws.ClientSession;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,14 @@ public class RoomActor {
     /** Anforderung 3.1: Startguthaben, Mindesteinsatz, Strafe an einer Stelle im Code. */
     private static final Params PARAMS = Params.DEFAULT;
 
+    /**
+     * Trennt "Neustart mitten im Abend" (wiederherstellen) von "naechster
+     * Spielabend" (frisch anfangen) -- Frage C im Snapshot-Plan (ADR-023),
+     * entschieden am 2026-08-02. Laenger als ein Spiel samt Pausen und
+     * Verlaengerung, deutlich kuerzer als der Abstand zum naechsten Mal.
+     */
+    private static final Duration SNAPSHOT_TTL = Duration.ofHours(6);
+
     private final ExecutorService loop = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "room-actor");
         thread.setDaemon(true);
@@ -86,6 +95,17 @@ public class RoomActor {
     /** Bequemlichkeitskonstruktor fuer Tests, die keinen Snapshot brauchen: Persistenz bleibt aus. */
     RoomActor(Clock clock, Scheduler scheduler) {
         this(clock, scheduler, new SnapshotStore(null));
+    }
+
+    /**
+     * Reiht das Laden als erstes Kommando in die Actor-Queue ein (Abschnitt
+     * 5 des Plans): Damit laeuft es auf dem Raum-Thread und ist garantiert
+     * vor dem ersten {@code JOIN} fertig, ohne Sonderfall in Invariante 1 --
+     * die WebSocket-Handler reihen ja nur ein und draengeln sich nicht vor.
+     */
+    @PostConstruct
+    void loadOnStartup() {
+        loop.execute(this::handleRestore);
     }
 
     // --- Eintrittspunkte (aufgerufen von WebSocket-Threads) ------------------
@@ -127,6 +147,34 @@ public class RoomActor {
     }
 
     // --- Verarbeitung (laeuft ausschliesslich auf dem Raum-Thread) -----------
+
+    /**
+     * Laedt den zuletzt geschriebenen Snapshot, falls einer da ist und noch
+     * nicht abgelaufen (Abschnitt 6 des Plans, ADR-023). Ein fehlender oder
+     * kaputter Snapshot ist kein Fehler -- {@link SnapshotStore#load} traegt
+     * die Regel "im Zweifel leer starten" schon selbst.
+     *
+     * Eine offene Runde, deren Fenster waehrend des Neustarts abgelaufen
+     * ist, wird schlicht geschlossen: Ein Deploy faellt nicht in einen
+     * echten Spielabend (ADR-019, README), betrifft also nur Tests -- kein
+     * eigener Grund fuers Annullieren noetig (entschieden, Frage B).
+     */
+    private void handleRestore() {
+        snapshotStore.load(clock.instant(), SNAPSHOT_TTL).ifPresent(snapshot -> {
+            room = Room.fromSnapshot(snapshot);
+            Round round = room.getCurrentRound();
+            if (round != null && round.getPhase() == Phase.OPEN) {
+                if (clock.instant().isBefore(round.getClosesAt())) {
+                    long roundId = round.getId();
+                    Duration remaining = Duration.between(clock.instant(), round.getClosesAt());
+                    autoCloseTask = scheduler.schedule(() -> loop.execute(() -> handleAutoClose(roundId)), remaining);
+                } else {
+                    closeRound(round);
+                }
+            }
+            log.info("Zustand aus Snapshot wiederhergestellt: {} Spieler", room.players().size());
+        });
+    }
 
     private void handleJoin(ClientSession session, String rawName, String token) {
         String name = rawName == null ? "" : rawName.trim();

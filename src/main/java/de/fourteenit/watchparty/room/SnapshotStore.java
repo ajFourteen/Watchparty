@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Schreibt und liest den {@link RoomSnapshot} auf die Platte (ADR-023).
@@ -38,6 +39,9 @@ public class SnapshotStore {
     private final ObjectMapper mapper = new ObjectMapper();
     private final ArrayBlockingQueue<RoomSnapshot> pending = new ArrayBlockingQueue<>(1);
     private final Thread writer;
+
+    /** Nur fuer {@link #awaitWritten()} in Tests: true, solange kein Schreibvorgang laeuft. */
+    private final AtomicBoolean idle = new AtomicBoolean(true);
 
     public SnapshotStore(Path path) {
         this.path = path;
@@ -76,6 +80,7 @@ public class SnapshotStore {
                 Thread.currentThread().interrupt();
                 return;
             }
+            idle.set(false);
             // Waehrend des Schreibens kann schon der naechste Stand anstehen
             // -- dann gleich den neuesten nehmen statt zwei Schreibvorgaenge
             // hintereinander zu machen.
@@ -85,6 +90,7 @@ public class SnapshotStore {
                 latest = next;
             }
             writeToDisk(latest);
+            idle.set(true);
         }
     }
 
@@ -141,6 +147,19 @@ public class SnapshotStore {
             Files.move(path, path.resolveSibling(path.getFileName() + ".bad"), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             log.error("Kaputter Snapshot konnte nicht beiseite gelegt werden", e);
+        }
+    }
+
+    /**
+     * Nur fuer Tests: blockiert (durch Polling), bis der Schreib-Thread
+     * alle bis hierhin per {@link #save} eingereihten Snapshots geschrieben
+     * hat. Sicher, weil {@code save} synchron auf dem Raum-Thread laeuft --
+     * ein Aufruf hier direkt danach sieht die Queue garantiert nicht leer,
+     * bevor der Schreibvorgang wirklich abgeschlossen ist.
+     */
+    void awaitWritten() {
+        while (!pending.isEmpty() || !idle.get()) {
+            Thread.onSpinWait();
         }
     }
 
