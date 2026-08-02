@@ -1,3 +1,18 @@
+# [3.1.0](https://github.com/ajFourteen/Watchparty/compare/v3.0.0...v3.1.0) (2026-08-02)
+
+
+### Bug Fixes
+
+* Formulierung im Guide ([0560f82](https://github.com/ajFourteen/Watchparty/commit/0560f82af99762a662c241c8bfc01ce6282db972))
+
+
+### Features
+
+* Raumzustand beim Start aus dem Snapshot laden (ADR-023) ([d573763](https://github.com/ajFourteen/Watchparty/commit/d5737630a753834a625bb72d60048198745f702f))
+* RESET setzt den ganzen Raum zurück (ADR-023, Abschnitt 12) ([a435c3e](https://github.com/ajFourteen/Watchparty/commit/a435c3e2f79aaaa657510d0577bb53b87aa98239))
+* Snapshot-Datenmodell für den Raumzustand (ADR-023) ([0518cc4](https://github.com/ajFourteen/Watchparty/commit/0518cc4c8864b0c23fc358d3102375bfdcf204d7))
+* SnapshotStore schreibt den Raumzustand bei jeder Änderung (ADR-023) ([6f51af9](https://github.com/ajFourteen/Watchparty/commit/6f51af9641ac0f37af1a0c13012b905f56146ed4))
+
 # [3.0.0](https://github.com/ajFourteen/Watchparty/compare/v2.0.1...v3.0.0) (2026-08-01)
 
 
