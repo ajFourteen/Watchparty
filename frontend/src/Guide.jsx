@@ -26,8 +26,7 @@ export function Guide({ catalog, onClose }) {
             <strong>15 Sekunden</strong>, um zu tippen.
           </li>
           <li>
-            <strong>Du tippst verdeckt.</strong> Solange die Uhr läuft, sieht niemand — auch
-            der Server verrät es nicht —, worauf du gesetzt hast. Sichtbar ist nur, wie viele
+            <strong>Du tippst verdeckt.</strong> Solange die Uhr läuft, sieht niemand, worauf du gesetzt hast. Sichtbar ist nur, wie viele
             schon getippt haben.
           </li>
           <li>
@@ -110,8 +109,8 @@ export function Guide({ catalog, onClose }) {
           rückt automatisch jemand nach.
         </p>
         <p className="hint">
-          Passt die offene Wette nicht mehr zum Spiel — das Team geht statt des Field Goals
-          doch auf den vierten Versuch —, kann er die Runde abbrechen. Dann passiert nichts:
+          Passt die offene Wette nicht mehr zum Spiel (z. B. wenn das Team statt des Field Goals
+          doch auf den vierten Versuch geht), kann er die Runde abbrechen. Dann passiert nichts:
           keine Einsätze, keine Strafen, keine Punkte.
         </p>
 
