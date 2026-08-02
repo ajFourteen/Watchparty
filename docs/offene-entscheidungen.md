@@ -35,7 +35,11 @@ Damit diese Fragen nicht versehentlich wieder aufgemacht werden:
 
 - Kein Remote-Play über mehrere Orte.
 - Keine mehreren parallelen Räume.
-- Keine Persistenz über Spielabende hinweg, keine Datenbank.
+- Keine Persistenz über Spielabende hinweg, keine Datenbank. Innerhalb
+  eines Abends dagegen schon: Ein Snapshot soll einen Neustart überleben,
+  entschieden am 2026-08-02, siehe `plan-state-ueber-updates.md`. Der
+  Ausschluss meint ab jetzt ausdrücklich die Abende, nicht den einzelnen
+  Neustart — und weiterhin keine Datenbank.
 - Keine automatische Ergebnis-Erkennung per Datenfeed. Der Host löst manuell
   auf — bewusst, um die Broadcast-Verzögerung zu umgehen und synchron zum
   Fernsehbild im Raum zu bleiben.

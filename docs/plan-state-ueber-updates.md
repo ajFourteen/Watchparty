@@ -292,24 +292,15 @@ Fly-Wartung — selten, unplanbar und nicht der Fall, für den man ein
 Sonderverhalten einbaut. Falls doch einmal jemand zu Unrecht bestraft würde,
 annulliert der Host mit dem vorhandenen Knopf (8.6).
 
-### Offen: nur noch C
+**C. Wie lang ist die Verfallszeit?** — *Entschieden am 2026-08-02: 6
+Stunden.* Sie trennt „Neustart mitten im Abend" (wiederherstellen) von
+„nächster Spielabend" (frisch anfangen). Länger als ein Spiel samt Pausen
+und Verlängerung, deutlich kürzer als der Abstand zum nächsten Mal — zwei
+Abende hintereinander (Sonntag und Monday Night) liegen rund 20 Stunden
+auseinander. Als Property gesetzt und damit ohne Codeänderung korrigierbar;
+taucht doch einmal ein alter Stand auf, räumt `RESET` ihn weg.
 
-**C. Wie lang ist die Verfallszeit?**
+---
 
-Sie trennt „Neustart mitten im Abend" (wiederherstellen) von „nächster
-Spielabend" (frisch anfangen).
-
-Was dafür fehlt — zwei Zahlen aus deinem Alltag:
-
-1. *Die längste Pause innerhalb eines Abends, nach der der Stand noch
-   stehen soll.* Anstoß bis Abpfiff sind gut drei bis dreieinhalb Stunden;
-   die Frage ist, ob das Handy vorher schon dabei ist und ob nach dem Spiel
-   noch weitergespielt wird.
-2. *Der kürzeste Abstand zum nächsten Mal.* Zwei Abende hintereinander
-   (Sonntag und Monday Night) liegen rund 20 Stunden auseinander — alles
-   unter etwa 12 Stunden ist damit unbedenklich.
-
-Die Fehler sind nicht gleich teuer: Zu kurz kostet den laufenden Abend, zu
-lang kostet einen Druck auf `RESET`. Also großzügig wählen. Vorschlag
-bleibt 6 Stunden, als Property gesetzt und damit ohne Codeänderung
-korrigierbar.
+Damit ist der Plan entscheidungsvollständig. Die Umsetzung folgt Abschnitt
+10, ergänzt um das `RESET` aus Abschnitt 12 vor Schritt 3.
