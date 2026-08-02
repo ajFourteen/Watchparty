@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Der angezeigte Name eines Spielers. Value Object.
  *
@@ -24,7 +26,7 @@ public record PlayerName(String value) {
         return new PlayerName(value);
     }
 
-    public static boolean isValid(String value) {
+    public static boolean isValid(@Nullable String value) {
         if (value == null) {
             return false;
         }

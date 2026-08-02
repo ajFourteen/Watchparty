@@ -95,6 +95,14 @@ und Value Objects (ADR-025) — die Sprache aus `docs/anforderungen.md` findet
 sich eins zu eins im Typsystem wieder. `ArchitectureTest` (ArchUnit) prüft
 beides, es ist keine bloße Verabredung.
 
+Zusätzlich gilt JSpecify-Nullness (ADR-026): `domain`, `application`,
+`adapter` und `config` sind `@NullMarked` — jeder Verweistyp ist dort
+nicht-null, sofern nicht ausdrücklich `@Nullable`. NullAway prüft das beim
+Kompilieren (`gradle compileJava`), nicht erst zur Laufzeit oder in der IDE.
+Ein `@Nullable` an einer Stelle im Domänenmodell ist deshalb keine
+Empfehlung, sondern eine Zusicherung, die der Compiler nachhält — ebenso wie
+ihr Fehlen. Testcode ist bewusst nicht `@NullMarked` (siehe ADR-026).
+
 ```
 src/main/java/de/fourteen/watchparty/
   domain/model/            Der Kern. Kein Spring, kein Jackson, kein WebSocket.
@@ -203,6 +211,13 @@ selbst, die sich nicht am Schreibtisch simulieren lassen.
   auszahlen.
 - Test Doubles werden von Hand geschrieben, kein Mockito (ADR-025) — vom
   Test-Classpath ausgeschlossen.
+- `@Nullable` (`org.jspecify.annotations`) steht direkt vor dem Typ, den es
+  betrifft — bei einem qualifizierten Typ wie `Scheduler.ScheduledTask` also
+  `Scheduler.@Nullable ScheduledTask`, nicht davor (ADR-026). Wo NullAway
+  eine Nicht-Null-Bedingung nicht selbst herleiten kann (z. B. ein
+  Map-Zugriff, dessen Schlüssel nachweislich existiert), macht ein expliziter
+  `Objects.requireNonNull(...)` mit Begründung im Kommentar die Annahme
+  sichtbar, statt sie stillschweigend vorauszusetzen.
 - Sichtbare Texte stehen mit Umlauten im Quelltext; die Kodierung ist in
   `build.gradle.kts` auf UTF-8 festgenagelt.
 - Jede abgeschlossene Änderung bekommt einen eigenen Commit, direkt wenn sie

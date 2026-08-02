@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -31,8 +33,13 @@ public class Round {
     private final Map<PlayerId, Pick> picks = new LinkedHashMap<>();
 
     private Phase phase = Phase.OPEN;
-    private OutcomeId winningOutcomeId;
-    private Map<PlayerId, PointsDelta> deltas;
+
+    /** Erst ab RESOLVED gesetzt (ADR-020) -- vorher gibt es noch kein Ergebnis. */
+    private @Nullable OutcomeId winningOutcomeId;
+
+    /** Erst ab RESOLVED gesetzt, aus demselben Grund wie {@link #winningOutcomeId}. */
+    private @Nullable Map<PlayerId, PointsDelta> deltas;
+
     private Points pool = Points.ZERO;
     private boolean annulled;
 
@@ -86,7 +93,8 @@ public class Round {
         return picks.containsKey(playerId);
     }
 
-    public Pick pickOf(PlayerId playerId) {
+    /** {@code null}, wenn dieser Spieler in dieser Runde noch nicht getippt hat. */
+    public @Nullable Pick pickOf(PlayerId playerId) {
         return picks.get(playerId);
     }
 
@@ -113,16 +121,19 @@ public class Round {
         this.phase = phase;
     }
 
-    public OutcomeId getWinningOutcomeId() {
+    /** {@code null} vor RESOLVED. */
+    public @Nullable OutcomeId getWinningOutcomeId() {
         return winningOutcomeId;
     }
 
-    void setWinningOutcomeId(OutcomeId winningOutcomeId) {
+    void setWinningOutcomeId(@Nullable OutcomeId winningOutcomeId) {
         this.winningOutcomeId = winningOutcomeId;
     }
 
-    public Map<PlayerId, PointsDelta> getDeltas() {
-        return deltas == null ? null : Map.copyOf(deltas);
+    /** {@code null} vor RESOLVED. */
+    public @Nullable Map<PlayerId, PointsDelta> getDeltas() {
+        Map<PlayerId, PointsDelta> current = deltas;
+        return current == null ? null : Map.copyOf(current);
     }
 
     void setDeltas(Map<PlayerId, PointsDelta> deltas) {

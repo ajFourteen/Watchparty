@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 /** Die Identitaet einer {@link Bet} im Katalog (ADR-017). Value Object. */
 public record BetId(String value) {
 
@@ -14,7 +16,7 @@ public record BetId(String value) {
     }
 
     /** Fuer Eingaben von aussen: ohne Angabe gilt die Standard-Wette. */
-    public static BetId ofNullable(String value) {
+    public static @Nullable BetId ofNullable(@Nullable String value) {
         return value == null || value.isBlank() ? null : new BetId(value);
     }
 

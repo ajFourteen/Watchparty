@@ -21,6 +21,7 @@ import de.fourteen.watchparty.domain.model.Round;
 import de.fourteen.watchparty.domain.model.RoundId;
 import de.fourteen.watchparty.domain.model.Token;
 import de.fourteen.watchparty.domain.service.Settlement;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +93,7 @@ public class RoomActor implements RoomCommands {
      * in der Infrastruktur. Sie gehoert hierher: Nur vom Raum-Thread
      * beruehrt, daher eine gewoehnliche LinkedHashMap (Invariante 1).
      */
-    private final Map<String, PlayerId> playerIdBySession = new LinkedHashMap<>();
+    private final Map<String, @Nullable PlayerId> playerIdBySession = new LinkedHashMap<>();
 
     /**
      * Massgebliche Uhr fuer {@code closesAt}-Vergleiche (ADR-011) und
@@ -108,7 +109,7 @@ public class RoomActor implements RoomCommands {
     private final Scheduler scheduler;
 
     /** Nur eine Optimierung (ADR-010): die Absicherung ist der Runden-ID-Vergleich in handleAutoClose. */
-    private Scheduler.ScheduledTask autoCloseTask;
+    private Scheduler.@Nullable ScheduledTask autoCloseTask;
 
     private final SnapshotRepository snapshots;
     private final ClientGateway clients;
@@ -146,17 +147,17 @@ public class RoomActor implements RoomCommands {
     }
 
     @Override
-    public void join(String sessionId, String name, String token) {
+    public void join(String sessionId, @Nullable String name, @Nullable String token) {
         loop.execute(() -> handleJoin(sessionId, name, token));
     }
 
     @Override
-    public void openBet(String sessionId, String betId) {
+    public void openBet(String sessionId, @Nullable String betId) {
         loop.execute(() -> handleOpenBet(sessionId, betId));
     }
 
     @Override
-    public void placePick(String sessionId, String outcomeId, Integer stake) {
+    public void placePick(String sessionId, @Nullable String outcomeId, @Nullable Integer stake) {
         loop.execute(() -> handlePlacePick(sessionId, outcomeId, stake));
     }
 
@@ -166,7 +167,7 @@ public class RoomActor implements RoomCommands {
     }
 
     @Override
-    public void resolve(String sessionId, String outcomeId) {
+    public void resolve(String sessionId, @Nullable String outcomeId) {
         loop.execute(() -> handleResolve(sessionId, outcomeId));
     }
 
@@ -210,10 +211,12 @@ public class RoomActor implements RoomCommands {
         });
     }
 
-    private void handleJoin(String sessionId, String rawName, String rawToken) {
+    private void handleJoin(String sessionId, @Nullable String rawName, @Nullable String rawToken) {
         // Die Regel steckt in PlayerName; die Meldung gehoert hierher, weil
         // die Domaene nicht entscheidet, was der Spieler zu lesen bekommt.
-        if (!PlayerName.isValid(rawName)) {
+        // Der explizite Null-Check ist fuer NullAway da: isValid(null) ist
+        // zwar bereits false, aber ein Aufruf allein narrowt rawName nicht.
+        if (rawName == null || !PlayerName.isValid(rawName)) {
             clients.send(sessionId, new Messages.Error("Bitte einen Namen mit 1 bis 20 Zeichen eingeben."));
             return;
         }
@@ -250,7 +253,7 @@ public class RoomActor implements RoomCommands {
         broadcastState();
     }
 
-    private void handleOpenBet(String sessionId, String betId) {
+    private void handleOpenBet(String sessionId, @Nullable String betId) {
         if (!isHost(sessionId)) {
             clients.send(sessionId, new Messages.Error("Nur der Host kann eine Wette öffnen."));
             return;
@@ -279,9 +282,13 @@ public class RoomActor implements RoomCommands {
         broadcastState();
     }
 
-    private void handlePlacePick(String sessionId, String rawOutcomeId, Integer requestedStake) {
+    private void handlePlacePick(String sessionId, @Nullable String rawOutcomeId, @Nullable Integer requestedStake) {
         PlayerId playerId = playerIdBySession.get(sessionId);
-        Player player = playerId == null ? null : room.byId(playerId);
+        if (playerId == null) {
+            clients.send(sessionId, new Messages.Error("Bitte zuerst beitreten."));
+            return;
+        }
+        Player player = room.byId(playerId);
         if (player == null) {
             clients.send(sessionId, new Messages.Error("Bitte zuerst beitreten."));
             return;
@@ -298,8 +305,11 @@ public class RoomActor implements RoomCommands {
             clients.send(sessionId, new Messages.Error("Du hast in dieser Runde schon getippt."));
             return;
         }
+        // Direkt auf outcomeId selbst geprueft (statt nur auf hasOutcome()),
+        // damit der Compiler ab hier weiss, dass outcomeId nicht null ist --
+        // dieselbe Fehlermeldung wie zuvor, jetzt nur nachweisbar richtig.
         OutcomeId outcomeId = OutcomeId.ofNullable(rawOutcomeId);
-        if (!round.getBet().hasOutcome(outcomeId)) {
+        if (outcomeId == null || !round.getBet().hasOutcome(outcomeId)) {
             clients.send(sessionId, new Messages.Error("Unbekannter Ausgang."));
             return;
         }
@@ -403,7 +413,7 @@ public class RoomActor implements RoomCommands {
         broadcastState();
     }
 
-    private void handleResolve(String sessionId, String rawWinningOutcomeId) {
+    private void handleResolve(String sessionId, @Nullable String rawWinningOutcomeId) {
         if (!isHost(sessionId)) {
             clients.send(sessionId, new Messages.Error("Nur der Host kann auflösen."));
             return;
@@ -414,7 +424,7 @@ public class RoomActor implements RoomCommands {
             return;
         }
         OutcomeId winningOutcomeId = OutcomeId.ofNullable(rawWinningOutcomeId);
-        if (!round.getBet().hasOutcome(winningOutcomeId)) {
+        if (winningOutcomeId == null || !round.getBet().hasOutcome(winningOutcomeId)) {
             clients.send(sessionId, new Messages.Error("Unbekannter Ausgang."));
             return;
         }

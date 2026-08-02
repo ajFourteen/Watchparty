@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Die Identitaet eines {@link Outcome} innerhalb einer Wette. Value Object.
  *
@@ -18,7 +20,7 @@ public record OutcomeId(String value) {
         return new OutcomeId(value);
     }
 
-    public static OutcomeId ofNullable(String value) {
+    public static @Nullable OutcomeId ofNullable(@Nullable String value) {
         return value == null || value.isBlank() ? null : new OutcomeId(value);
     }
 

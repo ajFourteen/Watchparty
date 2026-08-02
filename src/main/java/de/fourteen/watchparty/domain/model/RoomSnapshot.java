@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 
@@ -24,10 +26,10 @@ import java.util.Map;
 public record RoomSnapshot(
         int schemaVersion,
         long savedAt,
-        String hostPlayerId,
+        @Nullable String hostPlayerId,
         long nextRoundId,
         List<PlayerSnapshot> players,
-        RoundSnapshot round) {
+        @Nullable RoundSnapshot round) {
 
     public static final int SCHEMA_VERSION = 1;
 
@@ -51,8 +53,8 @@ public record RoomSnapshot(
             String phase,
             List<String> participants,
             List<PickSnapshot> picks,
-            String winningOutcomeId,
-            Map<String, Integer> deltas,
+            @Nullable String winningOutcomeId,
+            @Nullable Map<String, Integer> deltas,
             int pool,
             boolean annulled,
             boolean annulledByHost) {

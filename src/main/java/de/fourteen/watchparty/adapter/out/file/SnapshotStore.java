@@ -4,6 +4,7 @@ import de.fourteen.watchparty.application.port.out.SnapshotRepository;
 import de.fourteen.watchparty.domain.model.RoomSnapshot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,9 +39,9 @@ public class SnapshotStore implements SnapshotRepository {
 
     private static final Logger log = LoggerFactory.getLogger(SnapshotStore.class);
 
-    private final Path path;
+    private final @Nullable Path path;
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Thread writer;
+    private final @Nullable Thread writer;
 
     /**
      * Der wartende Stand mit einer laufenden Nummer. Die Nummer traegt die
@@ -58,10 +59,14 @@ public class SnapshotStore implements SnapshotRepository {
     private final AtomicLong queuedSeq = new AtomicLong();
     private final AtomicLong writtenSeq = new AtomicLong();
 
-    public SnapshotStore(Path path) {
+    public SnapshotStore(@Nullable Path path) {
         this.path = path;
         if (path != null) {
-            writer = new Thread(this::runLoop, "snapshot-writer");
+            // path wird hier als Wert in die Closure aufgenommen, nicht ueber
+            // das Feld gelesen: Der Schreib-Thread braucht keinen weiteren
+            // Nullpruefung -- er existiert ja nur, weil path beim Start
+            // bereits nicht-null war.
+            writer = new Thread(() -> runLoop(path), "snapshot-writer");
             writer.setDaemon(true);
             writer.start();
         } else {
@@ -88,7 +93,7 @@ public class SnapshotStore implements SnapshotRepository {
         pending.offer(queued);
     }
 
-    private void runLoop() {
+    private void runLoop(Path path) {
         while (!Thread.currentThread().isInterrupted()) {
             Queued queued;
             try {
@@ -105,12 +110,12 @@ public class SnapshotStore implements SnapshotRepository {
             while ((next = pending.poll()) != null) {
                 latest = next;
             }
-            writeToDisk(latest.snapshot());
+            writeToDisk(path, latest.snapshot());
             writtenSeq.set(latest.seq());
         }
     }
 
-    private void writeToDisk(RoomSnapshot snapshot) {
+    private void writeToDisk(Path path, RoomSnapshot snapshot) {
         try {
             Path tmp = path.resolveSibling(path.getFileName() + ".tmp");
             byte[] json = mapper.writeValueAsBytes(snapshot);
@@ -135,21 +140,22 @@ public class SnapshotStore implements SnapshotRepository {
      */
     @Override
     public Optional<RoomSnapshot> load(Instant now, Duration ttl) {
-        if (!isEnabled() || !Files.exists(path)) {
+        Path currentPath = path;
+        if (currentPath == null || !Files.exists(currentPath)) {
             return Optional.empty();
         }
         RoomSnapshot snapshot;
         try {
-            snapshot = mapper.readValue(path.toFile(), RoomSnapshot.class);
+            snapshot = mapper.readValue(currentPath.toFile(), RoomSnapshot.class);
         } catch (IOException e) {
             log.error("Snapshot ist beschaedigt, Raum startet leer", e);
-            quarantine();
+            quarantine(currentPath);
             return Optional.empty();
         }
         if (snapshot.schemaVersion() != RoomSnapshot.SCHEMA_VERSION) {
             log.error("Snapshot mit unbekannter schemaVersion {} ignoriert, Raum startet leer",
                     snapshot.schemaVersion());
-            quarantine();
+            quarantine(currentPath);
             return Optional.empty();
         }
         if (Instant.ofEpochMilli(snapshot.savedAt()).plus(ttl).isBefore(now)) {
@@ -159,7 +165,7 @@ public class SnapshotStore implements SnapshotRepository {
         return Optional.of(snapshot);
     }
 
-    private void quarantine() {
+    private void quarantine(Path path) {
         try {
             Files.move(path, path.resolveSibling(path.getFileName() + ".bad"), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {

@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,9 +35,11 @@ public class Room {
     private final Map<PlayerId, Player> playersById = new LinkedHashMap<>();
     private final Map<Token, PlayerId> playerIdByToken = new LinkedHashMap<>();
 
-    private PlayerId hostPlayerId;
+    /** {@code null}, solange kein Spieler beigetreten ist. */
+    private @Nullable PlayerId hostPlayerId;
 
-    private Round currentRound;
+    /** {@code null} in Phase IDLE -- noch keine Runde eroeffnet. */
+    private @Nullable Round currentRound;
     private RoundId nextRoundId = RoundId.of(1);
 
     // --- Teilnehmer -----------------------------------------------------------
@@ -57,7 +61,7 @@ public class Room {
      * {@code null}, wenn der Token unbekannt ist — dann ist es kein
      * Reconnect, sondern ein neuer Spieler.
      */
-    public Player rejoin(Token token, PlayerName name) {
+    public @Nullable Player rejoin(@Nullable Token token, PlayerName name) {
         Player player = byToken(token);
         if (player == null) {
             return null;
@@ -75,7 +79,7 @@ public class Room {
         }
     }
 
-    public Player byToken(Token token) {
+    public @Nullable Player byToken(@Nullable Token token) {
         if (token == null) {
             return null;
         }
@@ -83,7 +87,7 @@ public class Room {
         return id == null ? null : playersById.get(id);
     }
 
-    public Player byId(PlayerId id) {
+    public @Nullable Player byId(@Nullable PlayerId id) {
         return id == null ? null : playersById.get(id);
     }
 
@@ -91,11 +95,12 @@ public class Room {
         return List.copyOf(playersById.values());
     }
 
-    public PlayerId getHostPlayerId() {
+    /** {@code null}, solange kein Spieler beigetreten ist. */
+    public @Nullable PlayerId getHostPlayerId() {
         return hostPlayerId;
     }
 
-    public boolean isHost(PlayerId playerId) {
+    public boolean isHost(@Nullable PlayerId playerId) {
         return hostPlayerId != null && hostPlayerId.equals(playerId);
     }
 
@@ -126,8 +131,25 @@ public class Room {
         return currentRound == null ? Phase.IDLE : currentRound.getPhase();
     }
 
-    public Round getCurrentRound() {
+    /** {@code null} in Phase IDLE. */
+    public @Nullable Round getCurrentRound() {
         return currentRound;
+    }
+
+    /**
+     * Die Uebergaenge unten setzen voraus, dass eine Runde laeuft -- der
+     * Aufrufer (der Anwendungsring) muss das vorher pruefen, etwa ueber
+     * {@code getPhase()}. Diese Methode macht die Vorbedingung explizit statt
+     * sie stillschweigend vorauszusetzen: Ein Verstoss ist ein Programmfehler
+     * und meldet sich klar, statt irgendwo spaeter eine NullPointerException
+     * ohne Kontext zu werfen.
+     */
+    private Round requireCurrentRound() {
+        Round round = currentRound;
+        if (round == null) {
+            throw new IllegalStateException("Kein Aufruf ohne laufende Runde erlaubt -- der Aufrufer muss das vorher pruefen");
+        }
+        return round;
     }
 
     /**
@@ -156,12 +178,12 @@ public class Room {
 
     /** Das Wettfenster ist zu — manuell oder per Auto-Close (ADR-010, ADR-020). */
     public void closeCurrentRound() {
-        currentRound.setPhase(Phase.CLOSED);
+        requireCurrentRound().setPhase(Phase.CLOSED);
     }
 
     /** Nimmt einen Tipp in die laufende Runde auf. Die Pruefung macht der Aufrufer. */
     public void addPick(Pick pick) {
-        currentRound.addPick(pick);
+        requireCurrentRound().addPick(pick);
     }
 
     /**
@@ -170,11 +192,12 @@ public class Room {
      * nichts zurueckzurechnen, die Nullsumme kann hier nicht kaputtgehen.
      */
     public void annulCurrentRound() {
-        currentRound.setDeltas(Map.of());
-        currentRound.setPool(Points.ZERO);
-        currentRound.setAnnulled(true);
-        currentRound.setAnnulledByHost(true);
-        currentRound.setPhase(Phase.RESOLVED);
+        Round round = requireCurrentRound();
+        round.setDeltas(Map.of());
+        round.setPool(Points.ZERO);
+        round.setAnnulled(true);
+        round.setAnnulledByHost(true);
+        round.setPhase(Phase.RESOLVED);
     }
 
     /**
@@ -190,11 +213,12 @@ public class Room {
                 player.credit(entry.getValue());
             }
         }
-        currentRound.setWinningOutcomeId(winningOutcomeId);
-        currentRound.setDeltas(deltas);
-        currentRound.setPool(pool);
-        currentRound.setAnnulled(annulled);
-        currentRound.setPhase(Phase.RESOLVED);
+        Round round = requireCurrentRound();
+        round.setWinningOutcomeId(winningOutcomeId);
+        round.setDeltas(deltas);
+        round.setPool(pool);
+        round.setAnnulled(annulled);
+        round.setPhase(Phase.RESOLVED);
     }
 
     /**

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.fourteen.watchparty.application.port.out.ClientGateway;
 import jakarta.annotation.PreDestroy;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -91,7 +92,7 @@ public class WebSocketClientGateway implements ClientGateway {
         }
     }
 
-    private String serialize(Object message) {
+    private @Nullable String serialize(Object message) {
         try {
             return mapper.writeValueAsString(message);
         } catch (JsonProcessingException e) {

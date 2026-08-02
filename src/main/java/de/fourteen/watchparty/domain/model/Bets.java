@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -81,7 +83,7 @@ public final class Bets {
             List.of(DRIVE_OUTCOME, BIG_PLAY, FIELD_GOAL, TRY_AFTER_TOUCHDOWN);
 
     /** {@code null}, wenn die ID unbekannt ist — der Aufrufer meldet das als Fehler. */
-    public static Bet byId(BetId id) {
+    public static @Nullable Bet byId(@Nullable BetId id) {
         return CATALOG.stream()
                 .filter(bet -> bet.id().equals(id))
                 .findFirst()

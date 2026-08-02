@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Das Wiedererkennungsmerkmal eines Spielers ueber Verbindungsabbrueche
  * hinweg (ADR-014). Value Object.
@@ -22,7 +24,7 @@ public record Token(String value) {
     }
 
     /** Fuer Eingaben von aussen, die auch fehlen duerfen: der erste Beitritt hat noch keinen. */
-    public static Token ofNullable(String value) {
+    public static @Nullable Token ofNullable(@Nullable String value) {
         return value == null || value.isBlank() ? null : new Token(value);
     }
 

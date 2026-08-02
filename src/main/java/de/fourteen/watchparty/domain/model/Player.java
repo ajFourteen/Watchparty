@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Ein Teilnehmer im Raum. <b>Entity</b> innerhalb des Aggregats
  * {@link Room}: Identitaet ueber {@link PlayerId}, nicht ueber die Werte —
@@ -100,7 +102,7 @@ public class Player {
      * diese Ausnahme waere die Null ein absorbierender Zustand: Wer einmal
      * pleite ist, koennte nie wieder mitspielen (8.3).
      */
-    public Points stakeFor(Integer requestedStake, Params params) {
+    public Points stakeFor(@Nullable Integer requestedStake, Params params) {
         Points minStake = params.minStake();
         if (points.isLessThan(minStake)) {
             return points;

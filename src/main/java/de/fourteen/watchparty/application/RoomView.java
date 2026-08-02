@@ -4,6 +4,7 @@ import de.fourteen.watchparty.application.message.Messages;
 import de.fourteen.watchparty.domain.model.Bet;
 import de.fourteen.watchparty.domain.model.Bets;
 import de.fourteen.watchparty.domain.model.Outcome;
+import de.fourteen.watchparty.domain.model.OutcomeId;
 import de.fourteen.watchparty.domain.model.Phase;
 import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.Player;
@@ -11,6 +12,7 @@ import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.PointsDelta;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.Round;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -91,8 +93,8 @@ public final class RoomView {
                             pick.playerId().value(), pick.outcomeId().value(), pick.stake().value()));
                 }
                 if (phase == Phase.RESOLVED) {
-                    winningOutcomeId = round.getWinningOutcomeId() == null
-                            ? null : round.getWinningOutcomeId().value();
+                    OutcomeId winner = round.getWinningOutcomeId();
+                    winningOutcomeId = winner == null ? null : winner.value();
                     pool = round.getPool().value();
                     annulled = round.isAnnulled();
                     annulReason = annulled ? (round.isAnnulledByHost() ? "HOST" : "NO_PICKS") : null;
@@ -106,11 +108,12 @@ public final class RoomView {
                 winningOutcomeId, pool, annulled, annulReason, deltas);
     }
 
-    private static String hostId(Room room) {
-        return room.getHostPlayerId() == null ? null : room.getHostPlayerId().value();
+    private static @Nullable String hostId(Room room) {
+        PlayerId hostPlayerId = room.getHostPlayerId();
+        return hostPlayerId == null ? null : hostPlayerId.value();
     }
 
-    private static Map<String, Integer> deltas(Map<PlayerId, PointsDelta> deltas) {
+    private static @Nullable Map<String, Integer> deltas(@Nullable Map<PlayerId, PointsDelta> deltas) {
         if (deltas == null) {
             return null;
         }

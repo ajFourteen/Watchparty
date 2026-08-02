@@ -30,6 +30,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-023 | Snapshot auf Platte übersteht einen Neustart innerhalb des Abends | Akzeptiert |
 | ADR-024 | Onion-Architektur mit Ringen, Ports und Adaptern | Akzeptiert |
 | ADR-025 | DDD-Taktik im Domänenmodell, ArchUnit, Test Doubles statt Mockito | Akzeptiert |
+| ADR-026 | JSpecify-Nullness mit NullAway durchgesetzt | Akzeptiert |
 
 ---
 
@@ -745,3 +746,77 @@ Verstöße über Rückgabetypen oder Feldtypen nicht sehen.
   direkt am Domänentyp prüft.
 - Mehr Typen für dieselbe Fachlichkeit — bei dieser Größe vertretbar, weil
   jeder neue Typ eine Regel trägt, die vorher nur ein Kommentar war.
+
+---
+
+## ADR-026: JSpecify-Nullness mit NullAway durchgesetzt
+
+**Status:** Akzeptiert
+
+**Kontext:** ADR-025 hat das Domänenmodell auf Aggregate, Entities und Value
+Objects umgestellt, aber Nullability blieb implizit — ein `Round`, dessen
+`winningOutcomeId` vor RESOLVED null ist, oder ein `Room`, dessen
+`hostPlayerId` vor dem ersten Beitritt null ist, waren nur in Kommentaren
+dokumentiert. Ein `Player.getPoints()`, das eigentlich nie null ist, und ein
+`Round.pickOf(...)`, das es sehr wohl sein kann, sahen im Code identisch
+aus — nichts unterschied „garantiert vorhanden" von „kann fehlen", ausser
+Disziplin. Genau das ist die Lücke, die ein falsch benutztes Domänenmodell
+öffnet: eine NullPointerException an einer Stelle weit entfernt von der
+eigentlichen Ursache.
+
+**Entscheidung:** JSpecify-Annotationen (`org.jspecify:jspecify`) markieren
+Nullability im Typsystem, NullAway (über Error Prone) erzwingt sie beim
+Kompilieren als Fehler, nicht als Warnung.
+
+Umsetzung:
+
+- **`@NullMarked` auf `domain`, `application`, `adapter`, `config`** (je
+  eine `package-info.java`). Jeder Verweistyp ist dort nicht-null, sofern
+  nicht ausdrücklich `@Nullable`. NullAway laeuft im `OnlyNullMarked`- und
+  `JSpecifyMode`-Modus: geprüft wird ausschließlich markierter Code, alles
+  andere (Spring, Jackson, die JDK selbst) bleibt „legacy" und wird nicht
+  mitgeprüft.
+- **Testcode ist bewusst nicht `@NullMarked`.** `compileTestJava` läuft ganz
+  ohne Error Prone — Tests bauen bewusst Objekte in unvollständigen
+  Zwischenzuständen, das soll nicht dieselbe Disziplin tragen wie das
+  Modell selbst.
+- **Nur NullAway läuft, keine der übrigen Error-Prone-Prüfungen**
+  (`disableAllChecks` plus gezieltes `error("NullAway")` über die getypte
+  Plugin-DSL). Diese Einrichtung soll Null-Sicherheit durchsetzen, keinen
+  Stilkatalog.
+- **Wo eine Nicht-Null-Bedingung nicht aus dem Typ folgt, aber aus der
+  Struktur** — ein `Map.get()`, dessen Schlüssel nachweislich aus derselben
+  Iteration stammt wie die Map selbst (`Settlement.distributeShares`) —,
+  macht ein `Objects.requireNonNull(...)` mit Kommentar die Annahme
+  sichtbar, statt sie stillschweigend vorauszusetzen.
+- **Eine echte implizite Vorbedingung kam dabei ans Licht:** `Room`s
+  Übergänge (`closeCurrentRound`, `addPick`, `annulCurrentRound`,
+  `resolveCurrentRound`) griffen auf `currentRound` zu, ohne dass irgendwo
+  stand, dass der Aufrufer eine laufende Runde garantieren muss — vorher
+  ein stillschweigendes Field, jetzt `@Nullable Round currentRound` samt
+  `requireCurrentRound()`, das bei Verletzung eine `IllegalStateException`
+  mit Erklärung wirft statt einer kontextlosen NullPointerException an
+  anderer Stelle.
+
+**Konsequenzen:**
+- **Der Compiler ist die Durchsetzung, nicht eine Konvention.** Ein
+  `@Nullable` an der falschen Stelle im Domänenmodell ist ein Build-Fehler.
+  Gegenprobe gemacht: ein eingebauter Verstoß (Dereferenzierung eines
+  `@Nullable`-Felds ohne Prüfung) lässt `compileJava` fehlschlagen, nach
+  dem Zurücknehmen ist er wieder grün.
+- **Das Wire-Protokoll trägt jetzt dieselbe Unterscheidung.**
+  `Messages.State` hat elf optional befüllte Felder (abhängig von der
+  Phase, Invariante 4/ADR-013) — sie sind jetzt `@Nullable` annotiert,
+  nicht nur im Javadoc beschrieben.
+- **NullAways lokale Dataflow-Analyse verlangt an einigen Stellen einen
+  direkten Null-Check auf dieselbe Variable**, selbst wenn die Nichtigkeit
+  logisch schon aus einem vorherigen Aufruf folgt (z. B.
+  `PlayerName.isValid(rawName)` narrowt `rawName` nicht automatisch für den
+  folgenden `PlayerName.of(rawName)`-Aufruf). Der Fix ist ein zusätzlicher,
+  redundant wirkender `rawName == null ||`-Check — semantisch ohne
+  Wirkung, aber notwendig, damit der Compiler dieselbe Garantie sieht, die
+  der Mensch schon hatte.
+- Ein Fallstrick beim Einrichten: `net.ltgt.gradle-nullaway` Version 2.2.0
+  exponierte `jspecifyMode` als Kotlin-`internal` und liess sich aus
+  `build.gradle.kts` nicht aufrufen (unresolved reference trotz öffentlicher
+  Bytecode-Sichtbarkeit) — Version 3.1.0 behebt das.

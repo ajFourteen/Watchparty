@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -16,7 +18,7 @@ import java.util.List;
  * Play). Sie muss in der Oberflaeche sichtbar sein, damit es beim Aufloesen
  * keinen Streit gibt; {@code null}, wo die Frage fuer sich spricht.
  */
-public record Bet(BetId id, String question, String note, List<Outcome> outcomes) {
+public record Bet(BetId id, String question, @Nullable String note, List<Outcome> outcomes) {
 
     public Bet {
         outcomes = List.copyOf(outcomes);
@@ -26,8 +28,13 @@ public record Bet(BetId id, String question, String note, List<Outcome> outcomes
      * Gehoert dieser Ausgang zu dieser Wette? Die Frage stellte frueher der
      * RoomActor mit einem Stream ueber die Ausgaenge -- zweimal, beim Tippen
      * und beim Aufloesen. Sie gehoert zur Wette.
+     *
+     * Nimmt bewusst {@code @Nullable} entgegen: Eine unbekannte oder fehlende
+     * Client-Eingabe wird zu {@code null} (siehe {@link OutcomeId#ofNullable}),
+     * und "gehoert nicht dazu" ist fuer {@code null} die richtige Antwort,
+     * nicht ein Fehler beim Aufrufer.
      */
-    public boolean hasOutcome(OutcomeId outcomeId) {
+    public boolean hasOutcome(@Nullable OutcomeId outcomeId) {
         return outcomeId != null && outcomes.stream().anyMatch(outcome -> outcome.id().equals(outcomeId));
     }
 }

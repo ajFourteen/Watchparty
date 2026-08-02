@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -126,7 +127,7 @@ public final class Settlement {
         Map<PlayerId, Long> remainder = new LinkedHashMap<>();
         int distributed = 0;
         for (PlayerId playerId : order) {
-            long raw = (long) shareOf.get(playerId).value() * pool.value();
+            long raw = (long) requireShare(shareOf, playerId).value() * pool.value();
             int floorPart = (int) (raw / totalShares);
             payout.put(playerId, floorPart);
             remainder.put(playerId, raw % totalShares);
@@ -135,16 +136,30 @@ public final class Settlement {
 
         // Rest bekommen die groessten Nachkomma-Reste; bei Gleichstand
         // entscheidet die stabile Reihenfolge der ersten Nennung.
+        //
+        // Die Objects.requireNonNull-Aufrufe unten sind keine Verteidigung
+        // gegen einen echten Fehlerfall, sondern die Invariante explizit
+        // gemacht: order/payout/remainder werden Zeile fuer Zeile aus
+        // denselben Spielern aufgebaut, ein get() kann hier strukturell nicht
+        // leer sein. NullAway kann das nicht selbst sehen; die Assertion
+        // sagt es ihm (und der naechsten Person, die das hier liest).
         List<PlayerId> byRemainder = new ArrayList<>(order);
-        byRemainder.sort((a, b) -> Long.compare(remainder.get(b), remainder.get(a)));
+        byRemainder.sort((a, b) -> Long.compare(
+                Objects.requireNonNull(remainder.get(b)),
+                Objects.requireNonNull(remainder.get(a))));
         int remaining = pool.value() - distributed;
         for (int i = 0; i < remaining; i++) {
             payout.merge(byRemainder.get(i), 1, Integer::sum);
         }
 
         for (PlayerId playerId : order) {
-            merge(deltas, playerId, PointsDelta.gain(Points.of(payout.get(playerId))));
+            int share = Objects.requireNonNull(payout.get(playerId));
+            merge(deltas, playerId, PointsDelta.gain(Points.of(share)));
         }
+    }
+
+    private static Share requireShare(Map<PlayerId, Share> shareOf, PlayerId playerId) {
+        return Objects.requireNonNull(shareOf.get(playerId));
     }
 
     private static void merge(Map<PlayerId, PointsDelta> deltas, PlayerId playerId, PointsDelta delta) {
