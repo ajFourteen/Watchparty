@@ -7,6 +7,7 @@ import de.fourteen.watchparty.domain.model.Player;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.Round;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -15,6 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -45,6 +48,15 @@ class RestoreTest {
         }
     }
 
+    /**
+     * Jeder in diesem Test gestartete Actor samt Store, damit beide am Ende
+     * wieder anhalten. Ohne das schreibt der {@code snapshot-writer}-Thread
+     * noch, waehrend JUnit das {@code @TempDir} schon loescht — der Test war
+     * dadurch sporadisch rot ("Failed to delete temp directory"), und zwar
+     * unabhaengig von dem, was er eigentlich prueft.
+     */
+    private final List<Running> gestartet = new ArrayList<>();
+
     @BeforeEach
     void setUp(@TempDir Path dir) {
         snapshotFile = dir.resolve("room.json");
@@ -52,12 +64,23 @@ class RestoreTest {
         scheduler = new FakeScheduler();
     }
 
+    @AfterEach
+    void tearDown() {
+        for (Running running : gestartet) {
+            running.actor().shutdown();
+            running.store().shutdown();
+        }
+        gestartet.clear();
+    }
+
     private Running start(Scheduler withScheduler) {
         SnapshotStore store = new SnapshotStore(snapshotFile);
         RoomActor actor = new RoomActor(clock, withScheduler, store, gateway);
         actor.loadOnStartup();
         actor.awaitIdle();
-        return new Running(actor, store);
+        Running running = new Running(actor, store);
+        gestartet.add(running);
+        return running;
     }
 
     private Running start() {

@@ -18,7 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Schreibt und liest den {@link RoomSnapshot} auf die Platte (ADR-023).
@@ -40,11 +40,23 @@ public class SnapshotStore implements SnapshotRepository {
 
     private final Path path;
     private final ObjectMapper mapper = new ObjectMapper();
-    private final ArrayBlockingQueue<RoomSnapshot> pending = new ArrayBlockingQueue<>(1);
     private final Thread writer;
 
-    /** Nur fuer {@link #awaitWritten()} in Tests: true, solange kein Schreibvorgang laeuft. */
-    private final AtomicBoolean idle = new AtomicBoolean(true);
+    /**
+     * Der wartende Stand mit einer laufenden Nummer. Die Nummer traegt die
+     * Warteschlange und nicht ein Feld daneben, weil {@link #awaitWritten()}
+     * sonst nicht sicher sagen koennte, <em>welcher</em> Stand geschrieben
+     * wurde: Zwischen dem Leeren der Queue und dem Ablesen einer separaten
+     * Nummer koennte laengst der naechste Stand eingereiht worden sein.
+     */
+    private record Queued(long seq, RoomSnapshot snapshot) {
+    }
+
+    private final ArrayBlockingQueue<Queued> pending = new ArrayBlockingQueue<>(1);
+
+    /** Zuletzt eingereiht bzw. zuletzt fertig geschrieben — siehe {@link #awaitWritten()}. */
+    private final AtomicLong queuedSeq = new AtomicLong();
+    private final AtomicLong writtenSeq = new AtomicLong();
 
     public SnapshotStore(Path path) {
         this.path = path;
@@ -71,30 +83,30 @@ public class SnapshotStore implements SnapshotRepository {
         if (!isEnabled()) {
             return;
         }
+        Queued queued = new Queued(queuedSeq.incrementAndGet(), snapshot);
         pending.poll();
-        pending.offer(snapshot);
+        pending.offer(queued);
     }
 
     private void runLoop() {
         while (!Thread.currentThread().isInterrupted()) {
-            RoomSnapshot snapshot;
+            Queued queued;
             try {
-                snapshot = pending.take();
+                queued = pending.take();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
             }
-            idle.set(false);
             // Waehrend des Schreibens kann schon der naechste Stand anstehen
             // -- dann gleich den neuesten nehmen statt zwei Schreibvorgaenge
             // hintereinander zu machen.
-            RoomSnapshot latest = snapshot;
-            RoomSnapshot next;
+            Queued latest = queued;
+            Queued next;
             while ((next = pending.poll()) != null) {
                 latest = next;
             }
-            writeToDisk(latest);
-            idle.set(true);
+            writeToDisk(latest.snapshot());
+            writtenSeq.set(latest.seq());
         }
     }
 
@@ -156,14 +168,23 @@ public class SnapshotStore implements SnapshotRepository {
     }
 
     /**
-     * Nur fuer Tests: blockiert (durch Polling), bis der Schreib-Thread
-     * alle bis hierhin per {@link #save} eingereihten Snapshots geschrieben
-     * hat. Sicher, weil {@code save} synchron auf dem Raum-Thread laeuft --
-     * ein Aufruf hier direkt danach sieht die Queue garantiert nicht leer,
-     * bevor der Schreibvorgang wirklich abgeschlossen ist.
+     * Nur fuer Tests: blockiert (durch Polling), bis der Schreib-Thread alle
+     * bis hierhin per {@link #save} eingereihten Snapshots geschrieben hat.
+     *
+     * Wartet auf die laufende Nummer, nicht auf "Queue leer und gerade nichts
+     * am Schreiben". Die fruehere Fassung hatte dort eine Luecke: Der
+     * Schreib-Thread nimmt den Stand mit {@code take()} aus der Queue, bevor
+     * er sich als beschaeftigt markiert. Genau dazwischen sah diese Methode
+     * eine leere Queue und einen unbeschaeftigten Schreiber und kehrte zurueck
+     * -- der Test las dann den vorherigen Stand von der Platte und schlug
+     * sporadisch fehl. Mit der Nummer gibt es dieses Fenster nicht mehr.
      */
     public void awaitWritten() {
-        while (!pending.isEmpty() || !idle.get()) {
+        if (!isEnabled()) {
+            return;
+        }
+        long target = queuedSeq.get();
+        while (writtenSeq.get() < target) {
             Thread.onSpinWait();
         }
     }
