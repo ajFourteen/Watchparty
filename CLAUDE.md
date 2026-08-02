@@ -112,3 +112,5 @@ nicht simulieren lassen.
   ist die *Wette*, also die Frage; ein `Pick` ist der *Tipp* eines Spielers.
 - Sichtbare Texte stehen mit Umlauten im Quelltext; die Kodierung ist in
   `build.gradle.kts` auf UTF-8 festgenagelt.
+- Jede abgeschlossene Änderung bekommt einen eigenen Commit, direkt wenn sie
+  fertig ist — nicht auf spätere Sammel-Commits warten.
