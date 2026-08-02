@@ -207,7 +207,43 @@ trennen.
   Neustart trifft am ehesten die laufende Runde — genau die, die dann
   verloren ginge.
 
-## 12. Fragen, die vorab beantwortet werden müssen
+## 12. Zurücksetzen durch den Host — Voraussetzung, nicht Zugabe
+
+Heute gibt es kein Zurücksetzen. Die Kommandos sind `JOIN`, `OPEN_BET`,
+`PLACE_PICK`, `CLOSE_BET`, `RESOLVE`, `ANNUL`; `ANNUL` dreht nur die
+laufende Runde zurück (8.6), an Punkte und Spielerliste kommt niemand heran.
+
+Gebraucht wurde es bisher nicht, weil der Neustart das Zurücksetzen *war*:
+Prozess neu, Raum leer. Genau das nimmt dieser Plan weg. Ohne Ersatz bliebe
+danach hängen, was einmal drin ist — Testrunden vom Aufbau, ein doppelt
+beigetretener Spieler mit falschem Namen, ein Abend, der nach der
+Verfallszeit doch noch als Snapshot herumliegt. Ein `RESET` ist deshalb Teil
+dieser Änderung, nicht ein späteres Extra.
+
+Vorschlag:
+
+- Neues Kommando `RESET`, wie `OPEN_BET`/`RESOLVE` nur für den Host, über
+  dieselbe Actor-Queue (Invariante 1).
+- Wirkung: laufende Runde verwerfen (Auto-Close-Task abbrechen, Phase
+  `IDLE`, `nextRoundId` zurück auf 1), alle Punkte auf das Startguthaben,
+  `missedRounds` auf 0. **Spieler, Tokens und Host-Rolle bleiben** — am
+  Tisch will man den Spielstand löschen, nicht die Runde neu einsammeln.
+  Getrennte Spieler fallen dabei raus, damit versehentliche Beitritte
+  verschwinden.
+- Der Snapshot wird über denselben Weg geschrieben wie jede andere
+  Änderung. Sonst wäre der Raum nach dem nächsten Neustart wieder da.
+- Invariante 5 (Nullsumme) gilt innerhalb eines Spiels. `RESET` beendet das
+  Spiel, es verschiebt keine Punkte — das gehört als Kommentar an die
+  Stelle, sonst liest es sich wie ein Bruch.
+- Oberfläche: Host-Knopf mit Rückfrage, deutlich abgesetzt von `Auflösen`
+  und `Annullieren`. Ein Fehlgriff mitten in der Runde kostet den Abend.
+- Kein neuer Nachrichtentyp Richtung Client; `STATE` transportiert das
+  Ergebnis ohnehin.
+
+Der Schritt gehört als eigener Commit vor Schritt 3 aus Abschnitt 10 —
+sobald geladen wird, will man auch löschen können.
+
+## 13. Fragen, die vorab beantwortet werden müssen
 
 **A. Ist der Nachtrag zu ADR-004 gewollt?** Der Ausschluss „keine
 Persistenz, keine Datenbank" steht ausdrücklich in
@@ -225,6 +261,10 @@ von „nächster Spielabend". Vorschlag: 6 Stunden — länger als ein Spiel
 inklusive Verlängerung und Pausen, kürzer als der Abstand zum nächsten
 Spieltag.
 
-**D. Ist das Fly-Volume in Ordnung?** Es kostet ein paar Cent im Monat und
-bindet die Maschine fester an einen Host. Ohne Volume bringt der Snapshot
-nur bei einem Absturz ohne Deploy etwas — also gerade nicht im Hauptfall.
+**D. Ist das Fly-Volume in Ordnung?** — *Entschieden am 2026-08-02: ja.*
+
+**E. Behält `RESET` die Spieler oder räumt es den Raum komplett leer?**
+Vorschlag: Spieler und Tokens bleiben, nur der Spielstand fällt (Abschnitt
+12). Wer den Raum wirklich leer will, hat mit der Verfallszeit aus Frage C
+ohnehin den nächsten Abend frisch. Die harte Variante — alles weg, alle
+müssen neu beitreten — wäre einen zweiten Knopf wert, aber nicht denselben.
