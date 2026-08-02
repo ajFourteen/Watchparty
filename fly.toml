@@ -15,6 +15,27 @@ primary_region = "fra"
 [build]
   dockerfile = "Dockerfile"
 
+# Snapshot des Raumzustands (ADR-023): ueberlebt einen Neustart innerhalb
+# desselben Spielabends, aber bewusst keine Persistenz ueber Abende hinweg
+# (die Verfallszeit dafuer steckt im Code, nicht hier). Einmalig anlegen:
+#   fly volumes create watchparty_data -a watchparty-fourteen -r fra -s 1
+# Ein Volume haengt an einer Maschine -- das macht ADR-005 schaerfer statt
+# es aufzuweichen: Zwei Maschinen haetten jetzt nicht nur zwei Raeume,
+# sondern auch zwei Dateien. --ha=false und `fly machines list` bleiben
+# Pflicht, siehe oben. Und ehrlich: Ein Volume ueberlebt ein Deploy, aber
+# nicht das Ersetzen der Maschine (Hardware-Ausfall, Regionswechsel) --
+# eine deutliche Verbesserung, keine Garantie.
+[mounts]
+  source = "watchparty_data"
+  destination = "/data"
+
+[env]
+  # Pfad fuer RoomActor/SnapshotStore (watchparty.snapshot.path). Leer oder
+  # ungesetzt bedeutet Persistenz aus -- das ist zugleich der Notausschalter,
+  # falls der Snapshot am Spielabend Aerger macht: Zeile hier auskommentieren
+  # und neu deployen.
+  WATCHPARTY_SNAPSHOT_PATH = "/data/room.json"
+
 [http_service]
   internal_port = 8080
   force_https = true

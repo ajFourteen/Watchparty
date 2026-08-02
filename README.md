@@ -126,19 +126,59 @@ als eine Maschine, korrigiert `fly scale count 1` das. Zwei Maschinen heißt:
 Die Spieler landen zufällig in einem von zwei getrennten Räumen und sehen
 sich gegenseitig nicht.
 
-**Betriebsregel: nicht am Spieltag deployen.** Ein Deploy ist ein Neustart,
-und ein Neustart kostet nicht die laufende Runde, sondern die Punktestände
-des ganzen Abends. Die Tokens im localStorage zeigen danach ins Leere. Beim
-automatischen Weg heißt das konkret: **release-relevante Commits
-(`fix:`/`feat:`) nicht am Spieltag nach `master` mergen** — der Merge selbst
-ist bereits der Auslöser.
+**Betriebsregel: nicht am Spieltag deployen, wenn es sich vermeiden
+lässt.** Ein Deploy ist ein Neustart. Seit ADR-023 übersteht der
+Raumzustand einen Neustart innerhalb desselben Abends (siehe unten) — die
+alte Betriebsregel war deshalb ursprünglich vor allem der einzige Ausweg,
+falls doch ein Fix während der laufenden Partie raus musste. Die Regel
+bleibt trotzdem: Ein Volume überlebt ein Deploy, aber keine Garantie ist
+ein Grund, sie leichtfertig zu testen. Beim automatischen Weg heißt das
+konkret: **release-relevante Commits (`fix:`/`feat:`) nicht am Spieltag
+nach `master` mergen**, wenn es nicht sein muss — der Merge selbst ist
+bereits der Auslöser.
+
+### Raumzustand über einen Neustart (ADR-023)
+
+Ohne Weiteres verliert ein Neustart den kompletten Raumzustand (ADR-004):
+Punkte, Namen, Tokens, Host-Rolle, laufende Runde. Ein Snapshot schreibt
+den Raumzustand bei jeder Änderung auf ein Fly-Volume und lädt ihn beim
+Start zurück — Spieler kommen mit ihrem alten Konto zurecht (ADR-014),
+statt bei 1000 Punkten neu anzufangen. Kein Widerspruch zu ADR-004: keine
+Datenbank, keine Persistenz über Spielabende hinweg — der Snapshot verfällt
+nach sechs Stunden, danach startet der Raum wieder leer.
+
+Einmalige Einrichtung, ein Volume pro App:
+
+```bash
+fly volumes create watchparty_data -a watchparty-fourteen -r fra -s 1
+```
+
+`fly.toml` mountet es unter `/data` und setzt
+`WATCHPARTY_SNAPSHOT_PATH=/data/room.json`. Ohne diese Umgebungsvariable
+(leer oder ungesetzt) bleibt Persistenz aus — das ist die Voreinstellung
+für lokale Entwicklung und für Tests, und zugleich der Notausschalter,
+falls der Snapshot am Spielabend Ärger macht: Zeile in `fly.toml`
+auskommentieren und neu deployen.
+
+Ein Volume ist an eine Maschine gebunden — das macht ADR-005 schärfer statt
+es aufzuweichen, zwei Maschinen hätten jetzt nicht nur zwei Räume, sondern
+auch zwei Dateien. `--ha=false` und `fly machines list` bleiben aus
+demselben Grund Pflicht wie oben. Und ehrlich: Ein Volume übersteht ein
+Deploy, aber nicht das Ersetzen der Maschine (Hardware-Ausfall,
+Regionswechsel) — eine deutliche Verbesserung, keine Garantie.
+
+Zum Zurücksetzen des Raums von Hand (Testrunden vom Aufbau, ein doppelt
+beigetretener Spieler) gibt es `RESET` — siehe Abschnitt Protokoll.
 
 ### Rollback
 
-Ein automatischer Deploy ist trotzdem ein Neustart — auch ein Rollback
-kostet den laufenden Raumzustand (ADR-004), genau wie das kaputte Release,
-das er ersetzt. Es gibt hier nichts, das eine laufende Runde retten könnte;
-das Ziel ist nur, schnell wieder eine funktionierende Version live zu haben.
+Ein automatischer Deploy ist trotzdem ein Neustart, und ein Rollback tauscht
+dabei nur das Image — der Snapshot aus ADR-023 greift wie bei jedem anderen
+Neustart. Verlässlich ist das nur, solange die alte Version denselben
+`schemaVersion` versteht; bei einem echten Breaking Change am Snapshot-
+Format wäre das zu prüfen. Das Ziel bleibt in jedem Fall, schnell wieder
+eine funktionierende Version live zu haben, nicht eine laufende Runde zu
+retten.
 
 ```bash
 fly releases -a watchparty-fourteen        # Versionen durchsehen
