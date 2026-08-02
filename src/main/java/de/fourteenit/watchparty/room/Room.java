@@ -2,9 +2,11 @@ package de.fourteenit.watchparty.room;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -109,5 +111,79 @@ public class Room {
         }
         currentRound = new Round(nextRoundId++, bet, now.plus(window), participants);
         return currentRound;
+    }
+
+    // --- Snapshot (ADR-023) ---------------------------------------------------
+
+    /**
+     * Reines Kopieren von Feldern, kein I/O — die Stelle, an der ein
+     * {@code SnapshotStore} ansetzt. Läuft auf dem Raum-Thread wie jede
+     * andere Lesung von {@code Room} (Invariante 1).
+     */
+    public RoomSnapshot toSnapshot(long savedAt) {
+        List<RoomSnapshot.PlayerSnapshot> playerSnapshots = new ArrayList<>();
+        for (Player player : players()) {
+            playerSnapshots.add(new RoomSnapshot.PlayerSnapshot(
+                    player.getId(), player.getToken(), player.getName(),
+                    player.getPoints(), player.getMissedRounds()));
+        }
+
+        RoomSnapshot.RoundSnapshot roundSnapshot = currentRound == null ? null : new RoomSnapshot.RoundSnapshot(
+                currentRound.getId(),
+                currentRound.getBet().id(),
+                currentRound.getClosesAt().toEpochMilli(),
+                currentRound.getPhase().name(),
+                List.copyOf(currentRound.getParticipants()),
+                List.copyOf(currentRound.getPicks().values()),
+                currentRound.getWinningOutcomeId(),
+                currentRound.getDeltas(),
+                currentRound.getPool(),
+                currentRound.isAnnulled(),
+                currentRound.isAnnulledByHost());
+
+        return new RoomSnapshot(RoomSnapshot.SCHEMA_VERSION, savedAt, hostPlayerId, nextRoundId,
+                playerSnapshots, roundSnapshot);
+    }
+
+    /**
+     * Baut einen {@code Room} aus einem zuvor geschriebenen Snapshot wieder
+     * auf. Wer sich meldet, wird verbunden — beim Laden ist deshalb jeder
+     * {@link Player} zunächst getrennt (Abschnitt 3 des Plans), alles
+     * andere wäre gelogen. Eine Runde, deren {@code betId} es im aktuellen
+     * Katalog (ADR-017) nicht mehr gibt, wird verworfen statt eine
+     * unbekannte Wette wiederzubeleben; Spieler und Punkte bleiben davon
+     * unberührt.
+     */
+    public static Room fromSnapshot(RoomSnapshot snapshot) {
+        Room room = new Room();
+        for (RoomSnapshot.PlayerSnapshot ps : snapshot.players()) {
+            Player player = new Player(ps.id(), ps.token(), ps.name(), ps.points());
+            player.setConnected(false);
+            player.restoreMissedRounds(ps.missedRounds());
+            room.playersById.put(ps.id(), player);
+            room.playerIdByToken.put(ps.token(), ps.id());
+        }
+        room.hostPlayerId = snapshot.hostPlayerId();
+        room.nextRoundId = snapshot.nextRoundId();
+
+        RoomSnapshot.RoundSnapshot rs = snapshot.round();
+        if (rs != null) {
+            Bet bet = Bets.byId(rs.betId());
+            if (bet != null) {
+                Round round = new Round(rs.id(), bet, Instant.ofEpochMilli(rs.closesAt()),
+                        new LinkedHashSet<>(rs.participants()));
+                round.setPhase(Phase.valueOf(rs.phase()));
+                for (Pick pick : rs.picks()) {
+                    round.addPick(pick);
+                }
+                round.setWinningOutcomeId(rs.winningOutcomeId());
+                round.setDeltas(rs.deltas());
+                round.setPool(rs.pool());
+                round.setAnnulled(rs.annulled());
+                round.setAnnulledByHost(rs.annulledByHost());
+                room.currentRound = round;
+            }
+        }
+        return room;
     }
 }

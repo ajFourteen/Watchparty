@@ -72,6 +72,11 @@ public class Player {
         missedRounds = 0;
     }
 
+    /** Nur für den Wiederaufbau aus einem Snapshot (ADR-023), sonst zählt nur increment/reset. */
+    void restoreMissedRounds(int missedRounds) {
+        this.missedRounds = missedRounds;
+    }
+
     /** Getrennt und schon zwei Runden am Stueck verpasst (Anforderung 8.1). */
     public boolean isPaused() {
         return !connected && missedRounds >= 2;
