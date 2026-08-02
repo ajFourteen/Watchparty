@@ -87,8 +87,10 @@ src/main/java/de/fourteenit/watchparty/
                            toSnapshot()/fromSnapshot() (ADR-023)
   room/Round.java          Eine Runde: Wette, closesAt, eingefrorener
                            Teilnehmerkreis, Tipps, Ergebnis
-  room/Settlement.java     Abrechnung als reine Funktion (Anforderung 7/8)
-  room/Player.java         Teilnehmer, inkl. Verpasste-Runden-Zähler (8.1)
+  room/Settlement.java     Abrechnung als reine Funktion (Anforderung 7/8):
+                           liefert Deltas, Pool und Annullierung als Result
+  room/Player.java         Teilnehmer, Verpasste-Runden-Zähler (8.1) und die
+                           Einsatzregel stakeFor (6/8.3)
   room/Phase.java          IDLE/OPEN/CLOSED/RESOLVED
   room/Bets.java           Wettkatalog (ADR-017), einzige Quelle für Wetten
   room/Bet.java            Eine Wette: Frage, Regel, Ausgänge
@@ -100,6 +102,8 @@ src/main/java/de/fourteenit/watchparty/
   ws/GameWebSocketHandler  Frames -> Kommandos, ändert selbst nichts
   ws/ClientSession.java    Verbindung mit eigener Ausgangs-Queue
   protocol/Messages.java   Nachrichten Server -> Client (STATE, YOUR_PICK, ...)
+  protocol/RoomView.java   Projektion Raumzustand -> Nachricht, rein lesend;
+                           hier hängt Invariante 4 (nur der Zähler in OPEN)
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token, Uhren-Offset
   App.jsx                  Phasen-Ansichten: Tippen, Countdown, Aufdeckung,

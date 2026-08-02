@@ -3,6 +3,7 @@ package de.fourteenit.watchparty.room;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.fourteenit.watchparty.protocol.Messages;
+import de.fourteenit.watchparty.protocol.RoomView;
 import de.fourteenit.watchparty.ws.ClientSession;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -197,7 +197,7 @@ public class RoomActor {
         session.setPlayerId(player.getId());
         reassignHost();
 
-        sendTo(session, new Messages.Welcome(player.getId(), player.getToken(), catalogView()));
+        sendTo(session, new Messages.Welcome(player.getId(), player.getToken(), RoomView.catalog()));
         sendYourPickIfAny(session, player.getId());
         broadcastState();
         log.info("{} ist dabei ({} Spieler im Raum)", player.getName(), room.players().size());
@@ -466,7 +466,7 @@ public class RoomActor {
     // --- Ausgang ------------------------------------------------------------
 
     private void broadcastState() {
-        Messages.State state = snapshot();
+        Messages.State state = RoomView.state(room, clock.instant().toEpochMilli());
         String payload = serialize(state);
         if (payload != null) {
             for (ClientSession session : sessions.values()) {
@@ -477,69 +477,6 @@ public class RoomActor {
         // als Zustand existieren (ADR-023) -- deshalb an derselben Stelle
         // wie das Senden, nicht an einer eigenen.
         snapshotStore.save(room.toSnapshot(clock.instant().toEpochMilli()));
-    }
-
-    private Messages.State snapshot() {
-        List<Messages.PlayerView> views = new ArrayList<>();
-        for (Player player : room.players()) {
-            views.add(new Messages.PlayerView(
-                    player.getId(),
-                    player.getName(),
-                    player.getPoints(),
-                    player.isConnected(),
-                    player.isPaused(),
-                    room.isHost(player.getId())));
-        }
-
-        Round round = room.getCurrentRound();
-        Phase phase = room.getPhase();
-        Messages.BetView bet = null;
-        Long roundId = null;
-        Long closesAt = null;
-        Integer pickCount = null;
-        Integer participantCount = null;
-        List<Messages.RevealedPick> revealedPicks = null;
-        String winningOutcomeId = null;
-        Integer pool = null;
-        Boolean annulled = null;
-        String annulReason = null;
-        Map<String, Integer> deltas = null;
-
-        if (round != null) {
-            roundId = round.getId();
-            bet = toView(round.getBet());
-
-            if (phase == Phase.OPEN) {
-                // Invariante 4 / ADR-013: waehrend OPEN nur der Zaehler, nie
-                // einzelne Tipps.
-                closesAt = round.getClosesAt().toEpochMilli();
-                pickCount = round.getPicks().size();
-                participantCount = round.getParticipants().size();
-            } else if (phase == Phase.CLOSED || phase == Phase.RESOLVED) {
-                revealedPicks = round.getPicks().values().stream()
-                        .map(pick -> new Messages.RevealedPick(pick.playerId(), pick.outcomeId(), pick.stake()))
-                        .toList();
-                if (phase == Phase.RESOLVED) {
-                    winningOutcomeId = round.getWinningOutcomeId();
-                    pool = round.getPool();
-                    annulled = round.isAnnulled();
-                    annulReason = annulled ? (round.isAnnulledByHost() ? "HOST" : "NO_PICKS") : null;
-                    deltas = round.getDeltas();
-                }
-            }
-        }
-
-        return new Messages.State(views, room.getHostPlayerId(), phase.name(), roundId, bet,
-                closesAt, clock.instant().toEpochMilli(), pickCount, participantCount, revealedPicks,
-                winningOutcomeId, pool, annulled, annulReason, deltas);
-    }
-
-    private static Messages.BetView toView(Bet bet) {
-        return new Messages.BetView(bet.id(), bet.question(), bet.note(), bet.outcomes());
-    }
-
-    private static List<Messages.BetView> catalogView() {
-        return Bets.CATALOG.stream().map(RoomActor::toView).toList();
     }
 
     private void sendTo(ClientSession session, Object message) {
