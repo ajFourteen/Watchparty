@@ -7,7 +7,10 @@ Die App richtet sich an Freunde, die gemeinsam vor Ort ein Football-Spiel schaue
 **Rahmenbedingungen:**
 - Alle Teilnehmer sitzen vor demselben Fernseher (nur Vor-Ort-Nutzung, kein Remote-Play).
 - Es gibt genau einen Spielraum; immer nur eine Runde gleichzeitig.
-- Keine Persistenz über Spielabende hinweg. Jeder Abend beginnt frisch.
+- Keine Persistenz über Spielabende hinweg. Jeder Abend beginnt frisch. Ein
+  Snapshot übersteht seit ADR-023 einen Neustart *innerhalb* desselben
+  Abends (Deploy, Absturz) — das ändert an dieser Anforderung nichts, er
+  verfällt spätestens nach sechs Stunden.
 - Teilnahme ohne Installation und ohne Account: Link öffnen, Name eingeben, dabei.
 
 ## 2. Wett-Grundprinzip (Pari-mutuel / Totalisator)
@@ -148,6 +151,14 @@ Das ist der Ausweg für den Fall, dass die offene Wette nicht mehr zum Spiel pas
 
 **Nach dem Auflösen geht es nicht mehr.** Ab da sind die Punkte verrechnet; ein Abbruch wäre eine Rückabwicklung und keine Notbremse. Vorher ist er dagegen billig: Punkte werden ohnehin erst beim Auflösen bewegt, es gibt also nichts zurückzurechnen und die Nullsumme kann gar nicht kaputtgehen.
 
+### 8.7 Raum zurücksetzen (Host)
+
+Der Host kann den gesamten Raum zurücksetzen — anders als 8.6 nicht nur die laufende Runde, sondern alle Spieler, Punktestände und die laufende Runde in einem Schritt, in jeder Phase möglich.
+
+Nötig geworden mit ADR-023: Bisher war ein Server-Neustart implizit das Zurücksetzen des Raums (ADR-004). Seit der Zustand einen Neustart übersteht, braucht der Host einen expliziten Weg dafür — etwa um Testrunden vom Aufbau loszuwerden oder einen doppelt beigetretenen Spieler zu entfernen.
+
+Wer weiterspielen will, tritt mit neuem Namen erneut bei; kein automatisches Wiederbeitreten, sonst wäre das Zurücksetzen nur Anzeige.
+
 **Der Knopf ist bewusst unscheinbar.** Er ist die Ausnahme, und ein Fehlgriff kostet allen die Runde.
 
 ## 9. Ablauf einer Runde (fachliche Sicht)
@@ -163,14 +174,14 @@ Das ist der Ausweg für den Fall, dass die offene Wette nicht mehr zum Spiel pas
 
 ## 10. Rollen
 
-- **Host:** hat zusätzlich die Steuerknöpfe (Wette auswählen und öffnen, jetzt schließen, Ausgang auflösen, Runde annullieren). Ansonsten normaler Spieler.
+- **Host:** hat zusätzlich die Steuerknöpfe (Wette auswählen und öffnen, jetzt schließen, Ausgang auflösen, Runde annullieren, Raum zurücksetzen). Ansonsten normaler Spieler.
 - **Spieler:** tippen, sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard.
 
 ## 11. Bewusst nicht enthalten (out of scope)
 
 - Kein Remote-/Online-Play über mehrere Orte hinweg.
 - Keine mehreren parallelen Räume.
-- Keine Persistenz / keine Saison über mehrere Abende.
+- Keine Persistenz / keine Saison über mehrere Abende (ADR-023 überbrückt nur einen Neustart innerhalb desselben Abends, mit Verfallszeit).
 - Keine automatische Ergebnis-Erkennung per Datenfeed; der Host löst manuell auf (bewusst, um die Broadcast-Verzögerung zu umgehen und synchron zum Fernsehbild im Raum zu bleiben).
 - Kein echtes Geld.
 

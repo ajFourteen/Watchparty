@@ -15,15 +15,20 @@ setzen dabei Punkte und teilen sich einen Pool nach Totalisator-Prinzip
 
 Aktueller Stand: Fachlich vollständig. Der volle Rundenablauf ist umgesetzt
 und durchspielbar, dazu der Wettkatalog aus Anforderung 4 mit vier Wetten,
-eine Kurzanleitung im Spiel und der Broadcast-Look. Was fehlt, lässt sich
-nicht mehr am Schreibtisch klären: Die drei Parameter aus Anforderung 3.1
-sind implementiert, aber nicht am echten Spielabend kalibriert.
+eine Kurzanleitung im Spiel und der Broadcast-Look. Seit ADR-023 übersteht
+der Raumzustand außerdem einen Neustart innerhalb desselben Abends (Snapshot
+auf Platte, Fly-Volume), mit `RESET` als explizitem Gegenstück für den Host.
+Was fehlt, lässt sich nicht mehr am Schreibtisch klären: Die drei Parameter
+aus Anforderung 3.1 sind implementiert, aber nicht am echten Spielabend
+kalibriert.
 
 ## Stack
 
 - Java 21, Spring Boot 3.3, rohe WebSocket (kein STOMP), Gradle (Kotlin DSL)
 - React 18 mit Vite, Build wird ins Jar gepackt
-- Ein Container, eine Instanz, Zustand nur im Arbeitsspeicher
+- Ein Container, eine Instanz, Zustand im Arbeitsspeicher — seit ADR-023
+  zusätzlich als Snapshot auf einem Fly-Volume gesichert (kein Ersatz,
+  nur ein Abzug für Neustarts innerhalb desselben Abends)
 
 ## Bauen und laufen lassen
 
@@ -64,13 +69,22 @@ sie brechen würde, ist das ein Anlass nachzufragen, kein Detail.
 6. **Genau eine Server-Instanz.** Kein Autoscaling, kein Sharding. Zwei
    Instanzen wären zwei getrennte Räume.
 
+Der Snapshot aus ADR-023 ist kein Sonderfall dieser Regeln, sondern ihre
+Anwendung: Das Snapshot-Objekt entsteht als reine Feldkopie auf dem
+Raum-Thread (Invariante 1), das eigentliche Schreiben läuft auf einem
+eigenen Thread in `SnapshotStore`, damit der Raum-Thread nicht auf
+Dateisystem-I/O wartet (Invariante 2) — analog zur Ausgangs-Queue in
+`ClientSession`. Wer daran etwas ändert, prüft beide Invarianten mit.
+
 ## Aufbau
 
 ```
 src/main/java/de/fourteenit/watchparty/
   room/RoomActor.java      Eventloop und Zustandsautomat (ADR-020): OPEN_BET,
-                           PLACE_PICK, CLOSE_BET, RESOLVE, ANNUL, Auto-Close
-  room/Room.java           Raumzustand, Host-Rolle, Rundenverwaltung
+                           PLACE_PICK, CLOSE_BET, RESOLVE, ANNUL, RESET,
+                           Auto-Close, Laden des Snapshots beim Start
+  room/Room.java           Raumzustand, Host-Rolle, Rundenverwaltung,
+                           toSnapshot()/fromSnapshot() (ADR-023)
   room/Round.java          Eine Runde: Wette, closesAt, eingefrorener
                            Teilnehmerkreis, Tipps, Ergebnis
   room/Settlement.java     Abrechnung als reine Funktion (Anforderung 7/8)
@@ -79,6 +93,10 @@ src/main/java/de/fourteenit/watchparty/
   room/Bets.java           Wettkatalog (ADR-017), einzige Quelle für Wetten
   room/Bet.java            Eine Wette: Frage, Regel, Ausgänge
   room/Pick.java           Ein abgegebener Tipp (ADR-022)
+  room/RoomSnapshot.java   Eigenes Datenmodell für die Datei (ADR-023),
+                           unabhängig von internen Umbauten an Room/Round
+  room/SnapshotStore.java  Schreiben/Lesen auf Platte, eigener Thread
+  room/SnapshotConfig.java Bindet SnapshotStore an watchparty.snapshot.path
   ws/GameWebSocketHandler  Frames -> Kommandos, ändert selbst nichts
   ws/ClientSession.java    Verbindung mit eigener Ausgangs-Queue
   protocol/Messages.java   Nachrichten Server -> Client (STATE, YOUR_PICK, ...)
@@ -97,9 +115,10 @@ docs/                      Anforderungen, ADRs, offene Entscheidungen,
 Der erste Probelauf an einem echten Spielabend. Was dabei zu beobachten ist
 — Parameter, Fensterlänge, Größe des Wettkatalogs, Verhalten der Handys —
 steht als Beobachtungsbogen in `docs/probelauf.md`. Reconnect ist über
-automatisierte Tests in jeder Phase durchgespielt (`ReconnectTest`); was
-bleibt, sind Mobile-Browser-Eigenheiten (Tab-Suspend, Wake Lock), die sich
-nicht simulieren lassen.
+automatisierte Tests in jeder Phase durchgespielt (`ReconnectTest`), ein
+echter Server-Neustart über `RestoreTest` (ADR-023); was bleibt, sind
+Mobile-Browser-Eigenheiten (Tab-Suspend, Wake Lock) und das Fly-Volume
+selbst, die sich nicht am Schreibtisch simulieren lassen.
 
 ## Konventionen
 

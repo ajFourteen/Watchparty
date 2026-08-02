@@ -8,7 +8,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-001 | Pari-mutuel statt modellbasierter Quoten | Akzeptiert |
 | ADR-002 | Web-App im Handy-Browser statt native App | Akzeptiert |
 | ADR-003 | Zentral gehosteter Server als alleinige Autorität | Akzeptiert |
-| ADR-004 | State im Arbeitsspeicher, keine Persistenz/DB | Akzeptiert |
+| ADR-004 | State im Arbeitsspeicher, keine Persistenz/DB | Akzeptiert (ergänzt durch ADR-023) |
 | ADR-005 | Genau eine Server-Instanz, kein horizontales Skalieren | Akzeptiert |
 | ADR-006 | WebSocket für Echtzeit-Kommunikation | Akzeptiert |
 | ADR-007 | Rohe WebSocket statt STOMP | Akzeptiert |
@@ -27,6 +27,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-020 | Rundenablauf als Zustandsautomat mit eigenem RESOLVED | Akzeptiert |
 | ADR-021 | Host-Rolle nach Beitrittsreihenfolge, Übergabe asymmetrisch | Akzeptiert |
 | ADR-022 | „Wette" statt „Markt", Tipp heißt im Code `Pick` | Akzeptiert |
+| ADR-023 | Snapshot auf Platte übersteht einen Neustart innerhalb des Abends | Akzeptiert |
 
 ---
 
@@ -93,7 +94,10 @@ keine Datenbank.
 **Konsequenzen:**
 - Deutlich weniger bewegliche Teile.
 - Ein Server-Neustart mitten im Abend verliert die laufende Runde. Bewusst
-  akzeptiert.
+  akzeptiert — ergänzt durch ADR-023: Ein Snapshot übersteht seit
+  2026-08-02 einen Neustart innerhalb desselben Abends, ohne dass dieser
+  Satz falsch würde. Persistenz über Spielabende hinweg bleibt weiterhin
+  nicht gefordert.
 
 ## ADR-005: Genau eine Server-Instanz
 
@@ -521,3 +525,72 @@ gebräuchlich.
   Partyspiel ohne laufende Sitzungen zwischen Abenden hinnehmbar.
 - `OPEN_BET` ohne `betId` öffnet weiterhin den Drive-Ausgang. Das hält den
   häufigsten Fall billig und macht das Feld optional statt zwingend.
+
+## ADR-023: Snapshot auf Platte übersteht einen Neustart innerhalb des Abends
+
+**Status:** Akzeptiert
+
+**Kontext:** ADR-004 nimmt den Verlust des Raumzustands bei einem Neustart
+bewusst in Kauf, weil Persistenz über Spielabende hinweg nicht gefordert
+ist. Das galt in der Praxis auch für den Neustart selbst: Ein Deploy, ein
+OOM-Kill oder eine Fly-Wartung mitten im Abend kostete Punkte, Namen und
+Tokens des ganzen Abends, nicht nur die laufende Runde. Die einzige
+Gegenmaßnahme war Disziplin — nicht am Spieltag nach `master` mergen
+(ADR-019) —, die ausgerechnet dann bricht, wenn ein Fix am dringendsten
+gebraucht wird.
+
+**Entscheidung:** Der Raumzustand wird bei jeder Änderung als
+`RoomSnapshot` auf Platte geschrieben und beim Start zurückgeladen, sofern
+er nicht älter als sechs Stunden ist. Das ist ein Nachtrag zu ADR-004, kein
+Widerruf: keine Datenbank, kein zusätzlicher Dienst, der Arbeitsspeicher
+bleibt die maßgebliche Kopie, die Datei ist nur ein Abzug. Weiterhin keine
+Persistenz über Spielabende hinweg — dafür sorgt die Verfallszeit.
+
+Umsetzung:
+
+- **Schreiben entkoppelt vom Raum-Thread** (analog zur Ausgangs-Queue in
+  `ClientSession`, ADR-012): Auf dem Raum-Thread entsteht nur ein
+  unveränderliches Snapshot-Objekt, das Schreiben läuft auf einem eigenen
+  Thread in `SnapshotStore`. Verdichtet über eine `ArrayBlockingQueue` der
+  Kapazität 1 — korrekt, weil `save()` ausschließlich vom Raum-Thread
+  aufgerufen wird (genau ein Erzeuger). Schreiben atomar über eine
+  tmp-Datei mit `fsync` und `ATOMIC_MOVE`.
+- **Laden als erstes Kommando in der Actor-Queue** (`@PostConstruct`):
+  läuft damit auf dem Raum-Thread und ist garantiert vor dem ersten `JOIN`
+  fertig, ohne Sonderfall in Invariante 1.
+- **Im Zweifel leer starten.** Fehlende, kaputte oder abgelaufene Datei,
+  unbekannte `schemaVersion` oder eine im aktuellen Katalog (ADR-017)
+  verschwundene `betId` führen zum leeren Raum oder zum Verwerfen nur der
+  Runde, nie zum Absturz. Ein Snapshot, der den Start zerschießt, wäre der
+  schlimmste denkbare Ausgang — dann startet die Maschine in einer Schleife
+  neu und der Abend ist endgültig vorbei.
+- **`RESET` als Gegenstück.** Der Neustart war bisher implizit das
+  Zurücksetzen des Raums; ohne ihn braucht der Host einen expliziten Weg.
+  Anders als `ANNUL` in jeder Phase gültig und nimmt auch die Spieler mit —
+  Testrunden vom Aufbau oder ein doppelt beigetretener Spieler sollen
+  verschwinden können, nicht nur der Punktestand.
+
+**Konsequenzen:**
+- Ein Fly-Volume ist erforderlich, sonst ist die Datei bei jedem Deploy neu
+  und leer (`fly.toml`, README). Macht ADR-005 schärfer statt es
+  aufzuweichen: Ein Volume ist an eine Maschine gebunden, zwei Maschinen
+  hätten jetzt nicht nur zwei Räume, sondern auch zwei Dateien.
+  `--ha=false` und `fly machines list` bleiben aus demselben Grund Pflicht.
+- Ehrliche Grenze: Ein Volume übersteht ein Deploy, aber nicht das Ersetzen
+  der Maschine (Hardware-Ausfall, Regionswechsel). Eine deutliche
+  Verbesserung, keine Garantie.
+- `watchparty.snapshot.path` leer oder ungesetzt bedeutet Persistenz aus —
+  Voreinstellung für lokale Entwicklung und Tests, und zugleich der
+  Notausschalter, falls der Snapshot am Spielabend Ärger macht.
+- Eine offene Runde, deren Fenster während des Neustarts abläuft, wird
+  beim Laden schlicht geschlossen, kein eigener Annullierungsgrund. Ein
+  Deploy fällt nach der Betriebsregel oben nicht in einen echten
+  Spielabend, der Fall betrifft also praktisch nur Tests; sollte er doch
+  jemanden zu Unrecht treffen, annulliert der Host mit dem vorhandenen
+  Knopf (8.6).
+- `RESET` beendet ein Spiel, es verschiebt keine Punkte — Invariante 5
+  (Nullsumme) bleibt dadurch unberührt, sie gilt innerhalb eines Spiels.
+- Die Betriebsregel „nicht am Spieltag deployen" (ADR-019, README) bleibt
+  trotzdem bestehen. Der Snapshot macht einen dringenden Fix während der
+  Halbzeit möglich, er macht einen Deploy während des laufenden Spiels
+  nicht zur Routine.
