@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.AggregateRoot;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
@@ -25,7 +26,12 @@ import java.util.Set;
  * Kein Zugriff von aussen ausser ueber den {@code RoomActor}; alle Methoden
  * laufen auf dem Raum-Thread und sind deshalb ohne Synchronisierung
  * geschrieben (ADR-009, Invariante 1).
+ *
+ * Traegt bewusst keine {@code @Identity}: Nach ADR-005 gibt es genau eine
+ * Instanz, nie mehr, kein Sharding. Eine Identitaet wuerde eine Unterscheidung
+ * vortaeuschen, die es in diesem System nicht gibt.
  */
+@AggregateRoot
 public class Room {
 
     /** Startguthaben (Anforderung 3.1). Wert wird am Spielgefuehl kalibriert. */

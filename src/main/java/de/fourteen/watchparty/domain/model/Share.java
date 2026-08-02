@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 /**
  * Ein Anteil am Pool. Value Object.
  *
@@ -13,6 +15,7 @@ package de.fourteen.watchparty.domain.model;
  * {@link Points} — die Bruecke ist die Verteilung selbst, nicht eine
  * Konvertierung.
  */
+@ValueObject
 public record Share(int value) {
 
     public Share {

@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 /**
  * Punkte — die Waehrung des Spiels (Anforderung 3). Value Object.
  *
@@ -15,6 +17,7 @@ package de.fourteen.watchparty.domain.model;
  * die darunter fiele, wirft — wer kappen will, sagt das mit {@link #min}.
  * Ganzzahlig, nie Fliesskomma.
  */
+@ValueObject
 public record Points(int value) implements Comparable<Points> {
 
     public static final Points ZERO = new Points(0);

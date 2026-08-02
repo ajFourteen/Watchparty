@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.Entity;
+import org.jmolecules.ddd.annotation.Identity;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -15,8 +17,10 @@ import org.jspecify.annotations.Nullable;
  * (Invariante 1), deshalb ohne jede Synchronisierung. Die Mutatoren sind
  * paket-privat: Wer einen Spieler aendern will, geht durch {@link Room}.
  */
+@Entity
 public class Player {
 
+    @Identity
     private final PlayerId id;
     private final Token token;
     private PlayerName name;

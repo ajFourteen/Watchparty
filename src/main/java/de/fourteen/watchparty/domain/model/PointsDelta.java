@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 import java.util.Collection;
 
 /**
@@ -11,6 +13,7 @@ import java.util.Collection;
  * muesste {@code Points} negative Werte zulassen und verlöre genau die
  * Bedingung, die Invariante 5 traegt.
  */
+@ValueObject
 public record PointsDelta(int value) {
 
     public static final PointsDelta NONE = new PointsDelta(0);

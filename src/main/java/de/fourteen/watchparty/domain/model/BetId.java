@@ -1,8 +1,10 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
 import org.jspecify.annotations.Nullable;
 
 /** Die Identitaet einer {@link Bet} im Katalog (ADR-017). Value Object. */
+@ValueObject
 public record BetId(String value) {
 
     public BetId {

@@ -31,6 +31,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-024 | Onion-Architektur mit Ringen, Ports und Adaptern | Akzeptiert |
 | ADR-025 | DDD-Taktik im Domänenmodell, ArchUnit, Test Doubles statt Mockito | Akzeptiert |
 | ADR-026 | JSpecify-Nullness mit NullAway durchgesetzt | Akzeptiert |
+| ADR-027 | jMolecules-Stereotypen für DDD-Bausteine und Onion-Ringe | Akzeptiert |
 
 ---
 
@@ -820,3 +821,81 @@ Umsetzung:
   exponierte `jspecifyMode` als Kotlin-`internal` und liess sich aus
   `build.gradle.kts` nicht aufrufen (unresolved reference trotz öffentlicher
   Bytecode-Sichtbarkeit) — Version 3.1.0 behebt das.
+
+---
+
+## ADR-027: jMolecules-Stereotypen für DDD-Bausteine und Onion-Ringe
+
+**Status:** Akzeptiert
+
+**Kontext:** ADR-025 hat das Domänenmodell auf Aggregate, Entities und Value
+Objects umgestellt, ADR-024 auf Onion-Ringe — aber beides ausschließlich in
+Javadoc und Paketstruktur ausgedrückt. „`Room` ist der Aggregate Root" stand
+als Satz im Kommentar, nicht als Typ, den ein Werkzeug lesen kann. Zwei
+Folgen: Erstens bemerkt niemand automatisch, wenn ein neuer Domänentyp ohne
+erkennbaren Baustein dazukommt. Zweitens war die Ringzugehörigkeit nur über
+Paketnamen geprüft (`ArchitectureTest.ringeZeigenNachInnen`, ADR-024) — eine
+zweite, unabhängige Prüfung über eine explizite Markierung gab es nicht.
+
+**Entscheidung:** jMolecules-Annotationen (`org.jmolecules:jmolecules-ddd`,
+`org.jmolecules:jmolecules-onion-architecture`) markieren die Bausteine im
+Code: `@AggregateRoot` (`Room`), `@Entity` + `@Identity` auf dem ID-Feld
+(`Player`, `Round`), `@ValueObject` (alle Identitäts- und Mengen-Typen,
+`Bet`/`Outcome`/`Pick`/`Params`/`Phase`), `@Service` (`Settlement`). Die
+Onion-Ringe aus ADR-024 tragen zusätzlich `@DomainModelRing`,
+`@DomainServiceRing`, `@ApplicationServiceRing`, `@InfrastructureRing`
+(Variante „classical", weil sie exakt auf `domain/model`, `domain/service`,
+`application`, `adapter`+`config` passt) auf den jeweiligen
+`package-info.java`.
+
+Reine Marker-Annotationen ohne Laufzeitverhalten, wie JSpecify (ADR-026) —
+die Durchsetzung übernimmt `ArchitectureTest` mit eigenen ArchUnit-Regeln:
+
+- `jederDomaenentypTraegtEinenBaustein`: jeder öffentliche Typ in
+  `domain.model` trägt genau einen der drei DDD-Bausteine. Zwei explizite
+  Ausnahmen: `RoomSnapshot` (das Dateiformat für die Platte, ADR-023, kein
+  Modellbaustein) und `Bets` (ein statischer Katalog, ADR-017, kein Objekt
+  mit Identität oder Wert).
+- `domainServicesSindZustandslos`: `@Service`-Typen haben keine
+  Instanzfelder — die Behauptung „reine Funktion" aus dem Javadoc von
+  `Settlement` ist jetzt geprüft, nicht nur geschrieben.
+- `keineOeffentlichenSetterAufEntities` /
+  `keineOeffentlichenSetterAufDemAggregateRoot`: `@Entity`- und
+  `@AggregateRoot`-Typen haben keine öffentliche `set*`-Methode — die
+  Aggregatgrenze aus ADR-025 als Regel, nicht nur als paket-privater
+  Modifier, den man leicht übersieht.
+- `ringeTragenIhreAnnotation`: jede `package-info.java` trägt genau die nach
+  ADR-024 vorgesehene Ring-Annotation, keine andere.
+
+**Konsequenzen:**
+- **`Room` trägt bewusst kein `@Identity`.** Nach ADR-005 gibt es genau eine
+  Instanz, nie mehr, kein Sharding — eine Identität würde eine
+  Unterscheidung vortäuschen, die es in diesem System nicht gibt. Die
+  vorgefertigte jMolecules-Regel `annotatedEntitiesAndAggregatesNeedToHaveAnIdentifier()`
+  hätte das als Fehler gewertet; sie wird deshalb ohnehin nicht verwendet
+  (siehe nächster Punkt).
+- **Die vorgefertigten jMolecules-ArchUnit-Regeln
+  (`org.jmolecules.integrations:jmolecules-archunit`) werden NICHT
+  verwendet.** Die neueste verfügbare Version (1.6.0, Stand 2022) ist gegen
+  ArchUnit 0.23.1 gebaut. Mit der in diesem Projekt laufenden Version
+  (1.3.0) wirft `JMoleculesArchitectureRules` einen `NoSuchMethodError`
+  (`Architectures.layeredArchitecture()`-Signatur geändert),
+  `JMoleculesDddRules` einen `AbstractMethodError` — beides erst beim
+  Testlauf, nicht beim Kompilieren. Ein Downgrade auf ArchUnit 0.23.1 wurde
+  probiert und verworfen: `@AnalyzeClasses` fand in der hier verwendeten
+  Umgebung (Gradle 9, JDK 21) danach überhaupt keine Klassen mehr. Die
+  Stereotyp-Annotationen selbst sind davon unberührt — nur die Bibliothek,
+  die sie vorgefertigt prüfen wollte, ist es. Die Ersatz-Regeln oben
+  benutzen ausschließlich die ArchUnit-Bausteine, die der Rest von
+  `ArchitectureTest` schon verwendet (`classes()`, `methods()`,
+  `ArchCondition`) und die seit 0.23.1 stabil sind.
+- **`allowEmptyShould(true)`** an beiden Setter-Regeln: Aktuell hat weder
+  `Room` noch eine Entity eine `set*`-Methode — der Normalfall bei korrektem
+  Design ist „nichts zu beanstanden", nicht die Ausnahme. Ohne das Flag
+  würde ArchUnit eine Regel, die nichts zum Prüfen findet, selbst als
+  Fehlschlag werten.
+- Gegenprobe für jede der vier neuen Regeln gemacht: ein fehlender
+  Baustein, ein Instanzfeld an `Settlement`, ein öffentlicher Setter an
+  `Room`, eine entfernte Ring-Annotation — jedes Mal schlägt genau die
+  zuständige Regel fehl, sonst keine, und nach dem Zurücknehmen ist wieder
+  alles grün.

@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 /**
  * Die Wett-Parameter aus Anforderung 3.1, an einer Stelle im Code statt
  * verstreut. Value Object.
@@ -7,6 +9,7 @@ package de.fourteen.watchparty.domain.model;
  * Die konkreten Werte gelten als vorlaeufig, bis sie an einem echten
  * Spielabend gegen das Spielgefuehl geprueft sind (docs/probelauf.md).
  */
+@ValueObject
 public record Params(Points minStake, Points penalty) {
 
     public static final Params DEFAULT = new Params(Points.of(25), Points.of(25));

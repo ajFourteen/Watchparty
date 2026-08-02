@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 /**
  * Die Identitaet eines {@link Player}. Value Object.
  *
@@ -7,6 +9,7 @@ package de.fourteen.watchparty.domain.model;
  * sind, die sich zum Verwechseln aehneln: Spieler-ID, Token, Sitzungs-ID,
  * Ausgangs-ID. Vertauscht man zwei davon, kompiliert es jetzt nicht mehr.
  */
+@ValueObject
 public record PlayerId(String value) {
 
     public PlayerId {

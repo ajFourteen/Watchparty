@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -11,6 +12,7 @@ import org.jspecify.annotations.Nullable;
  * nicht versehentlich als {@link PlayerId} durchgereicht wird — die beiden
  * sind gleich aufgebaut und duerfen nie verwechselt werden.
  */
+@ValueObject
 public record Token(String value) {
 
     public Token {

@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -11,6 +12,7 @@ import org.jspecify.annotations.Nullable;
  * lesen bekommt, entscheidet nicht die Domaene — deshalb {@link #isValid}
  * als Frage neben {@link #of} als Zusicherung.
  */
+@ValueObject
 public record PlayerName(String value) {
 
     public static final int MAX_LENGTH = 20;

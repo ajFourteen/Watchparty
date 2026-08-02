@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -8,6 +9,7 @@ import org.jspecify.annotations.Nullable;
  * Taucht an zwei Stellen auf, die sich nicht vertun duerfen: im Tipp eines
  * Spielers und im tatsaechlichen Ausgang, den der Host aufloest.
  */
+@ValueObject
 public record OutcomeId(String value) {
 
     public OutcomeId {

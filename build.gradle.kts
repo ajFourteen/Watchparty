@@ -33,6 +33,13 @@ dependencies {
     // Deklarationen ohne Laufzeitverhalten -- die Durchsetzung macht NullAway.
     implementation("org.jspecify:jspecify:1.0.0")
 
+    // DDD-Stereotypen (@AggregateRoot, @Entity, @ValueObject, @Identity,
+    // @Service) und die Onion-Ring-Annotationen (ADR-027). Reine Marker ohne
+    // Laufzeitverhalten, wie JSpecify -- die Durchsetzung macht ArchUnit ueber
+    // jmolecules-archunit.
+    implementation("org.jmolecules:jmolecules-ddd:2.0.1")
+    implementation("org.jmolecules:jmolecules-onion-architecture:2.0.1")
+
     // Ohne Mockito: Test Doubles werden von Hand geschrieben (ADR-025). Der
     // Ausschluss macht daraus eine Regel statt einer Absprache -- ein
     // versehentliches mock(...) kompiliert gar nicht erst.
@@ -41,6 +48,20 @@ dependencies {
     }
 
     // Haelt die Ringregel aus ADR-024 als Test fest.
+    //
+    // jmolecules-archunit (die vorgefertigten Regeln aus dem jMolecules-
+    // Projekt selbst) wurde bewusst NICHT eingebunden: Die neueste Version
+    // (1.6.0, Stand 2022) ist gegen ArchUnit 0.23.1 gebaut.
+    // JMoleculesArchitectureRules wirft mit dieser Version einen
+    // NoSuchMethodError (Architectures.layeredArchitecture()-Signatur
+    // geaendert), JMoleculesDddRules einen AbstractMethodError -- beides erst
+    // beim Testlauf, nicht beim Kompilieren. Ein Downgrade auf ArchUnit
+    // 0.23.1 selbst wurde probiert und verworfen: Die Klassenerkennung
+    // (@AnalyzeClasses) fand in dieser Umgebung ueberhaupt keine Klassen mehr.
+    // Die Stereotyp-Annotationen (org.jmolecules:jmolecules-ddd/
+    // -onion-architecture) sind reine Marker ohne diese Abhaengigkeit;
+    // geprueft werden sie unten mit denselben, stabilen ArchUnit-Bausteinen,
+    // die der Rest dieser Klasse schon benutzt.
     testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
 
     // Ab Gradle 9 liegt der Launcher nicht mehr automatisch auf dem

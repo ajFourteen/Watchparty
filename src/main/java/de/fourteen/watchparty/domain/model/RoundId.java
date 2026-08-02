@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 /**
  * Die Identitaet einer {@link Round}. Value Object.
  *
@@ -7,6 +9,7 @@ package de.fourteen.watchparty.domain.model;
  * naechste, schon wieder offene Runde schliesst (ADR-010). Genau dafuer
  * braucht es Gleichheit ueber den Wert — und die bringt ein Record mit.
  */
+@ValueObject
 public record RoundId(long value) {
 
     public RoundId {

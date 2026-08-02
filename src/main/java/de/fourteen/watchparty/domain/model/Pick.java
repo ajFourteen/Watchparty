@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 /**
  * Ein abgegebener Tipp: ein Spieler, ein Ausgang, ein Einsatz. Value Object.
  * Ein Spieler hat pro Runde hoechstens einen Pick (Anforderung 6).
@@ -7,6 +9,7 @@ package de.fourteen.watchparty.domain.model;
  * Heisst bewusst nicht {@code Bet} — das ist die Wette selbst, also die
  * Frage, auf die hier getippt wird (ADR-022).
  */
+@ValueObject
 public record Pick(PlayerId playerId, OutcomeId outcomeId, Points stake) {
 
     public Pick {

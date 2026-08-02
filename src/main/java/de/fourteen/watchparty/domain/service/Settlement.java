@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.service;
 
+import org.jmolecules.ddd.annotation.Service;
+
 import de.fourteen.watchparty.domain.model.OutcomeId;
 import de.fourteen.watchparty.domain.model.Params;
 import de.fourteen.watchparty.domain.model.Pick;
@@ -29,6 +31,7 @@ import java.util.Set;
  * Kontostand gebraucht (Anforderung 8.1); die Auszahlung selbst kennt keine
  * Kontostaende, nur Einsaetze und Anteile.
  */
+@Service
 public final class Settlement {
 
     private Settlement() {

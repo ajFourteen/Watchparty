@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.Entity;
+import org.jmolecules.ddd.annotation.Identity;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -21,8 +23,10 @@ import java.util.Set;
  * es {@link Room}. Nur vom Raum-Thread beruehrt, daher ohne jede
  * Synchronisierung (Invariante 1).
  */
+@Entity
 public class Round {
 
+    @Identity
     private final RoundId id;
     private final Bet bet;
     private final Instant closesAt;

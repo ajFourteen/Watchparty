@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.List;
  * Play). Sie muss in der Oberflaeche sichtbar sein, damit es beim Aufloesen
  * keinen Streit gibt; {@code null}, wo die Frage fuer sich spricht.
  */
+@ValueObject
 public record Bet(BetId id, String question, @Nullable String note, List<Outcome> outcomes) {
 
     public Bet {

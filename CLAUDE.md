@@ -103,24 +103,35 @@ Ein `@Nullable` an einer Stelle im Domänenmodell ist deshalb keine
 Empfehlung, sondern eine Zusicherung, die der Compiler nachhält — ebenso wie
 ihr Fehlen. Testcode ist bewusst nicht `@NullMarked` (siehe ADR-026).
 
+Seit ADR-027 tragen Aggregat, Entities, Value Objects und Domain Services
+zusätzlich die jMolecules-Stereotypen (`@AggregateRoot`, `@Entity`,
+`@ValueObject`, `@Identity`, `@Service`), und die Ringe aus ADR-024 sind
+zusätzlich mit den Onion-Ring-Annotationen (`@DomainModelRing` usw.)
+markiert — dieselbe Struktur, jetzt zweimal geprüft: einmal über
+Paketnamen, einmal über Annotationen. `ArchitectureTest` prüft beides mit
+eigenen, selbst geschriebenen ArchUnit-Regeln, nicht mit den
+vorgefertigten jMolecules-Regeln (siehe `build.gradle.kts` für den Grund).
+
 ```
 src/main/java/de/fourteen/watchparty/
   domain/model/            Der Kern. Kein Spring, kein Jackson, kein WebSocket.
 
-    -- Aggregate Root --
+    -- Aggregate Root (@AggregateRoot, ADR-027) --
     Room.java              Raumzustand, Host-Rolle, Rundenverwaltung; die
                            Übergänge closeCurrentRound/annulCurrentRound/
                            resolveCurrentRound/applyDeltas/addPick sowie
-                           toSnapshot()/fromSnapshot() (ADR-023)
+                           toSnapshot()/fromSnapshot() (ADR-023). Bewusst
+                           ohne @Identity — nach ADR-005 gibt es genau eine
+                           Instanz, nie mehr
 
-    -- Entities (Identität über eine ID, nicht über die Werte) --
+    -- Entities (@Entity, ADR-027; Identität über @Identity-Feld) --
     Round.java             Eine Runde: Wette, closesAt, eingefrorener
                            Teilnehmerkreis, Tipps, Ergebnis. Mutatoren
                            paket-privat — das ist die Aggregatgrenze
     Player.java            Teilnehmer, Verpasste-Runden-Zähler (8.1) und die
                            Einsatzregel stakeFor (6/8.3)
 
-    -- Value Objects (Identität über die Werte, unveränderlich) --
+    -- Value Objects (@ValueObject, ADR-027; Identität über die Werte) --
     PlayerId/RoundId/BetId/OutcomeId   Identitäten, gegeneinander nicht
                            austauschbar — Vertauschen ist ein Kompilierfehler
     Token.java             Wiedererkennung ueber Verbindungsabbrüche (ADR-014)
@@ -137,16 +148,21 @@ src/main/java/de/fourteen/watchparty/
     Phase.java             IDLE/OPEN/CLOSED/RESOLVED
     Bet/Outcome/Pick       Wette, Ausgang, abgegebener Tipp (ADR-022)
     Bets.java              Wettkatalog (ADR-017) — Datenstruktur, kein
-                           Dienst, deshalb hier und nicht in domain/service
+                           Dienst, deshalb hier und nicht in domain/service.
+                           Traegt bewusst keinen DDD-Baustein (ADR-027,
+                           explizite Ausnahme in ArchitectureTest)
     Params.java            Startguthaben, Mindesteinsatz, Strafe (3.1)
-    RoomSnapshot.java      Bewusst OHNE Value Objects: das Dateiformat für
+    RoomSnapshot.java      Bewusst OHNE Value Objects UND ohne DDD-Baustein
+                           (ADR-027, explizite Ausnahme): das Dateiformat für
                            die Platte (ADR-023), unabhängig vom Modell.
                            Room.toSnapshot/fromSnapshot rechnet um
   domain/service/
-    Settlement.java        Domain Service: Abrechnung als reine Funktion
-                           (Anforderung 7/8), gehört zu keiner einzelnen
-                           Entity. Liefert Deltas, Pool und Annullierung
-                           als Result
+    Settlement.java        Domain Service (@Service, ADR-027): Abrechnung
+                           als reine Funktion (Anforderung 7/8), gehört zu
+                           keiner einzelnen Entity. Liefert Deltas, Pool und
+                           Annullierung als Result. Zustandslosigkeit ist
+                           eine geprüfte Regel, nicht nur eine Behauptung im
+                           Javadoc
   application/             Orchestrierung. Kennt die Domäne und die Ports,
                            sonst nichts — insbesondere kein Spring.
     RoomActor.java         Eventloop und Zustandsautomat (ADR-020): OPEN_BET,
@@ -211,6 +227,15 @@ selbst, die sich nicht am Schreibtisch simulieren lassen.
   auszahlen.
 - Test Doubles werden von Hand geschrieben, kein Mockito (ADR-025) — vom
   Test-Classpath ausgeschlossen.
+- Ein neuer Domänentyp in `domain/model` bekommt sofort seinen
+  jMolecules-Stereotyp (`@AggregateRoot`, `@Entity` oder `@ValueObject`,
+  ADR-027) — `ArchitectureTest` schlägt sonst fehl, nicht erst beim nächsten
+  Refactoring. Passt wirklich keiner (wie bei `Bets`, dem Wettkatalog), muss
+  der Typ in `ArchitectureTest` explizit als Ausnahme genannt werden, nicht
+  stillschweigend durchrutschen.
+- Entities und der Aggregate Root ändern sich nur über benannte Übergänge
+  (`closeCurrentRound`, `addPick`, …), nie über einen öffentlichen Setter
+  (ADR-025/ADR-027) — auch das ist eine geprüfte Regel, kein reiner Stil.
 - `@Nullable` (`org.jspecify.annotations`) steht direkt vor dem Typ, den es
   betrifft — bei einem qualifizierten Typ wie `Scheduler.ScheduledTask` also
   `Scheduler.@Nullable ScheduledTask`, nicht davor (ADR-026). Wo NullAway

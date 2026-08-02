@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
+import org.jmolecules.ddd.annotation.ValueObject;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -10,6 +11,7 @@ import org.jspecify.annotations.Nullable;
  * Oberflaeche sichtbar sein, damit es beim Aufloesen keinen Streit gibt.
  * {@code null}, wo der Ausgang fuer sich spricht (ADR-026).
  */
+@ValueObject
 public record Outcome(OutcomeId id, String label, @Nullable String note) {
 
     public static Outcome of(String id, String label, @Nullable String note) {
