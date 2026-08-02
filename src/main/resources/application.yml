@@ -3,4 +3,4 @@ server:
 
 logging:
   level:
-    de.fourteenit.watchparty: info
+    de.fourteen.watchparty: info

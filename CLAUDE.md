@@ -79,7 +79,7 @@ Dateisystem-I/O wartet (Invariante 2) — analog zur Ausgangs-Queue in
 ## Aufbau
 
 ```
-src/main/java/de/fourteenit/watchparty/
+src/main/java/de/fourteen/watchparty/
   room/RoomActor.java      Eventloop und Zustandsautomat (ADR-020): OPEN_BET,
                            PLACE_PICK, CLOSE_BET, RESOLVE, ANNUL, RESET,
                            Auto-Close, Laden des Snapshots beim Start
