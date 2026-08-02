@@ -1,7 +1,5 @@
-package de.fourteen.watchparty.domain.service;
+package de.fourteen.watchparty.domain.model;
 
-import de.fourteen.watchparty.domain.model.Bet;
-import de.fourteen.watchparty.domain.model.Outcome;
 
 import org.junit.jupiter.api.Test;
 

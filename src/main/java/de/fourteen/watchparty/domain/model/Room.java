@@ -1,6 +1,5 @@
 package de.fourteen.watchparty.domain.model;
 
-import de.fourteen.watchparty.domain.service.Bets;
 
 import java.time.Duration;
 import java.time.Instant;

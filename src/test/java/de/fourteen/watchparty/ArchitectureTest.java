@@ -1,45 +1,46 @@
 package de.fourteen.watchparty;
 
-import org.junit.jupiter.api.Test;
+import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.library.Architectures.onionArchitecture;
 
 /**
- * Haelt die Ringregel der Onion-Architektur nach: Abhaengigkeiten zeigen nur
- * nach innen.
+ * Haelt die Ringregel aus ADR-024 nach: Abhaengigkeiten zeigen nur nach innen.
  *
- * Ohne diesen Test ist die Struktur eine Absichtserklaerung — ein einziger
+ * Ohne diese Regeln waere die Struktur eine Absichtserklaerung — ein einziger
  * bequemer Import genuegt, um sie zu durchloechern, und niemand merkt es. Der
  * Umbau selbst hat drei solche Verstoesse ans Licht gebracht (unter anderem
- * hielt der {@code RoomActor} {@code ClientSession}-Objekte); damit sie nicht
- * zurueckkommen, steht die Regel hier als Test statt nur in der Dokumentation.
+ * hielt der {@code RoomActor} {@code ClientSession}-Objekte).
  *
- * Geprueft wird auf dem Quelltext, nicht per Bytecode-Analyse: Das kostet
- * keine zusaetzliche Abhaengigkeit und die Importzeile ist genau die Stelle,
- * an der ein Verstoss entsteht.
+ * Geprueft wird auf dem Bytecode: Damit zaehlen auch Rueckgabetypen,
+ * Feldtypen und Annotationen, nicht nur die Importzeile.
  */
+@AnalyzeClasses(packages = "de.fourteen.watchparty", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 
-    private static final Path SOURCES = Path.of("src/main/java/de/fourteen/watchparty");
-    private static final String BASE = "de.fourteen.watchparty.";
-
-    @Test
-    void dieDomaeneKenntWederAnwendungNochAdapter() {
-        assertNoImports("domain", BASE + "application", BASE + "adapter", BASE + "config");
-    }
-
-    @Test
-    void derAnwendungsringKenntKeineAdapter() {
-        assertNoImports("application", BASE + "adapter", BASE + "config");
-    }
+    /**
+     * Die Ringe selbst. {@code config} ist bewusst kein Ring, sondern die
+     * Kompositionswurzel und darf deshalb alles kennen — sie taucht hier
+     * nicht auf.
+     */
+    @ArchTest
+    static final ArchRule ringeZeigenNachInnen = onionArchitecture()
+            .domainModels("de.fourteen.watchparty.domain.model..")
+            .domainServices("de.fourteen.watchparty.domain.service..")
+            .applicationServices("de.fourteen.watchparty.application..")
+            .adapter("ws", "de.fourteen.watchparty.adapter.in.ws..")
+            .adapter("file", "de.fourteen.watchparty.adapter.out.file..")
+            .adapter("time", "de.fourteen.watchparty.adapter.out.time..")
+            .ignoreDependency(
+                    resideIn("de.fourteen.watchparty.config"),
+                    alwaysTrue())
+            .ignoreDependency(
+                    resideIn("de.fourteen.watchparty.WatchpartyApplication"),
+                    alwaysTrue());
 
     /**
      * Der Kern bleibt framework-frei: Spring wird ausschliesslich in
@@ -47,77 +48,52 @@ class ArchitectureTest {
      * {@code RoomActor} ohne Spring-Kontext nicht mehr zu instanziieren — und
      * genau das machen die Actor-Tests.
      */
-    @Test
-    void kernOhneSpring() {
-        assertNoImports("domain", "org.springframework", "jakarta.annotation");
-        assertNoImports("application", "org.springframework", "jakarta.annotation");
-    }
+    @ArchTest
+    static final ArchRule kernOhneSpring = noClasses()
+            .that().resideInAnyPackage("..domain..", "..application..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "org.springframework..", "jakarta..")
+            .because("Domaene und Anwendungsring muessen ohne Framework instanziierbar bleiben (ADR-024)");
 
     /**
-     * Jackson darf ausschliesslich in {@code application.message} vorkommen.
+     * Jackson darf ausschliesslich an den Nachrichtentypen vorkommen.
      *
      * Das ist die eine bewusst zugelassene Ausnahme: Die Nachrichtentypen
      * muessen im Anwendungsring liegen, weil {@code RoomView} sie erzeugt,
      * tragen aber {@code @JsonInclude}/{@code @JsonProperty}. Sie in den
      * Adapter zu schieben hiesse, Invariante 4 (verdeckte Tipps) dorthin zu
      * verlegen; sie ueber Mixins zu entkoppeln waere fuer fuenf Records mehr
-     * Zeremonie als Gewinn. Annotationen sind Metadaten, kein Framework-Aufruf
-     * — serialisiert wird allein im Adapter.
+     * Zeremonie als Gewinn. Annotationen sind Metadaten — serialisiert wird
+     * allein im Adapter.
      */
-    @Test
-    void jacksonNurInDenNachrichtentypen() {
-        List<String> verstoesse = importsMatching("domain", "com.fasterxml.jackson");
-        verstoesse.addAll(importsMatching("application", "com.fasterxml.jackson").stream()
-                .filter(zeile -> !zeile.startsWith("application/message/"))
-                .toList());
+    @ArchTest
+    static final ArchRule jacksonNurInDenNachrichtentypen = noClasses()
+            .that().resideInAnyPackage("..domain..", "..application..")
+            .and().resideOutsideOfPackage("..application.message..")
+            .should().dependOnClassesThat().resideInAPackage("com.fasterxml.jackson..")
+            .because("serialisiert wird im Adapter, nicht im Kern (ADR-024)");
 
-        assertThat(verstoesse)
-                .as("Jackson gehoert in den Adapter, ausser an den Nachrichtentypen selbst")
-                .isEmpty();
+    /**
+     * Die Domaene kennt keine Nebenlaeufigkeits-Werkzeuge. Invariante 1 sagt,
+     * dass aller Zustand auf dem Raum-Thread liegt; ein {@code synchronized}
+     * oder eine Concurrent-Collection im Kern wuerde diese Regel verschleiern
+     * statt sie zu stuetzen (CLAUDE.md, ADR-009).
+     */
+    @ArchTest
+    static final ArchRule domaeneOhneNebenlaeufigkeit = noClasses()
+            .that().resideInAPackage("..domain..")
+            .should().dependOnClassesThat().resideInAnyPackage("java.util.concurrent..")
+            .because("Invariante 1: der Raum-Thread ist die Synchronisierung, nicht die Datenstruktur");
+
+    private static com.tngtech.archunit.base.DescribedPredicate<com.tngtech.archunit.core.domain.JavaClass>
+            resideIn(String paket) {
+        return com.tngtech.archunit.base.DescribedPredicate.describe(
+                "in " + paket,
+                javaClass -> javaClass.getName().startsWith(paket));
     }
 
-    @Test
-    void alleQuellenWurdenWirklichGelesen() {
-        // Schutz gegen einen gruenen Test, weil der Pfad nicht stimmt.
-        assertThat(javaFiles("domain")).hasSizeGreaterThan(5);
-        assertThat(javaFiles("application")).isNotEmpty();
-    }
-
-    private static void assertNoImports(String ring, String... verbotenePraefixe) {
-        List<String> verstoesse = new ArrayList<>();
-        for (String praefix : verbotenePraefixe) {
-            verstoesse.addAll(importsMatching(ring, praefix));
-        }
-        assertThat(verstoesse)
-                .as("%s darf nicht nach aussen zeigen", ring)
-                .isEmpty();
-    }
-
-    /** Liefert "pfad: importzeile" fuer jeden Treffer, damit der Fehler die Stelle nennt. */
-    private static List<String> importsMatching(String ring, String praefix) {
-        List<String> treffer = new ArrayList<>();
-        for (Path datei : javaFiles(ring)) {
-            try {
-                for (String zeile : Files.readAllLines(datei)) {
-                    String trimmed = zeile.strip();
-                    if (trimmed.startsWith("import ") && trimmed.substring(7).stripLeading().startsWith(praefix)) {
-                        treffer.add(SOURCES.relativize(datei) + ": " + trimmed);
-                    }
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }
-        return treffer;
-    }
-
-    private static List<Path> javaFiles(String ring) {
-        Path wurzel = SOURCES.resolve(ring);
-        assertThat(wurzel).as("Ring %s gefunden", ring).exists();
-        try (Stream<Path> pfade = Files.walk(wurzel)) {
-            return pfade.filter(p -> p.toString().endsWith(".java")).toList();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    private static com.tngtech.archunit.base.DescribedPredicate<com.tngtech.archunit.core.domain.JavaClass>
+            alwaysTrue() {
+        return com.tngtech.archunit.base.DescribedPredicate.describe("beliebig", javaClass -> true);
     }
 }

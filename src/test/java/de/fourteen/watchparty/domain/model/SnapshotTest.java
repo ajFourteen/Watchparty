@@ -1,7 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
 import de.fourteen.watchparty.adapter.out.file.SnapshotStore;
-import de.fourteen.watchparty.domain.service.Bets;
 
 import org.junit.jupiter.api.Test;
 

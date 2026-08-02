@@ -22,6 +22,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 
+    // Haelt die Ringregel aus ADR-024 als Test fest.
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
+
     // Ab Gradle 9 liegt der Launcher nicht mehr automatisch auf dem
     // Test-Classpath; ohne ihn startet der Test-Executor gar nicht erst.
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

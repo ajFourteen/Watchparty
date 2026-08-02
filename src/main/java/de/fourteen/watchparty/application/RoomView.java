@@ -6,7 +6,7 @@ import de.fourteen.watchparty.domain.model.Phase;
 import de.fourteen.watchparty.domain.model.Player;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.Round;
-import de.fourteen.watchparty.domain.service.Bets;
+import de.fourteen.watchparty.domain.model.Bets;
 
 import java.util.ArrayList;
 import java.util.List;

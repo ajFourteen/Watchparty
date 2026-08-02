@@ -12,7 +12,7 @@ import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.Player;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.Round;
-import de.fourteen.watchparty.domain.service.Bets;
+import de.fourteen.watchparty.domain.model.Bets;
 import de.fourteen.watchparty.domain.service.Settlement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
