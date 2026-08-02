@@ -120,7 +120,7 @@ nie hochkommen ist keine Option.**
 | `savedAt` älter als die Verfallszeit | Leerer Raum. Hält den Ausschluss „keine Persistenz über Spielabende hinweg" ein. |
 | `betId` gibt es im Katalog nicht mehr | Spieler und Punkte laden, laufende Runde verwerfen (Phase `IDLE`). Der Host macht eine neue auf. |
 | Runde war `OPEN`, `closesAt` liegt in der Zukunft | Runde bleibt `OPEN`, Auto-Close mit der Restzeit neu einplanen (ADR-010). |
-| Runde war `OPEN`, `closesAt` ist abgelaufen | Runde wird `CLOSED`. Die Tipps sind gültig, wer nach `closesAt` hätte tippen wollen, hätte nach ADR-011 ohnehin nicht mehr gedurft. Ob das fair ist, ist Frage B unten. |
+| Runde war `OPEN`, `closesAt` ist abgelaufen | Runde wird `CLOSED`. Die Tipps sind gültig, wer nach `closesAt` hätte tippen wollen, hätte nach ADR-011 ohnehin nicht mehr gedurft. Entschieden (Frage B): kein Sonderfall. |
 | Runde war `CLOSED` oder `RESOLVED` | Unverändert übernehmen. |
 | Host war gesetzt | `hostPlayerId` übernehmen. Beim ersten `JOIN` greift die vorhandene Logik: Der Host gilt als getrennt, die Rolle wandert an den ersten Verbundenen (ADR-021) und wird zurückgeholt, sobald der eigentliche Host in `IDLE`/`RESOLVED` wieder da ist. Kein neuer Code. |
 
@@ -282,40 +282,17 @@ Abende, nicht den einzelnen Neustart.
 **E. Behält `RESET` die Spieler oder räumt es den Raum komplett leer?** —
 *Entschieden am 2026-08-02: komplett leer, siehe Abschnitt 12.*
 
-### Offen: B und C
-
-Beide sind keine Architekturfragen mehr, sondern Zahlen und ein
-Fairness-Gefühl. Beide sind außerdem billiger geworden, seit `RESET`
-feststeht: Wenn die Voreinstellung nicht passt, ist es ein Knopfdruck, kein
-Deploy. Deshalb hier jeweils, was zur Entscheidung fehlt.
-
 **B. Was passiert mit einer Runde, deren Fenster während des Neustarts
-abgelaufen ist?**
+abgelaufen ist?** — *Entschieden am 2026-08-02: `CLOSED`, wie in Abschnitt 6
+beschrieben. Kein Sonderfall, kein neuer `annulReason`.*
 
-Zur Auswahl steht `CLOSED` (die abgegebenen Tipps zählen, der Host löst
-normal auf) oder automatisches Annullieren (niemand verliert etwas, die
-Runde wird wiederholt).
+Begründung: Ein Deploy fällt nie in einen echten Spielabend (ADR-019, „nicht
+am Spieltag mergen"), betrifft also nur Tests. Bleiben Absturz, OOM-Kill und
+Fly-Wartung — selten, unplanbar und nicht der Fall, für den man ein
+Sonderverhalten einbaut. Falls doch einmal jemand zu Unrecht bestraft würde,
+annulliert der Host mit dem vorhandenen Knopf (8.6).
 
-Was dafür fehlt:
-
-1. *Wie lange dauert der Neustart wirklich?* Bei deutlich mehr als 15
-   Sekunden — Fly-Deploy plus JVM-Start dürfte darüber liegen — ist „Fenster
-   noch offen" der seltene Fall und „abgelaufen" der Normalfall. Ist er
-   kürzer, greift meist die Restzeit-Variante und B verliert an Gewicht.
-   Das ist messbar, aber nicht am Schreibtisch: gehört auf den
-   Beobachtungsbogen in `probelauf.md`.
-2. *Ist es unfair, wenn getippt bleibt, was getippt war?* Wer schon getippt
-   hatte, hat sich entschieden. Wer noch nicht getippt hatte, verliert die
-   Restzeit — bei einem 15-Sekunden-Fenster kann das die ganze Zeit sein.
-   Genau darauf zielt sonst die Strafe aus 8.1, und die träfe hier
-   jemanden, der nichts falsch gemacht hat.
-
-Punkt 2 spricht inzwischen eher fürs automatische Annullieren: Vor `RESOLVED`
-ist noch nichts verrechnet (siehe `handleAnnul`), es kostet niemanden etwas,
-und es nimmt dem Host eine Entscheidung ab, die er mitten im Spiel treffen
-müsste, ohne zu wissen, wer wann getippt hat. Der Grund `HOST` wäre dann
-falsch — es bräuchte einen dritten `annulReason` (etwa `RESTART`), damit die
-Oberfläche nicht lügt. Das ist der einzige Mehraufwand.
+### Offen: nur noch C
 
 **C. Wie lang ist die Verfallszeit?**
 
