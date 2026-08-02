@@ -28,6 +28,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-021 | Host-Rolle nach Beitrittsreihenfolge, Übergabe asymmetrisch | Akzeptiert |
 | ADR-022 | „Wette" statt „Markt", Tipp heißt im Code `Pick` | Akzeptiert |
 | ADR-023 | Snapshot auf Platte übersteht einen Neustart innerhalb des Abends | Akzeptiert |
+| ADR-024 | Onion-Architektur mit Ringen, Ports und Adaptern | Akzeptiert |
 
 ---
 
@@ -555,9 +556,10 @@ Umsetzung:
   Kapazität 1 — korrekt, weil `save()` ausschließlich vom Raum-Thread
   aufgerufen wird (genau ein Erzeuger). Schreiben atomar über eine
   tmp-Datei mit `fsync` und `ATOMIC_MOVE`.
-- **Laden als erstes Kommando in der Actor-Queue** (`@PostConstruct`):
-  läuft damit auf dem Raum-Thread und ist garantiert vor dem ersten `JOIN`
-  fertig, ohne Sonderfall in Invariante 1.
+- **Laden als erstes Kommando in der Actor-Queue** (`loadOnStartup`, seit
+  ADR-024 als `initMethod` in `RoomConfig` statt als `@PostConstruct` am
+  Actor): läuft damit auf dem Raum-Thread und ist garantiert vor dem ersten
+  `JOIN` fertig, ohne Sonderfall in Invariante 1.
 - **Im Zweifel leer starten.** Fehlende, kaputte oder abgelaufene Datei,
   unbekannte `schemaVersion` oder eine im aktuellen Katalog (ADR-017)
   verschwundene `betId` führen zum leeren Raum oder zum Verwerfen nur der
@@ -594,3 +596,70 @@ Umsetzung:
   trotzdem bestehen. Der Snapshot macht einen dringenden Fix während der
   Halbzeit möglich, er macht einen Deploy während des laufenden Spiels
   nicht zur Routine.
+
+---
+
+## ADR-024: Onion-Architektur mit Ringen, Ports und Adaptern
+
+**Status:** Akzeptiert
+
+**Kontext:** Die Pakete waren nach Technik geschnitten (`room`, `ws`,
+`protocol`). Innerhalb von `room` lagen Domäne, Orchestrierung, Zeit,
+Persistenz und Spring-Verdrahtung nebeneinander. Das war bei 1.600 Zeilen
+noch überschaubar, aber die Abhängigkeitsrichtung war nirgends festgelegt
+und tatsächlich schon verletzt: `RoomActor` hielt `ClientSession`-Objekte
+und serialisierte selbst JSON, er kannte `SnapshotStore` direkt statt einer
+Abstraktion, und er trug `@Component`, `@PostConstruct` und `@PreDestroy` —
+Spring stand damit mitten im Kern.
+
+**Entscheidung:** Der Code wird in Ringe geschnitten, Abhängigkeiten zeigen
+ausschließlich nach innen: `domain` (model, service) ← `application`
+(inklusive `port/in` und `port/out`) ← `adapter` (in/ws, out/file,
+out/time). `config` ist der Kompositionswurzel-Ring außen und die einzige
+Stelle mit Spring-Beans.
+
+Was das konkret erzwungen hat:
+
+- **`ClientGateway` als Ausgangs-Port.** Der Actor spricht Sitzungs-IDs
+  statt Verbindungsobjekte. Die Zuordnung Sitzung → Spieler war ein Feld in
+  `ClientSession`, also Anwendungszustand in der Infrastruktur; sie liegt
+  jetzt im Actor. `ClientSession` ist wieder reine Infrastruktur.
+- **`SnapshotRepository` als Ausgangs-Port.** `RoomSnapshot` bleibt in
+  `domain/model`, weil `Room.toSnapshot()` es spricht — im Adapter wäre es
+  Domäne → Adapter und damit ein Ringverstoß. ADR-023 bleibt gewahrt: Dort
+  ging es um Entkopplung von den Interna von `Room`, nicht um das Paket.
+- **`Room` bekommt sprechende Übergänge** (`closeCurrentRound`,
+  `annulCurrentRound`, `resolveCurrentRound`, `applyDeltas`, `addPick`).
+  Die Mutatoren von `Round` sind paket-privat, und das ist die
+  Aggregatgrenze. Vorher lag der Actor im selben Paket und kam direkt an
+  `round.setPhase(...)`; nach dem Schnitt liegt er außen. Die Alternative
+  wäre gewesen, `Round` zu öffnen — das hätte die Grenze aufgegeben, um
+  eine Paketstruktur zu retten.
+- **`Messages` und `RoomView` liegen im Anwendungsring.** `RoomView`
+  erzeugt die Nachrichten; lägen sie im Adapter, zeigte `application` nach
+  außen. Wichtiger noch: Invariante 4 (verdeckte Tipps) ist eine Zusage der
+  Leitung, nicht der Oberfläche, und gehört deshalb nach innen.
+
+**Konsequenzen:**
+- **Die Ringregel steht als Test.** `ArchitectureTest` prüft die
+  Importzeilen der Quellen. Ohne ihn wäre die Struktur eine
+  Absichtserklärung, die ein einziger bequemer Import durchlöchert.
+- **Eine bewusst zugelassene Ausnahme:** Die Nachrichtentypen tragen
+  Jackson-Annotationen, liegen aber im Anwendungsring. Sie über Mixins zu
+  entkoppeln wäre für fünf Records mehr Zeremonie als Gewinn; Annotationen
+  sind Metadaten, serialisiert wird allein im Adapter. Der Test lässt
+  Jackson deshalb genau in `application/message` zu und sonst nirgends.
+- **`java.time.Clock` bekommt keinen Port.** Er ist bereits die
+  Abstraktion, die ein Port nur nachbauen würde; die Fake-Uhr in den Tests
+  funktioniert unverändert.
+- **Die Thread-Grenze wird weniger sichtbar.** Ringe ordnen nach
+  Abhängigkeitsrichtung, nicht nach Thread — Handler und Actor liegen jetzt
+  weit auseinander, obwohl genau zwischen ihnen die Queue sitzt, die
+  Invariante 1 trägt. Die Invarianten in `CLAUDE.md` bleiben deshalb die
+  erste Anlaufstelle; die Ringregel ergänzt sie, sie ersetzt sie nicht.
+- **Die Tests wurden besser, nicht nur verschoben.** Actor-Tests brauchen
+  weder Mockito noch WebSockets und prüfen über einen aufzeichnenden
+  Gateway, *was* bei wem ankam, statt „es wurde irgendetwas gesendet".
+- Der Preis sind mehr Pakete und mehr Dateien für dieselbe Fachlichkeit.
+  Bei dieser Größe ist das vertretbar, weil der Kern dadurch wirklich
+  framework-frei und ohne Spring-Kontext instanziierbar ist.

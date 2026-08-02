@@ -47,14 +47,15 @@ Diese Regeln sind das Ergebnis expliziter Entscheidungen. Wenn eine Änderung
 sie brechen würde, ist das ein Anlass nachzufragen, kein Detail.
 
 1. **Aller Zustand wird ausschließlich auf dem Raum-Thread verändert.**
-   WebSocket-Handler reihen nur Kommandos in `RoomActor` ein und fassen
+   WebSocket-Handler reihen nur Kommandos über `RoomCommands` ein und fassen
    `Room`/`Player` nie direkt an. Das gilt auch für Verbindungsauf- und
    -abbau. Deshalb braucht die Raum-Logik kein `synchronized`, kein
    `volatile` und keine Concurrent-Collections — und darf auch keine
    bekommen, weil das die Regel verschleiern würde.
 2. **Der Raum-Thread blockiert nie.** Er berechnet Zustand und Nachrichten;
-   das Schreiben auf Sockets läuft über die Ausgangs-Queue in
-   `ClientSession`. Ein eingeschlafenes Handy darf das Spiel nicht anhalten.
+   das Schreiben auf Sockets läuft über `ClientGateway` in die Ausgangs-Queue
+   der `ClientSession`. Ein eingeschlafenes Handy darf das Spiel nicht
+   anhalten. Dasselbe gilt für das Schreiben des Snapshots.
 3. **Der Server ist die einzige Quelle der Wahrheit.** Clients rechnen keine
    Punkte aus, entscheiden nicht über Fensterschluss und halten keinen
    eigenen Verlauf. Bei Reconnect wird der komplette Zustand neu geschickt.
@@ -69,6 +70,16 @@ sie brechen würde, ist das ein Anlass nachzufragen, kein Detail.
 6. **Genau eine Server-Instanz.** Kein Autoscaling, kein Sharding. Zwei
    Instanzen wären zwei getrennte Räume.
 
+Dazu kommt seit ADR-024 eine strukturelle Regel, die diese Invarianten
+ergänzt statt sie zu ersetzen: **Abhängigkeiten zeigen nur nach innen.**
+`domain` kennt niemanden, `application` kennt nur die Domäne und seine
+Ports, Spring und WebSockets leben ausschließlich in `adapter` und `config`.
+`ArchitectureTest` prüft das an den Importzeilen — wer die Regel bricht,
+bekommt einen roten Test und keine Diskussion. Achtung: Die Ringe ordnen
+nach Abhängigkeitsrichtung, nicht nach Thread. Die Queue zwischen Handler
+und Actor, an der Invariante 1 hängt, ist im Paketbaum deshalb *nicht* mehr
+zu sehen — dafür sind diese Invarianten hier da.
+
 Der Snapshot aus ADR-023 ist kein Sonderfall dieser Regeln, sondern ihre
 Anwendung: Das Snapshot-Objekt entsteht als reine Feldkopie auf dem
 Raum-Thread (Invariante 1), das eigentliche Schreiben läuft auf einem
@@ -78,32 +89,55 @@ Dateisystem-I/O wartet (Invariante 2) — analog zur Ausgangs-Queue in
 
 ## Aufbau
 
+Onion-Architektur (ADR-024): Abhängigkeiten zeigen ausschließlich nach
+innen. `ArchitectureTest` prüft das, es ist keine bloße Verabredung.
+
 ```
 src/main/java/de/fourteen/watchparty/
-  room/RoomActor.java      Eventloop und Zustandsautomat (ADR-020): OPEN_BET,
-                           PLACE_PICK, CLOSE_BET, RESOLVE, ANNUL, RESET,
-                           Auto-Close, Laden des Snapshots beim Start
-  room/Room.java           Raumzustand, Host-Rolle, Rundenverwaltung,
+  domain/model/            Der Kern. Kein Spring, kein Jackson, kein WebSocket.
+    Room.java              Raumzustand, Host-Rolle, Rundenverwaltung; die
+                           Übergänge closeCurrentRound/annulCurrentRound/
+                           resolveCurrentRound/applyDeltas/addPick sowie
                            toSnapshot()/fromSnapshot() (ADR-023)
-  room/Round.java          Eine Runde: Wette, closesAt, eingefrorener
-                           Teilnehmerkreis, Tipps, Ergebnis
-  room/Settlement.java     Abrechnung als reine Funktion (Anforderung 7/8):
-                           liefert Deltas, Pool und Annullierung als Result
-  room/Player.java         Teilnehmer, Verpasste-Runden-Zähler (8.1) und die
+    Round.java             Eine Runde: Wette, closesAt, eingefrorener
+                           Teilnehmerkreis, Tipps, Ergebnis. Mutatoren
+                           paket-privat — das ist die Aggregatgrenze
+    Player.java            Teilnehmer, Verpasste-Runden-Zähler (8.1) und die
                            Einsatzregel stakeFor (6/8.3)
-  room/Phase.java          IDLE/OPEN/CLOSED/RESOLVED
-  room/Bets.java           Wettkatalog (ADR-017), einzige Quelle für Wetten
-  room/Bet.java            Eine Wette: Frage, Regel, Ausgänge
-  room/Pick.java           Ein abgegebener Tipp (ADR-022)
-  room/RoomSnapshot.java   Eigenes Datenmodell für die Datei (ADR-023),
-                           unabhängig von internen Umbauten an Room/Round
-  room/SnapshotStore.java  Schreiben/Lesen auf Platte, eigener Thread
-  room/SnapshotConfig.java Bindet SnapshotStore an watchparty.snapshot.path
-  ws/GameWebSocketHandler  Frames -> Kommandos, ändert selbst nichts
-  ws/ClientSession.java    Verbindung mit eigener Ausgangs-Queue
-  protocol/Messages.java   Nachrichten Server -> Client (STATE, YOUR_PICK, ...)
-  protocol/RoomView.java   Projektion Raumzustand -> Nachricht, rein lesend;
+    Phase.java             IDLE/OPEN/CLOSED/RESOLVED
+    Bet/Outcome/Pick       Wette, Ausgang, abgegebener Tipp (ADR-022)
+    Params.java            Startguthaben, Mindesteinsatz, Strafe (3.1)
+    RoomSnapshot.java      Datenmodell für die Datei (ADR-023). Liegt hier
+                           und nicht im Adapter, weil Room es spricht
+  domain/service/
+    Settlement.java        Abrechnung als reine Funktion (Anforderung 7/8):
+                           liefert Deltas, Pool und Annullierung als Result
+    Bets.java              Wettkatalog (ADR-017), einzige Quelle für Wetten
+  application/             Orchestrierung. Kennt die Domäne und die Ports,
+                           sonst nichts — insbesondere kein Spring.
+    RoomActor.java         Eventloop und Zustandsautomat (ADR-020): OPEN_BET,
+                           PLACE_PICK, CLOSE_BET, RESOLVE, ANNUL, RESET,
+                           Auto-Close, Laden des Snapshots beim Start. Hält
+                           die Zuordnung Sitzung -> Spieler
+    RoomView.java          Projektion Raumzustand -> Nachricht, rein lesend;
                            hier hängt Invariante 4 (nur der Zähler in OPEN)
+    message/Messages.java  Nachrichten Server -> Client (STATE, YOUR_PICK, ...)
+    port/in/RoomCommands   Was von außen ausgelöst werden kann. Spricht
+                           Sitzungs-IDs, nie Verbindungsobjekte
+    port/out/              ClientGateway (an die Clients), SnapshotRepository
+                           (auf Platte), Scheduler (verzögerte Ausführung)
+  adapter/in/ws/
+    GameWebSocketHandler   Frames -> Kommandos, ändert selbst nichts
+    WebSocketClientGateway Hält die Verbindungen, serialisiert nach JSON
+    ClientSession.java     Verbindung mit eigener Ausgangs-Queue (ADR-012)
+    WebSocketConfig.java   Registriert den Handler auf /ws
+  adapter/out/file/
+    SnapshotStore.java     Schreiben/Lesen auf Platte, eigener Thread
+  adapter/out/time/
+    ScheduledExecutorScheduler
+  config/                  Sämtliche Spring-Beans: RoomConfig verdrahtet den
+                           Actor, TimeConfig Uhr und Scheduler, SnapshotConfig
+                           den Pfad watchparty.snapshot.path
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token, Uhren-Offset
   App.jsx                  Phasen-Ansichten: Tippen, Countdown, Aufdeckung,
