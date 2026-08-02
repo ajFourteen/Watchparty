@@ -252,6 +252,34 @@ function HostControls({ phase, catalog, onOpenBet, onCloseBet, onAnnul }) {
   return null;
 }
 
+/**
+ * Setzt den ganzen Raum zurueck: alle Spieler, Punktestaende und die
+ * laufende Runde (Abschnitt 12 des Snapshot-Plans). Anders als
+ * `Runde annullieren` keine Ausnahme fuer eine kaputte Runde, sondern das
+ * Ende des Abends — deshalb eigene Rueckfrage und sichtbar abgesetzt von
+ * den uebrigen Host-Knoepfen.
+ */
+function DangerZone({ onReset }) {
+  return (
+    <div className="danger-zone">
+      <button
+        className="button ghost wide"
+        onClick={() => {
+          if (
+            window.confirm(
+              "Den ganzen Raum zurücksetzen? Alle Spieler und Punktestände gehen verloren."
+            )
+          ) {
+            onReset();
+          }
+        }}
+      >
+        Raum zurücksetzen
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const {
     status,
@@ -266,6 +294,7 @@ export default function App() {
     placePick,
     resolve,
     annul,
+    reset,
     serverNow,
   } = useRoom();
 
@@ -368,6 +397,7 @@ export default function App() {
             onCloseBet={closeBet}
             onAnnul={annul}
           />
+          <DangerZone onReset={reset} />
         </section>
       )}
 

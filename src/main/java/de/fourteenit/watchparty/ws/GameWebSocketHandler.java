@@ -80,6 +80,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "CLOSE_BET" -> roomActor.closeBet(client);
                 case "RESOLVE" -> roomActor.resolve(client, node.path("outcomeId").asText(null));
                 case "ANNUL" -> roomActor.annul(client);
+                case "RESET" -> roomActor.reset(client);
                 default -> log.debug("Unbekannter Nachrichtentyp: {}", type);
             }
         } catch (Exception e) {

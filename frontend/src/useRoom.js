@@ -31,6 +31,9 @@ export function useRoom() {
   const closedByUs = useRef(false);
   const lastRoundIdRef = useRef(null);
 
+  /** Spiegelt playerId, damit der onmessage-Handler nicht auf einem alten Wert haengt. */
+  const playerIdRef = useRef(null);
+
   /** serverNow minus Date.now(); einmal pro STATE gebildet, lokal interpoliert (ADR-003). */
   const clockOffsetRef = useRef(0);
 
@@ -64,10 +67,30 @@ export function useRoom() {
         const message = JSON.parse(event.data);
         if (message.type === "WELCOME") {
           window.localStorage.setItem(TOKEN_KEY, message.token);
+          playerIdRef.current = message.playerId;
           setPlayerId(message.playerId);
           setCatalog(message.catalog ?? []);
           setError(null);
         } else if (message.type === "STATE") {
+          // RESET (Host-Kommando, ADR-023) raeumt auch die Spieler weg. Die
+          // Verbindung bleibt offen, deshalb muss der Client selbst merken,
+          // dass er nicht mehr dabei ist -- daran, dass die eigene playerId
+          // nicht mehr in der Liste steht -- und zurueck zur Beitrittsansicht.
+          // Bewusst kein automatisches Wiederbeitreten, sonst waere RESET nur
+          // Anzeige (Invariante 3: der Client rechnet nichts aus).
+          if (
+            playerIdRef.current &&
+            !message.players.some((player) => player.id === playerIdRef.current)
+          ) {
+            window.localStorage.removeItem(TOKEN_KEY);
+            window.localStorage.removeItem(NAME_KEY);
+            playerIdRef.current = null;
+            setPlayerId(null);
+            setState(null);
+            setYourPick(null);
+            lastRoundIdRef.current = null;
+            return;
+          }
           clockOffsetRef.current = message.serverNow - Date.now();
           // Eine neue Runde fängt bei OPEN frisch an -- der eigene Tipp der
           // vorherigen Runde gilt nicht mehr. Beim allerersten STATE (Join)
@@ -120,6 +143,7 @@ export function useRoom() {
   );
   const resolve = useCallback((outcomeId) => send({ type: "RESOLVE", outcomeId }), [send]);
   const annul = useCallback(() => send({ type: "ANNUL" }), [send]);
+  const reset = useCallback(() => send({ type: "RESET" }), [send]);
 
   /** Serverzeit jetzt, aus dem einmal gebildeten Offset interpoliert — nur Anzeige, der Server entscheidet (ADR-011). */
   const serverNow = useCallback(() => Date.now() + clockOffsetRef.current, []);
@@ -137,6 +161,7 @@ export function useRoom() {
     placePick,
     resolve,
     annul,
+    reset,
     serverNow,
   };
 }

@@ -192,11 +192,16 @@ Client → Server:
 { "type": "CLOSE_BET" }
 { "type": "RESOLVE", "outcomeId": "touchdown" }
 { "type": "ANNUL" }
+{ "type": "RESET" }
 ```
 
-`OPEN_BET`, `CLOSE_BET`, `RESOLVE` und `ANNUL` sind Host-Aktionen (ADR-021).
-`ANNUL` bricht die laufende Runde ab und wirkt nur in OPEN und CLOSED
-(Anforderung 8.6). `betId`
+`OPEN_BET`, `CLOSE_BET`, `RESOLVE`, `ANNUL` und `RESET` sind Host-Aktionen
+(ADR-021). `ANNUL` bricht die laufende Runde ab und wirkt nur in OPEN und
+CLOSED (Anforderung 8.6). `RESET` setzt den ganzen Raum zurück — anders als
+`ANNUL` in jeder Phase gültig, und anders als `ANNUL` nicht nur die Runde:
+alle Spieler, Punktestände und Tokens sind danach weg (ADR-023). Die
+Verbindungen bleiben offen, verlieren aber ihren Spielerbezug; wer
+weiterspielen will, tritt mit neuem Namen erneut bei. `betId`
 wählt eine Wette aus dem Katalog; ohne Angabe öffnet der Drive-Ausgang, die
 mit Abstand häufigste Wette. Bei `PLACE_PICK` ist `stake` optional — ohne
 Angabe gilt der Mindesteinsatz; wer weniger Punkte als den Mindesteinsatz

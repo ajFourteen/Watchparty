@@ -55,7 +55,9 @@ public class RoomActor {
     });
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Room room = new Room();
+
+    /** Nicht final: {@code RESET} ersetzt den Raum durch einen leeren (Abschnitt 12 des Plans). */
+    private Room room = new Room();
 
     /** Nur vom Raum-Thread beruehrt, daher eine gewoehnliche HashMap. */
     private final Map<String, ClientSession> sessions = new LinkedHashMap<>();
@@ -118,6 +120,10 @@ public class RoomActor {
 
     public void annul(ClientSession session) {
         loop.execute(() -> handleAnnul(session));
+    }
+
+    public void reset(ClientSession session) {
+        loop.execute(() -> handleReset(session));
     }
 
     // --- Verarbeitung (laeuft ausschliesslich auf dem Raum-Thread) -----------
@@ -314,6 +320,38 @@ public class RoomActor {
         reassignHost();
 
         log.info("Runde {} vom Host annulliert", round.getId());
+        broadcastState();
+    }
+
+    /**
+     * Setzt den ganzen Raum zurueck (Abschnitt 12 des Plans, ADR-023): Ohne
+     * den Neustart als impliziten Reset braucht es einen expliziten. Anders
+     * als {@code ANNUL} nicht auf eine Phase beschraenkt und nimmt auch die
+     * Spieler mit -- Testrunden vom Aufbau oder ein doppelt beigetretener
+     * Spieler sollen verschwinden koennen, nicht nur der Punktestand.
+     *
+     * Invariante 5 (Nullsumme) gilt innerhalb eines Spiels; RESET beendet
+     * das Spiel, statt Punkte zu verschieben.
+     */
+    private void handleReset(ClientSession session) {
+        if (!room.isHost(session.getPlayerId())) {
+            sendTo(session, new Messages.Error("Nur der Host kann den Raum zurücksetzen."));
+            return;
+        }
+        if (autoCloseTask != null) {
+            autoCloseTask.cancel();
+            autoCloseTask = null;
+        }
+        room = new Room();
+        // Die Sockets bleiben offen, zeigen aber auf niemanden mehr -- der
+        // Client erkennt das am fehlenden eigenen Spieler im naechsten
+        // STATE und faellt in die Beitrittsansicht zurueck. Bewusst kein
+        // automatisches Wiederbeitreten, sonst waere RESET nur Anzeige.
+        for (ClientSession other : sessions.values()) {
+            other.setPlayerId(null);
+        }
+
+        log.info("Raum vom Host zurückgesetzt");
         broadcastState();
     }
 
