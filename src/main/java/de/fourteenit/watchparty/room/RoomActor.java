@@ -276,26 +276,11 @@ public class RoomActor {
             return;
         }
 
-        int stake = resolveStake(player, requestedStake);
+        int stake = player.stakeFor(requestedStake, PARAMS);
         round.addPick(new Pick(playerId, outcomeId, stake));
 
         sendTo(session, new Messages.YourPick(outcomeId, stake));
         broadcastState();
-    }
-
-    /**
-     * Anforderung 6/8.3: Der Mindesteinsatz ist der Standard-Einsatz. Wer
-     * weniger Punkte als den Mindesteinsatz hat, geht zwangsweise All-in,
-     * auch mit 0 Punkten — unabhaengig davon, was angefragt wurde.
-     */
-    private int resolveStake(Player player, Integer requestedStake) {
-        int points = player.getPoints();
-        int minStake = PARAMS.minStake();
-        if (points < minStake) {
-            return points;
-        }
-        int wanted = requestedStake == null ? minStake : requestedStake;
-        return Math.max(minStake, Math.min(wanted, points));
     }
 
     private void handleCloseBet(ClientSession session) {

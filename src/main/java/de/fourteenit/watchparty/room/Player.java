@@ -81,4 +81,26 @@ public class Player {
     public boolean isPaused() {
         return !connected && missedRounds >= 2;
     }
+
+    /**
+     * Der Einsatz, mit dem dieser Spieler tatsaechlich tippt (Anforderung
+     * 6/8.3). Der Mindesteinsatz ist der Standard, wer nichts angibt, setzt
+     * ihn. Nach oben begrenzt der Kontostand.
+     *
+     * Wer weniger als den Mindesteinsatz besitzt, geht zwangsweise All-in --
+     * auch mit 0 Punkten und unabhaengig davon, was angefragt wurde. Ohne
+     * diese Ausnahme waere die Null ein absorbierender Zustand: Wer einmal
+     * pleite ist, koennte nie wieder mitspielen (8.3).
+     *
+     * Haengt nur am Kontostand und den Parametern, nicht am Raum -- deshalb
+     * hier und nicht im {@link RoomActor}.
+     */
+    public int stakeFor(Integer requestedStake, Params params) {
+        int minStake = params.minStake();
+        if (points < minStake) {
+            return points;
+        }
+        int wanted = requestedStake == null ? minStake : requestedStake;
+        return Math.max(minStake, Math.min(wanted, points));
+    }
 }
