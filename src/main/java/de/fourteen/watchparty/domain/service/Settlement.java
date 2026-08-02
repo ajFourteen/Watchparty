@@ -1,21 +1,28 @@
 package de.fourteen.watchparty.domain.service;
 
+import de.fourteen.watchparty.domain.model.OutcomeId;
 import de.fourteen.watchparty.domain.model.Params;
 import de.fourteen.watchparty.domain.model.Pick;
-import de.fourteen.watchparty.domain.model.Player;
-import de.fourteen.watchparty.domain.model.Room;
+import de.fourteen.watchparty.domain.model.PlayerId;
+import de.fourteen.watchparty.domain.model.Points;
+import de.fourteen.watchparty.domain.model.PointsDelta;
+import de.fourteen.watchparty.domain.model.Share;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.LinkedHashMap;
 
 /**
- * Die Punkte-Oekonomie einer Runde als reine Funktion, ohne Bezug zu
- * {@link Room}, {@link Player} oder {@code RoomActor}. Liefert Deltas,
- * wendet sie aber nicht an — das macht der Actor beim Uebergang nach
- * RESOLVED. So ist die gesamte Punkte-Oekonomie ohne Raumzustand testbar.
+ * Die Punkte-Oekonomie einer Runde als <b>Domain Service</b>: eine reine
+ * Funktion ohne Bezug zu {@code Room}, {@code Player} oder dem Actor.
+ *
+ * Steht hier und nicht am Aggregat, weil die Rechnung zu keiner einzelnen
+ * Entity gehoert — sie betrifft alle Tipper einer Runde gleichzeitig. Sie
+ * liefert Deltas, wendet sie aber nicht an; das macht {@code Room} beim
+ * Uebergang nach RESOLVED (ADR-020). So ist die gesamte Punkte-Oekonomie
+ * ohne Raumzustand testbar.
  *
  * {@code balances} wird nur zum Kappen der Nicht-Tipper-Strafe auf den
  * Kontostand gebraucht (Anforderung 8.1); die Auszahlung selbst kennt keine
@@ -38,47 +45,48 @@ public final class Settlement {
      * zurueck, verteilt werden nur die Strafen. Das ist Absicht: Der Pool
      * beschreibt, was hineingeflossen ist.
      */
-    public record Result(Map<String, Integer> deltas, int pool, boolean annulled) {
+    public record Result(Map<PlayerId, PointsDelta> deltas, Points pool, boolean annulled) {
     }
 
-    public static Result settle(List<Pick> picks, Set<String> nonPickers,
-            Map<String, Integer> balances, String winningOutcome, Params params) {
-        Map<String, Integer> deltas = new LinkedHashMap<>();
+    public static Result settle(List<Pick> picks, Set<PlayerId> nonPickers,
+            Map<PlayerId, Points> balances, OutcomeId winningOutcome, Params params) {
+        Map<PlayerId, PointsDelta> deltas = new LinkedHashMap<>();
 
         // 8.4: Ohne einen einzigen Tipp gibt es niemanden, der etwas gewinnen
         // oder verlieren koennte — die Runde wird annulliert, auch fuer
         // Nicht-Tipper. Kein Pool, keine Strafen.
         if (picks.isEmpty()) {
-            return new Result(deltas, 0, true);
+            return new Result(deltas, Points.ZERO, true);
         }
 
-        int collectedPenalties = 0;
-        for (String playerId : nonPickers) {
-            int balance = balances.getOrDefault(playerId, 0);
-            int collected = Math.min(params.penalty(), balance);
-            if (collected > 0) {
-                deltas.merge(playerId, -collected, Integer::sum);
-                collectedPenalties += collected;
+        Points collectedPenalties = Points.ZERO;
+        for (PlayerId playerId : nonPickers) {
+            Points balance = balances.getOrDefault(playerId, Points.ZERO);
+            // Anforderung 8.1: eingesammelt wird min(Strafe, Kontostand),
+            // damit kein Konto negativ wird (Invariante 5).
+            Points collected = params.penalty().min(balance);
+            if (!collected.isZero()) {
+                merge(deltas, playerId, PointsDelta.loss(collected));
+                collectedPenalties = collectedPenalties.plus(collected);
             }
         }
 
         // Jeder Einsatz wandert erstmal in den Pool (Anforderung 7); wer
         // gewinnt, bekommt seinen Anteil per distributeShares zurueckaddiert.
+        Points totalStakes = Points.ZERO;
         for (Pick pick : picks) {
-            deltas.merge(pick.playerId(), -pick.stake(), Integer::sum);
+            merge(deltas, pick.playerId(), PointsDelta.loss(pick.stake()));
+            totalStakes = totalStakes.plus(pick.stake());
         }
-        int totalStakes = picks.stream().mapToInt(Pick::stake).sum();
-        int pool = totalStakes + collectedPenalties;
+        Points pool = totalStakes.plus(collectedPenalties);
 
-        List<Pick> winners = picks.stream()
-                .filter(pick -> pick.outcomeId().equals(winningOutcome))
-                .toList();
+        List<Pick> winners = picks.stream().filter(pick -> pick.isOn(winningOutcome)).toList();
 
         if (winners.isEmpty()) {
             // 8.2 Push: kein Ausgang getroffen, Einsaetze zurueck, nur die
             // Strafen werden anteilig unter allen Tippern verteilt.
             for (Pick pick : picks) {
-                deltas.merge(pick.playerId(), pick.stake(), Integer::sum);
+                merge(deltas, pick.playerId(), PointsDelta.gain(pick.stake()));
             }
             distributeShares(picks, collectedPenalties, params, deltas);
             return new Result(deltas, pool, false);
@@ -91,30 +99,34 @@ public final class Settlement {
     /**
      * Verteilt {@code pool} auf {@code recipients} nach Anteilen
      * {@code max(Einsatz, Mindesteinsatz)} (7.1) und rundet nach dem
-     * Groesste-Reste-Verfahren (Hamilton, 7.2), damit die Summe der
+     * Groessste-Reste-Verfahren (Hamilton, 7.2), damit die Summe der
      * Auszahlungen exakt {@code pool} ergibt.
+     *
+     * Anteile sind {@link Share}, ausgezahlt wird in {@link Points}. Die
+     * beiden Einheiten koennen sich hier nicht mehr vermischen — genau die
+     * Trennung, die Anforderung 7 verlangt.
      */
-    private static void distributeShares(List<Pick> recipients, int pool, Params params,
-            Map<String, Integer> deltas) {
-        if (pool <= 0 || recipients.isEmpty()) {
+    private static void distributeShares(List<Pick> recipients, Points pool, Params params,
+            Map<PlayerId, PointsDelta> deltas) {
+        if (pool.isZero() || recipients.isEmpty()) {
             return;
         }
 
-        List<String> order = new ArrayList<>();
-        Map<String, Integer> shareOf = new LinkedHashMap<>();
+        List<PlayerId> order = new ArrayList<>();
+        Map<PlayerId, Share> shareOf = new LinkedHashMap<>();
         for (Pick pick : recipients) {
             if (!shareOf.containsKey(pick.playerId())) {
                 order.add(pick.playerId());
             }
-            shareOf.merge(pick.playerId(), Math.max(pick.stake(), params.minStake()), Integer::sum);
+            shareOf.merge(pick.playerId(), pick.share(params), Share::plus);
         }
-        int totalShares = shareOf.values().stream().mapToInt(Integer::intValue).sum();
+        int totalShares = shareOf.values().stream().mapToInt(Share::value).sum();
 
-        Map<String, Integer> payout = new LinkedHashMap<>();
-        Map<String, Long> remainder = new LinkedHashMap<>();
+        Map<PlayerId, Integer> payout = new LinkedHashMap<>();
+        Map<PlayerId, Long> remainder = new LinkedHashMap<>();
         int distributed = 0;
-        for (String playerId : order) {
-            long raw = (long) shareOf.get(playerId) * pool;
+        for (PlayerId playerId : order) {
+            long raw = (long) shareOf.get(playerId).value() * pool.value();
             int floorPart = (int) (raw / totalShares);
             payout.put(playerId, floorPart);
             remainder.put(playerId, raw % totalShares);
@@ -123,15 +135,19 @@ public final class Settlement {
 
         // Rest bekommen die groessten Nachkomma-Reste; bei Gleichstand
         // entscheidet die stabile Reihenfolge der ersten Nennung.
-        List<String> byRemainder = new ArrayList<>(order);
+        List<PlayerId> byRemainder = new ArrayList<>(order);
         byRemainder.sort((a, b) -> Long.compare(remainder.get(b), remainder.get(a)));
-        int remaining = pool - distributed;
+        int remaining = pool.value() - distributed;
         for (int i = 0; i < remaining; i++) {
             payout.merge(byRemainder.get(i), 1, Integer::sum);
         }
 
-        for (String playerId : order) {
-            deltas.merge(playerId, payout.get(playerId), Integer::sum);
+        for (PlayerId playerId : order) {
+            merge(deltas, playerId, PointsDelta.gain(Points.of(payout.get(playerId))));
         }
+    }
+
+    private static void merge(Map<PlayerId, PointsDelta> deltas, PlayerId playerId, PointsDelta delta) {
+        deltas.merge(playerId, delta, PointsDelta::plus);
     }
 }

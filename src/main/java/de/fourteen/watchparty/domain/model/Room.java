@@ -1,6 +1,5 @@
 package de.fourteen.watchparty.domain.model;
 
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,25 +13,34 @@ import java.util.Set;
 /**
  * Der eine Raum, komplett im Arbeitsspeicher (ADR-004).
  *
+ * <b>Aggregate Root.</b> {@link Player} und {@link Round} sind Entities
+ * darin und nur ueber ihn erreichbar; ihre Mutatoren sind paket-privat.
+ * Nach aussen gibt es keine Setter, sondern Uebergaenge, die die Absicht
+ * benennen — {@code openBet}, {@code closeCurrentRound},
+ * {@code resolveCurrentRound}. Wer den Zustand aendern will, sagt <em>was</em>
+ * passiert, nicht <em>welches Feld</em> sich aendert.
+ *
  * Kein Zugriff von aussen ausser ueber den {@code RoomActor}; alle Methoden
- * laufen auf dem Raum-Thread und sind deshalb ohne Synchronisierung geschrieben
- * (ADR-009).
+ * laufen auf dem Raum-Thread und sind deshalb ohne Synchronisierung
+ * geschrieben (ADR-009, Invariante 1).
  */
 public class Room {
 
-    /** Startguthaben. Konkreter Wert wird spaeter am Spielgefuehl kalibriert. */
-    public static final int STARTING_POINTS = 1000;
+    /** Startguthaben (Anforderung 3.1). Wert wird am Spielgefuehl kalibriert. */
+    public static final Points STARTING_POINTS = Points.of(1000);
 
-    /** Einfuegereihenfolge zaehlt: der erste Joiner wird Host. */
-    private final Map<String, Player> playersById = new LinkedHashMap<>();
-    private final Map<String, String> playerIdByToken = new LinkedHashMap<>();
+    /** Einfuegereihenfolge zaehlt: der erste Joiner wird Host (ADR-016). */
+    private final Map<PlayerId, Player> playersById = new LinkedHashMap<>();
+    private final Map<Token, PlayerId> playerIdByToken = new LinkedHashMap<>();
 
-    private String hostPlayerId;
+    private PlayerId hostPlayerId;
 
     private Round currentRound;
-    private long nextRoundId = 1;
+    private RoundId nextRoundId = RoundId.of(1);
 
-    public Player addPlayer(String id, String token, String name) {
+    // --- Teilnehmer -----------------------------------------------------------
+
+    public Player addPlayer(PlayerId id, Token token, PlayerName name) {
         Player player = new Player(id, token, name, STARTING_POINTS);
         playersById.put(id, player);
         playerIdByToken.put(token, id);
@@ -42,27 +50,52 @@ public class Room {
         return player;
     }
 
-    public Player byToken(String token) {
+    /**
+     * Reconnect (ADR-014): dasselbe Konto, neue Verbindung. Der
+     * Verpasste-Runden-Zaehler beginnt von vorn (Anforderung 8.1).
+     *
+     * {@code null}, wenn der Token unbekannt ist — dann ist es kein
+     * Reconnect, sondern ein neuer Spieler.
+     */
+    public Player rejoin(Token token, PlayerName name) {
+        Player player = byToken(token);
+        if (player == null) {
+            return null;
+        }
+        player.setName(name);
+        player.setConnected(true);
+        player.resetMissedRounds();
+        return player;
+    }
+
+    public void markDisconnected(PlayerId playerId) {
+        Player player = playersById.get(playerId);
+        if (player != null) {
+            player.setConnected(false);
+        }
+    }
+
+    public Player byToken(Token token) {
         if (token == null) {
             return null;
         }
-        String id = playerIdByToken.get(token);
+        PlayerId id = playerIdByToken.get(token);
         return id == null ? null : playersById.get(id);
     }
 
-    public Player byId(String id) {
-        return playersById.get(id);
+    public Player byId(PlayerId id) {
+        return id == null ? null : playersById.get(id);
     }
 
     public Collection<Player> players() {
-        return playersById.values();
+        return List.copyOf(playersById.values());
     }
 
-    public String getHostPlayerId() {
+    public PlayerId getHostPlayerId() {
         return hostPlayerId;
     }
 
-    public boolean isHost(String playerId) {
+    public boolean isHost(PlayerId playerId) {
         return hostPlayerId != null && hostPlayerId.equals(playerId);
     }
 
@@ -80,7 +113,7 @@ public class Room {
         if (!hostLost && !allowPickup) {
             return;
         }
-        hostPlayerId = players().stream()
+        hostPlayerId = playersById.values().stream()
                 .filter(Player::isConnected)
                 .map(Player::getId)
                 .findFirst()
@@ -104,33 +137,29 @@ public class Room {
      * verpassten Runde pausiert ein getrennter Spieler und zahlt nicht mehr.
      */
     public Round openBet(Bet bet, Instant now, Duration window) {
-        Set<String> participants = new LinkedHashSet<>();
-        for (Player player : players()) {
-            if (player.isConnected() || player.getMissedRounds() < 2) {
+        Set<PlayerId> participants = new LinkedHashSet<>();
+        for (Player player : playersById.values()) {
+            if (!player.isPaused()) {
                 participants.add(player.getId());
             }
         }
-        currentRound = new Round(nextRoundId++, bet, now.plus(window), participants);
+        currentRound = new Round(nextRoundId, bet, now.plus(window), participants);
+        nextRoundId = nextRoundId.next();
         return currentRound;
     }
 
     // --- Uebergaenge der aktuellen Runde --------------------------------------
     //
     // Diese Methoden gibt es, weil die Mutatoren von Round paket-privat sind
-    // und bleiben sollen: Sie sind die Aggregatgrenze. Frueher lag der Actor
-    // im selben Paket und konnte round.setPhase(...) direkt aufrufen; seit dem
-    // Schnitt in Ringe liegt er aussen. Statt Round zu oeffnen, spricht der
-    // Anwendungsring hier die Absicht aus und das Aggregat fuehrt sie aus.
-    //
-    // Alles hier laeuft auf dem Raum-Thread (Invariante 1) und ist deshalb
-    // ohne Synchronisierung geschrieben.
+    // und bleiben sollen: Sie sind die Aggregatgrenze. Der Anwendungsring
+    // spricht hier die Absicht aus, das Aggregat fuehrt sie aus.
 
     /** Das Wettfenster ist zu — manuell oder per Auto-Close (ADR-010, ADR-020). */
     public void closeCurrentRound() {
         currentRound.setPhase(Phase.CLOSED);
     }
 
-    /** Nimmt einen Tipp in die laufende Runde auf. Pruefung macht der Aufrufer. */
+    /** Nimmt einen Tipp in die laufende Runde auf. Die Pruefung macht der Aufrufer. */
     public void addPick(Pick pick) {
         currentRound.addPick(pick);
     }
@@ -142,18 +171,25 @@ public class Room {
      */
     public void annulCurrentRound() {
         currentRound.setDeltas(Map.of());
-        currentRound.setPool(0);
+        currentRound.setPool(Points.ZERO);
         currentRound.setAnnulled(true);
         currentRound.setAnnulledByHost(true);
         currentRound.setPhase(Phase.RESOLVED);
     }
 
     /**
-     * Schreibt das Ergebnis der Abrechnung in die Runde und schaltet nach
-     * RESOLVED. Die Rechnung selbst steckt in {@code Settlement}; hier wird
-     * sie nur festgehalten.
+     * Verbucht das Ergebnis der Abrechnung und schaltet nach RESOLVED. Die
+     * Rechnung selbst steckt in {@code Settlement}; hier wird sie angewandt
+     * und festgehalten.
      */
-    public void resolveCurrentRound(String winningOutcomeId, Map<String, Integer> deltas, int pool, boolean annulled) {
+    public void resolveCurrentRound(OutcomeId winningOutcomeId, Map<PlayerId, PointsDelta> deltas,
+            Points pool, boolean annulled) {
+        for (Map.Entry<PlayerId, PointsDelta> entry : deltas.entrySet()) {
+            Player player = playersById.get(entry.getKey());
+            if (player != null) {
+                player.credit(entry.getValue());
+            }
+        }
         currentRound.setWinningOutcomeId(winningOutcomeId);
         currentRound.setDeltas(deltas);
         currentRound.setPool(pool);
@@ -161,12 +197,15 @@ public class Room {
         currentRound.setPhase(Phase.RESOLVED);
     }
 
-    /** Verbucht die Deltas auf den Konten. Unbekannte IDs werden ignoriert. */
-    public void applyDeltas(Map<String, Integer> deltas) {
-        for (Map.Entry<String, Integer> entry : deltas.entrySet()) {
-            Player player = playersById.get(entry.getKey());
-            if (player != null) {
-                player.setPoints(player.getPoints() + entry.getValue());
+    /**
+     * Anforderung 8.1: Nur <em>getrennte</em> Nicht-Tipper zaehlen fuer die
+     * Pause; wer verbunden ist und nicht tippt, zahlt jede Runde ohne Pause.
+     */
+    public void countMissedRounds(Set<PlayerId> nonPickers) {
+        for (PlayerId playerId : nonPickers) {
+            Player player = playersById.get(playerId);
+            if (player != null && !player.isConnected()) {
+                player.incrementMissedRounds();
             }
         }
     }
@@ -175,73 +214,118 @@ public class Room {
 
     /**
      * Reines Kopieren von Feldern, kein I/O — die Stelle, an der ein
-     * {@code SnapshotStore} ansetzt. Läuft auf dem Raum-Thread wie jede
+     * {@code SnapshotStore} ansetzt. Laeuft auf dem Raum-Thread wie jede
      * andere Lesung von {@code Room} (Invariante 1).
+     *
+     * Die Value Objects werden hier auf einfache Typen abgewickelt: Das
+     * Dateiformat soll sich nicht aendern, nur weil das Modell praeziser
+     * geworden ist — genau die Entkopplung, die ADR-023 wollte.
      */
     public RoomSnapshot toSnapshot(long savedAt) {
         List<RoomSnapshot.PlayerSnapshot> playerSnapshots = new ArrayList<>();
-        for (Player player : players()) {
+        for (Player player : playersById.values()) {
             playerSnapshots.add(new RoomSnapshot.PlayerSnapshot(
-                    player.getId(), player.getToken(), player.getName(),
-                    player.getPoints(), player.getMissedRounds()));
+                    player.getId().value(),
+                    player.getToken().value(),
+                    player.getName().value(),
+                    player.getPoints().value(),
+                    player.getMissedRounds()));
         }
 
-        RoomSnapshot.RoundSnapshot roundSnapshot = currentRound == null ? null : new RoomSnapshot.RoundSnapshot(
-                currentRound.getId(),
-                currentRound.getBet().id(),
-                currentRound.getClosesAt().toEpochMilli(),
-                currentRound.getPhase().name(),
-                List.copyOf(currentRound.getParticipants()),
-                List.copyOf(currentRound.getPicks().values()),
-                currentRound.getWinningOutcomeId(),
-                currentRound.getDeltas(),
-                currentRound.getPool(),
-                currentRound.isAnnulled(),
-                currentRound.isAnnulledByHost());
+        RoomSnapshot.RoundSnapshot roundSnapshot = currentRound == null ? null : toSnapshot(currentRound);
 
-        return new RoomSnapshot(RoomSnapshot.SCHEMA_VERSION, savedAt, hostPlayerId, nextRoundId,
-                playerSnapshots, roundSnapshot);
+        return new RoomSnapshot(RoomSnapshot.SCHEMA_VERSION, savedAt,
+                hostPlayerId == null ? null : hostPlayerId.value(),
+                nextRoundId.value(), playerSnapshots, roundSnapshot);
+    }
+
+    private static RoomSnapshot.RoundSnapshot toSnapshot(Round round) {
+        List<RoomSnapshot.PickSnapshot> pickSnapshots = new ArrayList<>();
+        for (Pick pick : round.picksInOrder()) {
+            pickSnapshots.add(new RoomSnapshot.PickSnapshot(
+                    pick.playerId().value(), pick.outcomeId().value(), pick.stake().value()));
+        }
+
+        Map<String, Integer> deltas = null;
+        if (round.getDeltas() != null) {
+            deltas = new LinkedHashMap<>();
+            for (Map.Entry<PlayerId, PointsDelta> entry : round.getDeltas().entrySet()) {
+                deltas.put(entry.getKey().value(), entry.getValue().value());
+            }
+        }
+
+        List<String> participants = round.getParticipants().stream().map(PlayerId::value).toList();
+
+        return new RoomSnapshot.RoundSnapshot(
+                round.getId().value(),
+                round.getBet().id().value(),
+                round.getClosesAt().toEpochMilli(),
+                round.getPhase().name(),
+                participants,
+                pickSnapshots,
+                round.getWinningOutcomeId() == null ? null : round.getWinningOutcomeId().value(),
+                deltas,
+                round.getPool().value(),
+                round.isAnnulled(),
+                round.isAnnulledByHost());
     }
 
     /**
      * Baut einen {@code Room} aus einem zuvor geschriebenen Snapshot wieder
      * auf. Wer sich meldet, wird verbunden — beim Laden ist deshalb jeder
-     * {@link Player} zunächst getrennt (Abschnitt 3 des Plans), alles
-     * andere wäre gelogen. Eine Runde, deren {@code betId} es im aktuellen
-     * Katalog (ADR-017) nicht mehr gibt, wird verworfen statt eine
-     * unbekannte Wette wiederzubeleben; Spieler und Punkte bleiben davon
-     * unberührt.
+     * {@link Player} zunaechst getrennt, alles andere waere gelogen. Eine
+     * Runde, deren {@code betId} es im aktuellen Katalog (ADR-017) nicht mehr
+     * gibt, wird verworfen statt eine unbekannte Wette wiederzubeleben;
+     * Spieler und Punkte bleiben davon unberuehrt.
      */
     public static Room fromSnapshot(RoomSnapshot snapshot) {
         Room room = new Room();
         for (RoomSnapshot.PlayerSnapshot ps : snapshot.players()) {
-            Player player = new Player(ps.id(), ps.token(), ps.name(), ps.points());
+            PlayerId id = PlayerId.of(ps.id());
+            Token token = Token.of(ps.token());
+            Player player = new Player(id, token, PlayerName.of(ps.name()), Points.of(ps.points()));
             player.setConnected(false);
-            player.restoreMissedRounds(ps.missedRounds());
-            room.playersById.put(ps.id(), player);
-            room.playerIdByToken.put(ps.token(), ps.id());
+            for (int i = 0; i < ps.missedRounds(); i++) {
+                player.incrementMissedRounds();
+            }
+            room.playersById.put(id, player);
+            room.playerIdByToken.put(token, id);
         }
-        room.hostPlayerId = snapshot.hostPlayerId();
-        room.nextRoundId = snapshot.nextRoundId();
+        room.hostPlayerId = snapshot.hostPlayerId() == null ? null : PlayerId.of(snapshot.hostPlayerId());
+        room.nextRoundId = RoundId.of(snapshot.nextRoundId());
 
         RoomSnapshot.RoundSnapshot rs = snapshot.round();
         if (rs != null) {
-            Bet bet = Bets.byId(rs.betId());
+            Bet bet = Bets.byId(BetId.ofNullable(rs.betId()));
             if (bet != null) {
-                Round round = new Round(rs.id(), bet, Instant.ofEpochMilli(rs.closesAt()),
-                        new LinkedHashSet<>(rs.participants()));
-                round.setPhase(Phase.valueOf(rs.phase()));
-                for (Pick pick : rs.picks()) {
-                    round.addPick(pick);
-                }
-                round.setWinningOutcomeId(rs.winningOutcomeId());
-                round.setDeltas(rs.deltas());
-                round.setPool(rs.pool());
-                round.setAnnulled(rs.annulled());
-                round.setAnnulledByHost(rs.annulledByHost());
-                room.currentRound = round;
+                room.currentRound = fromSnapshot(rs, bet);
             }
         }
         return room;
+    }
+
+    private static Round fromSnapshot(RoomSnapshot.RoundSnapshot rs, Bet bet) {
+        Set<PlayerId> participants = new LinkedHashSet<>();
+        for (String participant : rs.participants()) {
+            participants.add(PlayerId.of(participant));
+        }
+
+        Round round = new Round(RoundId.of(rs.id()), bet, Instant.ofEpochMilli(rs.closesAt()), participants);
+        round.setPhase(Phase.valueOf(rs.phase()));
+        for (RoomSnapshot.PickSnapshot ps : rs.picks()) {
+            round.addPick(new Pick(PlayerId.of(ps.playerId()), OutcomeId.of(ps.outcomeId()), Points.of(ps.stake())));
+        }
+        round.setWinningOutcomeId(OutcomeId.ofNullable(rs.winningOutcomeId()));
+        if (rs.deltas() != null) {
+            Map<PlayerId, PointsDelta> deltas = new LinkedHashMap<>();
+            for (Map.Entry<String, Integer> entry : rs.deltas().entrySet()) {
+                deltas.put(PlayerId.of(entry.getKey()), PointsDelta.of(entry.getValue()));
+            }
+            round.setDeltas(deltas);
+        }
+        round.setPool(Points.of(rs.pool()));
+        round.setAnnulled(rs.annulled());
+        round.setAnnulledByHost(rs.annulledByHost());
+        return round;
     }
 }

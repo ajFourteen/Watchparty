@@ -1,63 +1,75 @@
 package de.fourteen.watchparty.domain.model;
 
-
 /**
- * Ein Teilnehmer im Raum. Existiert unabhaengig von einer konkreten
- * Verbindung: {@code connected} spiegelt nur, ob gerade eine Session auf
- * diesen Spieler zeigt (Reconnect via Token, ADR-014).
+ * Ein Teilnehmer im Raum. <b>Entity</b> innerhalb des Aggregats
+ * {@link Room}: Identitaet ueber {@link PlayerId}, nicht ueber die Werte —
+ * derselbe Spieler bleibt derselbe, wenn sich Name und Punktestand aendern.
+ *
+ * Existiert unabhaengig von einer konkreten Verbindung: {@code connected}
+ * spiegelt nur, ob gerade eine Sitzung auf diesen Spieler zeigt (Reconnect
+ * via Token, ADR-014).
+ *
+ * Nur ueber das Aggregat erreichbar und nur vom Raum-Thread beruehrt
+ * (Invariante 1), deshalb ohne jede Synchronisierung. Die Mutatoren sind
+ * paket-privat: Wer einen Spieler aendern will, geht durch {@link Room}.
  */
 public class Player {
 
-    private final String id;
-    private final String token;
-    private String name;
-    private int points;
+    private final PlayerId id;
+    private final Token token;
+    private PlayerName name;
+    private Points points;
     private boolean connected = true;
 
     /**
      * Zaehlt Runden, die getrennt am Stueck verpasst wurden (Anforderung 8.1).
      * Wird bei Reconnect auf 0 zurueckgesetzt; ab 2 gilt der Spieler als
-     * pausiert und wird beim naechsten {@code OPEN_MARKET} nicht mehr in den
+     * pausiert und wird beim naechsten Oeffnen nicht mehr in den
      * Teilnehmerkreis eingefroren.
      */
     private int missedRounds;
 
-    public Player(String id, String token, String name, int points) {
+    Player(PlayerId id, Token token, PlayerName name, Points points) {
         this.id = id;
         this.token = token;
         this.name = name;
         this.points = points;
     }
 
-    public String getId() {
+    public PlayerId getId() {
         return id;
     }
 
-    public String getToken() {
+    public Token getToken() {
         return token;
     }
 
-    public String getName() {
+    public PlayerName getName() {
         return name;
     }
 
-    public void setName(String name) {
+    void setName(PlayerName name) {
         this.name = name;
     }
 
-    public int getPoints() {
+    public Points getPoints() {
         return points;
     }
 
-    public void setPoints(int points) {
+    void setPoints(Points points) {
         this.points = points;
+    }
+
+    /** Verbucht das Ergebnis einer Runde. Wirft, wenn das Konto negativ wuerde (Invariante 5). */
+    void credit(PointsDelta delta) {
+        this.points = points.apply(delta);
     }
 
     public boolean isConnected() {
         return connected;
     }
 
-    public void setConnected(boolean connected) {
+    void setConnected(boolean connected) {
         this.connected = connected;
     }
 
@@ -65,17 +77,12 @@ public class Player {
         return missedRounds;
     }
 
-    public void incrementMissedRounds() {
+    void incrementMissedRounds() {
         missedRounds++;
     }
 
-    public void resetMissedRounds() {
+    void resetMissedRounds() {
         missedRounds = 0;
-    }
-
-    /** Nur für den Wiederaufbau aus einem Snapshot (ADR-023), sonst zählt nur increment/reset. */
-    void restoreMissedRounds(int missedRounds) {
-        this.missedRounds = missedRounds;
     }
 
     /** Getrennt und schon zwei Runden am Stueck verpasst (Anforderung 8.1). */
@@ -92,16 +99,18 @@ public class Player {
      * auch mit 0 Punkten und unabhaengig davon, was angefragt wurde. Ohne
      * diese Ausnahme waere die Null ein absorbierender Zustand: Wer einmal
      * pleite ist, koennte nie wieder mitspielen (8.3).
-     *
-     * Haengt nur am Kontostand und den Parametern, nicht am Raum -- deshalb
-     * hier und nicht im {@code RoomActor}.
      */
-    public int stakeFor(Integer requestedStake, Params params) {
-        int minStake = params.minStake();
-        if (points < minStake) {
+    public Points stakeFor(Integer requestedStake, Params params) {
+        Points minStake = params.minStake();
+        if (points.isLessThan(minStake)) {
             return points;
         }
-        int wanted = requestedStake == null ? minStake : requestedStake;
-        return Math.max(minStake, Math.min(wanted, points));
+        Points wanted = requestedStake == null ? minStake : Points.of(Math.max(0, requestedStake));
+        return wanted.isLessThan(minStake) ? minStake : wanted.min(points);
+    }
+
+    @Override
+    public String toString() {
+        return name + " (" + points + ")";
     }
 }

@@ -1,8 +1,5 @@
 package de.fourteen.watchparty.application.message;
 
-import de.fourteen.watchparty.domain.model.Outcome;
-import de.fourteen.watchparty.domain.model.Phase;
-import de.fourteen.watchparty.domain.model.Pick;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -70,7 +67,17 @@ public final class Messages {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record BetView(String id, String question, String note, List<Outcome> outcomes) {
+    public record BetView(String id, String question, String note, List<OutcomeView> outcomes) {
+    }
+
+    /**
+     * Eigener Typ statt des Domaenen-{@code Outcome}. Seit dessen ID ein
+     * Value Object ist, wuerde eine direkte Serialisierung
+     * {@code {"id":{"value":"punt"}}} ergeben und damit das Protokoll
+     * aendern. Bewusst ohne {@code NON_NULL}: {@code note} war schon immer
+     * auch als {@code null} im Frame, das bleibt so.
+     */
+    public record OutcomeView(String id, String label, String note) {
     }
 
     public record RevealedPick(String playerId, String outcomeId, int stake) {

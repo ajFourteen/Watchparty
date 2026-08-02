@@ -33,6 +33,6 @@ class RoomActorTest {
 
         // Ohne awaitIdle koennte diese Pruefung vor der Verarbeitung laufen.
         assertThat(gateway.messagesFor("socket-1")).hasAtLeastOneElementOfType(Messages.Welcome.class);
-        assertThat(gateway.playerIdOf("socket-1")).isNotBlank();
+        assertThat(gateway.playerIdOf("socket-1")).isNotNull();
     }
 }

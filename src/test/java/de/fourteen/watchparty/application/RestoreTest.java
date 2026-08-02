@@ -2,7 +2,12 @@ package de.fourteen.watchparty.application;
 
 import de.fourteen.watchparty.adapter.out.file.SnapshotStore;
 import de.fourteen.watchparty.application.port.out.Scheduler;
+import de.fourteen.watchparty.domain.model.OutcomeId;
 import de.fourteen.watchparty.domain.model.Phase;
+import de.fourteen.watchparty.domain.model.Points;
+import de.fourteen.watchparty.domain.model.PlayerName;
+import de.fourteen.watchparty.domain.model.Token;
+import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.Player;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.Round;
@@ -107,19 +112,26 @@ class RestoreTest {
     void wiederherstellungInIdleErhaeltPunkteNamenUndToken() {
         Running first = start();
         String host = connect(first.actor(), "Host", null);
-        String token = first.actor().getRoomForTest().byId(gateway.playerIdOf(host)).getToken();
-        first.actor().getRoomForTest().byId(gateway.playerIdOf(host)).setPoints(1234);
-        // Punktestand direkt geaendert, ohne dass eine Runde lief -- die
-        // naechste STATE-aendernde Aktion persistiert ihn erst.
+        String token = first.actor().getRoomForTest().byId(gateway.playerIdOf(host)).getToken().value();
         connect(first.actor(), "Anna", null);
+
+        // Punktestand ueber eine echte, aufgeloeste Runde veraendert -- nicht
+        // per Setter: Player.setPoints ist seit den Value Objects
+        // paket-privat, Mutation laeuft ueber das Aggregat.
+        first.actor().openBet(host, null);
+        first.actor().placePick(host, "touchdown", 234);
+        first.actor().closeBet(host);
+        first.actor().resolve(host, "touchdown");
         first.settle();
+        Points erwartetePunkte = first.actor().getRoomForTest().byId(gateway.playerIdOf(host)).getPoints();
 
         Running restarted = start();
 
-        Player restoredHost = restarted.actor().getRoomForTest().byToken(token);
+        Player restoredHost = restarted.actor().getRoomForTest().byToken(Token.of(token));
         assertThat(restoredHost).isNotNull();
-        assertThat(restoredHost.getName()).isEqualTo("Host");
+        assertThat(restoredHost.getName()).isEqualTo(PlayerName.of("Host"));
         assertThat(restoredHost.isConnected()).isFalse();
+        assertThat(restoredHost.getPoints()).isEqualTo(erwartetePunkte);
         assertThat(restarted.actor().getRoomForTest().players()).hasSize(2);
 
         // Weiterspielen: derselbe Token reconnectet auf denselben Spieler.
@@ -132,7 +144,7 @@ class RestoreTest {
     void wiederherstellungMitOffenerRundeInDerZukunftBleibtOffenUndPlantAutoCloseNeu() {
         Running first = start();
         String host = connect(first.actor(), "Host", null);
-        String hostToken = first.actor().getRoomForTest().byId(gateway.playerIdOf(host)).getToken();
+        String hostToken = first.actor().getRoomForTest().byId(gateway.playerIdOf(host)).getToken().value();
         first.actor().openBet(host, null);
         first.settle();
 
@@ -205,10 +217,10 @@ class RestoreTest {
 
         Round round = restarted.actor().getRoomForTest().getCurrentRound();
         assertThat(round.getPhase()).isEqualTo(Phase.RESOLVED);
-        assertThat(round.getWinningOutcomeId()).isEqualTo("touchdown");
+        assertThat(round.getWinningOutcomeId()).isEqualTo(OutcomeId.of("touchdown"));
         assertThat(round.getDeltas()).isNotEmpty();
         assertThat(restarted.actor().getRoomForTest().byId(gateway.playerIdOf(host)).getPoints())
-                .isEqualTo(Room.STARTING_POINTS + 50);
+                .isEqualTo(Points.of(Room.STARTING_POINTS.value() + 50));
     }
 
     @Test
@@ -236,8 +248,8 @@ class RestoreTest {
     void wiederherstellungMitHostErlaubtDasZurueckholenNachResolved() {
         Running first = start();
         String host = connect(first.actor(), "Host", null);
-        String hostId = gateway.playerIdOf(host);
-        String hostToken = first.actor().getRoomForTest().byId(hostId).getToken();
+        PlayerId hostId = gateway.playerIdOf(host);
+        String hostToken = first.actor().getRoomForTest().byId(hostId).getToken().value();
         connect(first.actor(), "Anna", null);
         first.settle();
 

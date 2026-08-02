@@ -10,30 +10,30 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class PlayerTest {
 
-    private static final Params PARAMS = new Params(25, 25);
+    private static final Params PARAMS = Params.DEFAULT;
 
     private static Player playerWith(int points) {
-        return new Player("p", "t", "Anna", points);
+        return new Player(PlayerId.of("p"), Token.of("t"), PlayerName.of("Anna"), Points.of(points));
     }
 
     @Test
     void ohneAngabeGiltDerMindesteinsatz() {
-        assertThat(playerWith(1000).stakeFor(null, PARAMS)).isEqualTo(25);
+        assertThat(playerWith(1000).stakeFor(null, PARAMS)).isEqualTo(Points.of(25));
     }
 
     @Test
     void einWunschUeberDemMindestEinsatzWirdUebernommen() {
-        assertThat(playerWith(1000).stakeFor(200, PARAMS)).isEqualTo(200);
+        assertThat(playerWith(1000).stakeFor(200, PARAMS)).isEqualTo(Points.of(200));
     }
 
     @Test
     void einWunschUnterDemMindesteinsatzWirdAngehoben() {
-        assertThat(playerWith(1000).stakeFor(5, PARAMS)).isEqualTo(25);
+        assertThat(playerWith(1000).stakeFor(5, PARAMS)).isEqualTo(Points.of(25));
     }
 
     @Test
     void derKontostandBegrenztNachOben() {
-        assertThat(playerWith(80).stakeFor(500, PARAMS)).isEqualTo(80);
+        assertThat(playerWith(80).stakeFor(500, PARAMS)).isEqualTo(Points.of(80));
     }
 
     /**
@@ -42,9 +42,9 @@ class PlayerTest {
      */
     @Test
     void unterDemMindesteinsatzGehtEsZwangsweiseAllIn() {
-        assertThat(playerWith(10).stakeFor(null, PARAMS)).isEqualTo(10);
-        assertThat(playerWith(10).stakeFor(25, PARAMS)).isEqualTo(10);
-        assertThat(playerWith(10).stakeFor(1, PARAMS)).isEqualTo(10);
+        assertThat(playerWith(10).stakeFor(null, PARAMS)).isEqualTo(Points.of(10));
+        assertThat(playerWith(10).stakeFor(25, PARAMS)).isEqualTo(Points.of(10));
+        assertThat(playerWith(10).stakeFor(1, PARAMS)).isEqualTo(Points.of(10));
     }
 
     /**
@@ -53,7 +53,7 @@ class PlayerTest {
      */
     @Test
     void beiNullPunktenBleibtDasTippenMoeglich() {
-        assertThat(playerWith(0).stakeFor(null, PARAMS)).isZero();
-        assertThat(playerWith(0).stakeFor(100, PARAMS)).isZero();
+        assertThat(playerWith(0).stakeFor(null, PARAMS)).isEqualTo(Points.ZERO);
+        assertThat(playerWith(0).stakeFor(100, PARAMS)).isEqualTo(Points.ZERO);
     }
 }

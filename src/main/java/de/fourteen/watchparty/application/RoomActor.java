@@ -6,13 +6,20 @@ import de.fourteen.watchparty.application.port.out.ClientGateway;
 import de.fourteen.watchparty.application.port.out.Scheduler;
 import de.fourteen.watchparty.application.port.out.SnapshotRepository;
 import de.fourteen.watchparty.domain.model.Bet;
+import de.fourteen.watchparty.domain.model.BetId;
+import de.fourteen.watchparty.domain.model.Bets;
+import de.fourteen.watchparty.domain.model.OutcomeId;
 import de.fourteen.watchparty.domain.model.Params;
 import de.fourteen.watchparty.domain.model.Phase;
 import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.Player;
+import de.fourteen.watchparty.domain.model.PlayerId;
+import de.fourteen.watchparty.domain.model.PlayerName;
+import de.fourteen.watchparty.domain.model.Points;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.Round;
-import de.fourteen.watchparty.domain.model.Bets;
+import de.fourteen.watchparty.domain.model.RoundId;
+import de.fourteen.watchparty.domain.model.Token;
 import de.fourteen.watchparty.domain.service.Settlement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +92,7 @@ public class RoomActor implements RoomCommands {
      * in der Infrastruktur. Sie gehoert hierher: Nur vom Raum-Thread
      * beruehrt, daher eine gewoehnliche LinkedHashMap (Invariante 1).
      */
-    private final Map<String, String> playerIdBySession = new LinkedHashMap<>();
+    private final Map<String, PlayerId> playerIdBySession = new LinkedHashMap<>();
 
     /**
      * Massgebliche Uhr fuer {@code closesAt}-Vergleiche (ADR-011) und
@@ -192,7 +199,7 @@ public class RoomActor implements RoomCommands {
             Round round = room.getCurrentRound();
             if (round != null && round.getPhase() == Phase.OPEN) {
                 if (clock.instant().isBefore(round.getClosesAt())) {
-                    long roundId = round.getId();
+                    RoundId roundId = round.getId();
                     Duration remaining = Duration.between(clock.instant(), round.getClosesAt());
                     autoCloseTask = scheduler.schedule(() -> loop.execute(() -> handleAutoClose(roundId)), remaining);
                 } else {
@@ -203,44 +210,41 @@ public class RoomActor implements RoomCommands {
         });
     }
 
-    private void handleJoin(String sessionId, String rawName, String token) {
-        String name = rawName == null ? "" : rawName.trim();
-        if (name.isEmpty() || name.length() > 20) {
+    private void handleJoin(String sessionId, String rawName, String rawToken) {
+        // Die Regel steckt in PlayerName; die Meldung gehoert hierher, weil
+        // die Domaene nicht entscheidet, was der Spieler zu lesen bekommt.
+        if (!PlayerName.isValid(rawName)) {
             clients.send(sessionId, new Messages.Error("Bitte einen Namen mit 1 bis 20 Zeichen eingeben."));
             return;
         }
+        PlayerName name = PlayerName.of(rawName);
 
-        Player player = room.byToken(token);
-        if (player != null) {
-            // Reconnect (ADR-014): dasselbe Konto, neue Verbindung. Der
-            // Verpasste-Runden-Zaehler beginnt von vorn (Anforderung 8.1).
-            player.setName(name);
-            player.setConnected(true);
-            player.resetMissedRounds();
-        } else {
-            player = room.addPlayer(UUID.randomUUID().toString(), UUID.randomUUID().toString(), name);
+        Player player = room.rejoin(Token.ofNullable(rawToken), name);
+        if (player == null) {
+            player = room.addPlayer(
+                    PlayerId.of(UUID.randomUUID().toString()),
+                    Token.of(UUID.randomUUID().toString()),
+                    name);
         }
 
         playerIdBySession.put(sessionId, player.getId());
         reassignHost();
 
-        clients.send(sessionId, new Messages.Welcome(player.getId(), player.getToken(), RoomView.catalog()));
+        clients.send(sessionId, new Messages.Welcome(
+                player.getId().value(), player.getToken().value(), RoomView.catalog()));
         sendYourPickIfAny(sessionId, player.getId());
         broadcastState();
         log.info("{} ist dabei ({} Spieler im Raum)", player.getName(), room.players().size());
     }
 
     private void handleDisconnected(String sessionId) {
-        String playerId = playerIdBySession.remove(sessionId);
+        PlayerId playerId = playerIdBySession.remove(sessionId);
         if (playerId == null) {
             return;
         }
         // Nur wenn keine andere Sitzung mehr auf diesen Spieler zeigt.
         if (!playerIdBySession.containsValue(playerId)) {
-            Player player = room.byId(playerId);
-            if (player != null) {
-                player.setConnected(false);
-            }
+            room.markDisconnected(playerId);
         }
         reassignHost();
         broadcastState();
@@ -258,7 +262,8 @@ public class RoomActor implements RoomCommands {
         }
         // Ohne Angabe der Drive-Ausgang: die mit Abstand haeufigste Wette, und
         // aeltere Clients kennen die Auswahl noch nicht.
-        Bet bet = betId == null ? Bets.DRIVE_OUTCOME : Bets.byId(betId);
+        BetId requested = BetId.ofNullable(betId);
+        Bet bet = requested == null ? Bets.DRIVE_OUTCOME : Bets.byId(requested);
         if (bet == null) {
             clients.send(sessionId, new Messages.Error("Unbekannte Wette."));
             return;
@@ -268,14 +273,14 @@ public class RoomActor implements RoomCommands {
             autoCloseTask.cancel();
         }
         Round round = room.openBet(bet, clock.instant(), BETTING_WINDOW);
-        long roundId = round.getId();
+        RoundId roundId = round.getId();
         autoCloseTask = scheduler.schedule(() -> loop.execute(() -> handleAutoClose(roundId)), BETTING_WINDOW);
 
         broadcastState();
     }
 
-    private void handlePlacePick(String sessionId, String outcomeId, Integer requestedStake) {
-        String playerId = playerIdBySession.get(sessionId);
+    private void handlePlacePick(String sessionId, String rawOutcomeId, Integer requestedStake) {
+        PlayerId playerId = playerIdBySession.get(sessionId);
         Player player = playerId == null ? null : room.byId(playerId);
         if (player == null) {
             clients.send(sessionId, new Messages.Error("Bitte zuerst beitreten."));
@@ -285,7 +290,7 @@ public class RoomActor implements RoomCommands {
         Round round = room.getCurrentRound();
         // ADR-011: allein der Zeitvergleich beim Abarbeiten entscheidet, nicht
         // ob der Auto-Close-Task schon gefeuert hat.
-        if (round == null || round.getPhase() != Phase.OPEN || !clock.instant().isBefore(round.getClosesAt())) {
+        if (round == null || !round.isOpenAt(clock.instant())) {
             clients.send(sessionId, new Messages.Error("Das Wettfenster ist nicht offen."));
             return;
         }
@@ -293,17 +298,16 @@ public class RoomActor implements RoomCommands {
             clients.send(sessionId, new Messages.Error("Du hast in dieser Runde schon getippt."));
             return;
         }
-        boolean validOutcome = round.getBet().outcomes().stream()
-                .anyMatch(outcome -> outcome.id().equals(outcomeId));
-        if (!validOutcome) {
+        OutcomeId outcomeId = OutcomeId.ofNullable(rawOutcomeId);
+        if (!round.getBet().hasOutcome(outcomeId)) {
             clients.send(sessionId, new Messages.Error("Unbekannter Ausgang."));
             return;
         }
 
-        int stake = player.stakeFor(requestedStake, PARAMS);
+        Points stake = player.stakeFor(requestedStake, PARAMS);
         room.addPick(new Pick(playerId, outcomeId, stake));
 
-        clients.send(sessionId, new Messages.YourPick(outcomeId, stake));
+        clients.send(sessionId, new Messages.YourPick(outcomeId.value(), stake.value()));
         broadcastState();
     }
 
@@ -326,9 +330,9 @@ public class RoomActor implements RoomCommands {
         broadcastState();
     }
 
-    private void handleAutoClose(long roundId) {
+    private void handleAutoClose(RoundId roundId) {
         Round round = room.getCurrentRound();
-        if (round == null || round.getPhase() != Phase.OPEN || round.getId() != roundId) {
+        if (round == null || round.getPhase() != Phase.OPEN || !round.getId().equals(roundId)) {
             // ADR-010: veralteter Timer einer bereits geschlossenen oder
             // schon wieder neuen Runde — ignorieren.
             return;
@@ -393,13 +397,13 @@ public class RoomActor implements RoomCommands {
         // Client erkennt das am fehlenden eigenen Spieler im naechsten
         // STATE und faellt in die Beitrittsansicht zurueck. Bewusst kein
         // automatisches Wiederbeitreten, sonst waere RESET nur Anzeige.
-        playerIdBySession.replaceAll((id, playerId) -> null);
+        playerIdBySession.replaceAll((sessionKey, playerId) -> null);
 
         log.info("Raum vom Host zurückgesetzt");
         broadcastState();
     }
 
-    private void handleResolve(String sessionId, String winningOutcomeId) {
+    private void handleResolve(String sessionId, String rawWinningOutcomeId) {
         if (!isHost(sessionId)) {
             clients.send(sessionId, new Messages.Error("Nur der Host kann auflösen."));
             return;
@@ -409,18 +413,15 @@ public class RoomActor implements RoomCommands {
             clients.send(sessionId, new Messages.Error("Die Wette ist nicht geschlossen."));
             return;
         }
-        boolean validOutcome = round.getBet().outcomes().stream()
-                .anyMatch(outcome -> outcome.id().equals(winningOutcomeId));
-        if (!validOutcome) {
+        OutcomeId winningOutcomeId = OutcomeId.ofNullable(rawWinningOutcomeId);
+        if (!round.getBet().hasOutcome(winningOutcomeId)) {
             clients.send(sessionId, new Messages.Error("Unbekannter Ausgang."));
             return;
         }
 
-        List<Pick> picks = List.copyOf(round.getPicks().values());
-        Set<String> nonPickers = new LinkedHashSet<>(round.getParticipants());
-        nonPickers.removeAll(round.getPicks().keySet());
+        Set<PlayerId> nonPickers = round.nonPickers();
 
-        Map<String, Integer> balances = new LinkedHashMap<>();
+        Map<PlayerId, Points> balances = new LinkedHashMap<>();
         for (Player player : room.players()) {
             balances.put(player.getId(), player.getPoints());
         }
@@ -428,18 +429,10 @@ public class RoomActor implements RoomCommands {
         // Die gesamte Punkte-Oekonomie steckt in dieser einen Zeile: Deltas,
         // Pool und die Annullierung nach 8.4 kommen aus derselben Rechnung.
         // Der Actor wendet sie nur an (ADR-020).
-        Settlement.Result settlement = Settlement.settle(picks, nonPickers, balances, winningOutcomeId, PARAMS);
-        room.applyDeltas(settlement.deltas());
+        Settlement.Result settlement = Settlement.settle(
+                round.picksInOrder(), nonPickers, balances, winningOutcomeId, PARAMS);
 
-        // Anforderung 8.1: Nur getrennte Nicht-Tipper zaehlen fuer die Pause;
-        // wer verbunden ist und nicht tippt, zahlt jede Runde ohne Pause.
-        for (String nonPickerId : nonPickers) {
-            Player player = room.byId(nonPickerId);
-            if (player != null && !player.isConnected()) {
-                player.incrementMissedRounds();
-            }
-        }
-
+        room.countMissedRounds(nonPickers);
         room.resolveCurrentRound(winningOutcomeId, settlement.deltas(), settlement.pool(), settlement.annulled());
 
         // RESOLVED erlaubt das Zurueckholen der Host-Rolle (ADR-021).
@@ -458,14 +451,14 @@ public class RoomActor implements RoomCommands {
         room.reassignHostIfNeeded(allowPickup);
     }
 
-    private void sendYourPickIfAny(String sessionId, String playerId) {
+    private void sendYourPickIfAny(String sessionId, PlayerId playerId) {
         Round round = room.getCurrentRound();
         if (round == null || round.getPhase() != Phase.OPEN) {
             return;
         }
-        Pick pick = round.getPicks().get(playerId);
+        Pick pick = round.pickOf(playerId);
         if (pick != null) {
-            clients.send(sessionId, new Messages.YourPick(pick.outcomeId(), pick.stake()));
+            clients.send(sessionId, new Messages.YourPick(pick.outcomeId().value(), pick.stake().value()));
         }
     }
 

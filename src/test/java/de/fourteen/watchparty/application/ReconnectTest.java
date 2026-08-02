@@ -1,6 +1,9 @@
 package de.fourteen.watchparty.application;
 
+import de.fourteen.watchparty.domain.model.OutcomeId;
 import de.fourteen.watchparty.domain.model.Phase;
+import de.fourteen.watchparty.domain.model.Points;
+import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.Round;
 
@@ -57,8 +60,8 @@ class ReconnectTest {
     @Test
     void reconnectWaehrendIdleGibtDasselbeKontoZurueck() {
         String anna = join("Anna");
-        String token = actor.getRoomForTest().byId(gateway.playerIdOf(anna)).getToken();
-        String playerId = gateway.playerIdOf(anna);
+        String token = actor.getRoomForTest().byId(gateway.playerIdOf(anna)).getToken().value();
+        PlayerId playerId = gateway.playerIdOf(anna);
 
         actor.disconnected(anna);
         actor.awaitIdle();
@@ -73,7 +76,7 @@ class ReconnectTest {
     void reconnectWaehrendOpenKannNochTippenWennNochNichtGetippt() {
         String host = join("Host");
         String anna = join("Anna");
-        String token = actor.getRoomForTest().byId(gateway.playerIdOf(anna)).getToken();
+        String token = actor.getRoomForTest().byId(gateway.playerIdOf(anna)).getToken().value();
 
         actor.openBet(host, null);
         actor.disconnected(anna);
@@ -90,8 +93,8 @@ class ReconnectTest {
     void reconnectWaehrendOpenErhaeltDenEigenenBereitsAbgegebenenTippErneut() {
         String host = join("Host");
         String anna = join("Anna");
-        String annaId = gateway.playerIdOf(anna);
-        String token = actor.getRoomForTest().byId(annaId).getToken();
+        PlayerId annaId = gateway.playerIdOf(anna);
+        String token = actor.getRoomForTest().byId(annaId).getToken().value();
 
         actor.openBet(host, null);
         actor.placePick(anna, "punt", 40);
@@ -102,15 +105,15 @@ class ReconnectTest {
         // er geht separat als YOUR_PICK erneut an die neue Session (ADR-013).
         reconnect("Anna", token);
         Pick pick = actor.getRoomForTest().getCurrentRound().getPicks().get(annaId);
-        assertThat(pick.outcomeId()).isEqualTo("punt");
-        assertThat(pick.stake()).isEqualTo(40);
+        assertThat(pick.outcomeId()).isEqualTo(OutcomeId.of("punt"));
+        assertThat(pick.stake()).isEqualTo(Points.of(40));
     }
 
     @Test
     void reconnectWaehrendClosedLaesstDieAufgedecktenTippsUnveraendert() {
         String host = join("Host");
         String anna = join("Anna");
-        String token = actor.getRoomForTest().byId(gateway.playerIdOf(anna)).getToken();
+        String token = actor.getRoomForTest().byId(gateway.playerIdOf(anna)).getToken().value();
 
         actor.openBet(host, null);
         actor.placePick(host, "touchdown", 100);
@@ -129,7 +132,7 @@ class ReconnectTest {
     void reconnectWaehrendResolvedZeigtWeiterhinDasErgebnis() {
         String host = join("Host");
         String anna = join("Anna");
-        String token = actor.getRoomForTest().byId(gateway.playerIdOf(anna)).getToken();
+        String token = actor.getRoomForTest().byId(gateway.playerIdOf(anna)).getToken().value();
 
         actor.openBet(host, null);
         actor.placePick(host, "touchdown", 100);
@@ -143,7 +146,7 @@ class ReconnectTest {
 
         Round round = actor.getRoomForTest().getCurrentRound();
         assertThat(round.getPhase()).isEqualTo(Phase.RESOLVED);
-        assertThat(round.getWinningOutcomeId()).isEqualTo("touchdown");
+        assertThat(round.getWinningOutcomeId()).isEqualTo(OutcomeId.of("touchdown"));
         assertThat(round.getDeltas()).isNotEmpty();
     }
 
@@ -151,8 +154,8 @@ class ReconnectTest {
     void reconnectSetztDenVerpassteRundenZaehlerZurueck() {
         String host = join("Host");
         String anna = join("Anna");
-        String annaId = gateway.playerIdOf(anna);
-        String token = actor.getRoomForTest().byId(annaId).getToken();
+        PlayerId annaId = gateway.playerIdOf(anna);
+        String token = actor.getRoomForTest().byId(annaId).getToken().value();
 
         actor.disconnected(anna);
         actor.awaitIdle();

@@ -2,6 +2,7 @@ package de.fourteen.watchparty.application;
 
 import de.fourteen.watchparty.application.message.Messages;
 import de.fourteen.watchparty.application.port.out.ClientGateway;
+import de.fourteen.watchparty.domain.model.PlayerId;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,12 +47,13 @@ class RecordingClientGateway implements ClientGateway {
     }
 
     /** Die Spieler-ID aus dem WELCOME — der Weg, auf dem ein echter Client sie erfaehrt. */
-    String playerIdOf(String sessionId) {
+    PlayerId playerIdOf(String sessionId) {
         return messagesFor(sessionId).stream()
                 .filter(Messages.Welcome.class::isInstance)
                 .map(Messages.Welcome.class::cast)
                 .reduce((first, second) -> second)
                 .map(Messages.Welcome::playerId)
+                .map(PlayerId::of)
                 .orElseThrow(() -> new AssertionError("Kein WELCOME fuer Sitzung " + sessionId));
     }
 

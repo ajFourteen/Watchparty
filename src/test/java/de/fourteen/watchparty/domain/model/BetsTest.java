@@ -13,7 +13,7 @@ class BetsTest {
     @Test
     void driveOutcomeHatDieSiebenKanonischenAusgaengeAusAnforderung41() {
         assertThat(Bets.DRIVE_OUTCOME.outcomes())
-                .extracting(Outcome::id)
+                .extracting(outcome -> outcome.id().value())
                 .containsExactly(
                         "touchdown", "field-goal", "punt", "turnover",
                         "turnover-on-downs", "safety", "end-of-half");
@@ -22,7 +22,7 @@ class BetsTest {
     @Test
     void turnoverOnDownsTraegtDieAbgrenzungZumVerschossenenFieldGoal() {
         Outcome turnoverOnDowns = Bets.DRIVE_OUTCOME.outcomes().stream()
-                .filter(outcome -> outcome.id().equals("turnover-on-downs"))
+                .filter(outcome -> outcome.id().equals(OutcomeId.of("turnover-on-downs")))
                 .findFirst()
                 .orElseThrow();
 
@@ -36,11 +36,11 @@ class BetsTest {
 
     /**
      * Der Katalog ist die einzige Quelle fuer Wetten; doppelte IDs wuerden
-     * {@link Bets#byId(String)} zu einer Zufallsauswahl machen.
+     * {@link Bets#byId(BetId)} zu einer Zufallsauswahl machen.
      */
     @Test
     void jedeWetteImKatalogHatEineEigeneId() {
-        Set<String> ids = new HashSet<>();
+        Set<BetId> ids = new HashSet<>();
         for (Bet bet : Bets.CATALOG) {
             assertThat(ids.add(bet.id())).as("doppelte Wett-ID %s", bet.id()).isTrue();
         }
@@ -55,7 +55,7 @@ class BetsTest {
     void jedeWetteHatMindestensZweiUnterscheidbareAusgaenge() {
         for (Bet bet : Bets.CATALOG) {
             assertThat(bet.outcomes()).as("Ausgaenge von %s", bet.id()).hasSizeGreaterThanOrEqualTo(2);
-            assertThat(bet.outcomes()).extracting(Outcome::id).doesNotHaveDuplicates();
+            assertThat(bet.outcomes()).extracting(outcome -> outcome.id().value()).doesNotHaveDuplicates();
         }
     }
 
@@ -68,7 +68,7 @@ class BetsTest {
     @Test
     void derVersuchNachDemTouchdownKenntKickUndZweiPunkte() {
         assertThat(Bets.TRY_AFTER_TOUCHDOWN.outcomes())
-                .extracting(Outcome::id)
+                .extracting(outcome -> outcome.id().value())
                 .containsExactly(
                         "extra-point-good", "extra-point-no-good",
                         "two-point-good", "two-point-no-good");
@@ -76,7 +76,7 @@ class BetsTest {
 
     @Test
     void byIdLiefertNullStattEinerAusnahmeBeiUnbekannterId() {
-        assertThat(Bets.byId("drive-outcome")).isSameAs(Bets.DRIVE_OUTCOME);
-        assertThat(Bets.byId("gibt-es-nicht")).isNull();
+        assertThat(Bets.byId(BetId.of("drive-outcome"))).isSameAs(Bets.DRIVE_OUTCOME);
+        assertThat(Bets.byId(BetId.of("gibt-es-nicht"))).isNull();
     }
 }

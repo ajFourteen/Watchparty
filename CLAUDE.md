@@ -90,29 +90,55 @@ Dateisystem-I/O wartet (Invariante 2) — analog zur Ausgangs-Queue in
 ## Aufbau
 
 Onion-Architektur (ADR-024): Abhängigkeiten zeigen ausschließlich nach
-innen. `ArchitectureTest` prüft das, es ist keine bloße Verabredung.
+innen. Innerhalb der Domäne trägt das Modell zusätzlich Aggregate, Entities
+und Value Objects (ADR-025) — die Sprache aus `docs/anforderungen.md` findet
+sich eins zu eins im Typsystem wieder. `ArchitectureTest` (ArchUnit) prüft
+beides, es ist keine bloße Verabredung.
 
 ```
 src/main/java/de/fourteen/watchparty/
   domain/model/            Der Kern. Kein Spring, kein Jackson, kein WebSocket.
+
+    -- Aggregate Root --
     Room.java              Raumzustand, Host-Rolle, Rundenverwaltung; die
                            Übergänge closeCurrentRound/annulCurrentRound/
                            resolveCurrentRound/applyDeltas/addPick sowie
                            toSnapshot()/fromSnapshot() (ADR-023)
+
+    -- Entities (Identität über eine ID, nicht über die Werte) --
     Round.java             Eine Runde: Wette, closesAt, eingefrorener
                            Teilnehmerkreis, Tipps, Ergebnis. Mutatoren
                            paket-privat — das ist die Aggregatgrenze
     Player.java            Teilnehmer, Verpasste-Runden-Zähler (8.1) und die
                            Einsatzregel stakeFor (6/8.3)
+
+    -- Value Objects (Identität über die Werte, unveränderlich) --
+    PlayerId/RoundId/BetId/OutcomeId   Identitäten, gegeneinander nicht
+                           austauschbar — Vertauschen ist ein Kompilierfehler
+    Token.java             Wiedererkennung ueber Verbindungsabbrüche (ADR-014)
+    PlayerName.java        Trägt die Regel "1 bis 20 Zeichen" (statt einer
+                           if-Kette im Actor)
+    Points.java            Punkte: nie negativ (Invariante 5 als Typinvariante,
+                           nicht als Kommentar)
+    PointsDelta.java        Die Veränderung eines Kontostands — Gewinn/Verlust,
+                           darf negativ sein, eigener Typ als Gegenstück zu
+                           Points
+    Share.java             Anteil am Pool (Anforderung 7): von Points streng
+                           getrennt, damit Punkte und Anteile sich nicht
+                           versehentlich vermischen
     Phase.java             IDLE/OPEN/CLOSED/RESOLVED
     Bet/Outcome/Pick       Wette, Ausgang, abgegebener Tipp (ADR-022)
+    Bets.java              Wettkatalog (ADR-017) — Datenstruktur, kein
+                           Dienst, deshalb hier und nicht in domain/service
     Params.java            Startguthaben, Mindesteinsatz, Strafe (3.1)
-    RoomSnapshot.java      Datenmodell für die Datei (ADR-023). Liegt hier
-                           und nicht im Adapter, weil Room es spricht
+    RoomSnapshot.java      Bewusst OHNE Value Objects: das Dateiformat für
+                           die Platte (ADR-023), unabhängig vom Modell.
+                           Room.toSnapshot/fromSnapshot rechnet um
   domain/service/
-    Settlement.java        Abrechnung als reine Funktion (Anforderung 7/8):
-                           liefert Deltas, Pool und Annullierung als Result
-    Bets.java              Wettkatalog (ADR-017), einzige Quelle für Wetten
+    Settlement.java        Domain Service: Abrechnung als reine Funktion
+                           (Anforderung 7/8), gehört zu keiner einzelnen
+                           Entity. Liefert Deltas, Pool und Annullierung
+                           als Result
   application/             Orchestrierung. Kennt die Domäne und die Ports,
                            sonst nichts — insbesondere kein Spring.
     RoomActor.java         Eventloop und Zustandsautomat (ADR-020): OPEN_BET,
@@ -167,6 +193,16 @@ selbst, die sich nicht am Schreibtisch simulieren lassen.
   Anteil, Pool, Strafe, Auflösen. Es heißt **nicht** Markt (ADR-022).
 - Zwei Begriffe, die sich im Code leicht verwechseln (ADR-022): eine `Bet`
   ist die *Wette*, also die Frage; ein `Pick` ist der *Tipp* eines Spielers.
+- Ein Fachbegriff aus `anforderungen.md`, der keinen eigenen Typ im
+  Domänenmodell hat, ist ein Anlass nachzufragen (ADR-025) — nicht
+  stillschweigend als `int`/`String` weiterzuschreiben.
+- Punkte (`Points`), Anteile (`Share`) und die Veränderung eines Kontostands
+  (`PointsDelta`) sind drei verschiedene Typen, obwohl alle drei intern eine
+  Ganzzahl sind (ADR-025). Anforderung 7 trennt sie fachlich, das Typsystem
+  erzwingt es: Ein `Share` lässt sich nicht versehentlich als `Points`
+  auszahlen.
+- Test Doubles werden von Hand geschrieben, kein Mockito (ADR-025) — vom
+  Test-Classpath ausgeschlossen.
 - Sichtbare Texte stehen mit Umlauten im Quelltext; die Kodierung ist in
   `build.gradle.kts` auf UTF-8 festgenagelt.
 - Jede abgeschlossene Änderung bekommt einen eigenen Commit, direkt wenn sie

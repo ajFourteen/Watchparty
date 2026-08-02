@@ -2,13 +2,18 @@ package de.fourteen.watchparty.application;
 
 import de.fourteen.watchparty.application.message.Messages;
 import de.fourteen.watchparty.domain.model.Bet;
+import de.fourteen.watchparty.domain.model.Bets;
+import de.fourteen.watchparty.domain.model.Outcome;
 import de.fourteen.watchparty.domain.model.Phase;
+import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.Player;
+import de.fourteen.watchparty.domain.model.PlayerId;
+import de.fourteen.watchparty.domain.model.PointsDelta;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.Round;
-import de.fourteen.watchparty.domain.model.Bets;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,11 +28,13 @@ import java.util.Map;
  * {@link Room} und {@link Round} paket-privat sind, macht die Trennung
  * belastbar: Von hier aus laesst sich der Raum gar nicht veraendern.
  *
+ * Hier werden auch die Value Objects der Domaene auf einfache Typen
+ * abgewickelt. Das Protokoll ist eine Zusage nach draussen und soll sich
+ * nicht aendern, nur weil das Modell innen praeziser geworden ist — dieselbe
+ * Ueberlegung wie bei {@code RoomSnapshot} fuer die Platte.
+ *
  * Invariante 1 bleibt unberuehrt — aufgerufen wird ausschliesslich vom
  * Raum-Thread, wie jede andere Lesung des Raumzustands.
- *
- * Nicht zu verwechseln mit {@code Room.toSnapshot()}: Das ist der Abzug
- * fuer die Platte (ADR-023), hier entsteht die Sicht fuer den Client.
  */
 public final class RoomView {
 
@@ -45,9 +52,9 @@ public final class RoomView {
         List<Messages.PlayerView> views = new ArrayList<>();
         for (Player player : room.players()) {
             views.add(new Messages.PlayerView(
-                    player.getId(),
-                    player.getName(),
-                    player.getPoints(),
+                    player.getId().value(),
+                    player.getName().value(),
+                    player.getPoints().value(),
                     player.isConnected(),
                     player.isPaused(),
                     room.isHost(player.getId())));
@@ -68,7 +75,7 @@ public final class RoomView {
         Map<String, Integer> deltas = null;
 
         if (round != null) {
-            roundId = round.getId();
+            roundId = round.getId().value();
             bet = bet(round.getBet());
 
             if (phase == Phase.OPEN) {
@@ -78,26 +85,48 @@ public final class RoomView {
                 pickCount = round.getPicks().size();
                 participantCount = round.getParticipants().size();
             } else if (phase == Phase.CLOSED || phase == Phase.RESOLVED) {
-                revealedPicks = round.getPicks().values().stream()
-                        .map(pick -> new Messages.RevealedPick(pick.playerId(), pick.outcomeId(), pick.stake()))
-                        .toList();
+                revealedPicks = new ArrayList<>();
+                for (Pick pick : round.picksInOrder()) {
+                    revealedPicks.add(new Messages.RevealedPick(
+                            pick.playerId().value(), pick.outcomeId().value(), pick.stake().value()));
+                }
                 if (phase == Phase.RESOLVED) {
-                    winningOutcomeId = round.getWinningOutcomeId();
-                    pool = round.getPool();
+                    winningOutcomeId = round.getWinningOutcomeId() == null
+                            ? null : round.getWinningOutcomeId().value();
+                    pool = round.getPool().value();
                     annulled = round.isAnnulled();
                     annulReason = annulled ? (round.isAnnulledByHost() ? "HOST" : "NO_PICKS") : null;
-                    deltas = round.getDeltas();
+                    deltas = deltas(round.getDeltas());
                 }
             }
         }
 
-        return new Messages.State(views, room.getHostPlayerId(), phase.name(), roundId, bet,
+        return new Messages.State(views, hostId(room), phase.name(), roundId, bet,
                 closesAt, serverNow, pickCount, participantCount, revealedPicks,
                 winningOutcomeId, pool, annulled, annulReason, deltas);
     }
 
+    private static String hostId(Room room) {
+        return room.getHostPlayerId() == null ? null : room.getHostPlayerId().value();
+    }
+
+    private static Map<String, Integer> deltas(Map<PlayerId, PointsDelta> deltas) {
+        if (deltas == null) {
+            return null;
+        }
+        Map<String, Integer> flach = new LinkedHashMap<>();
+        for (Map.Entry<PlayerId, PointsDelta> entry : deltas.entrySet()) {
+            flach.put(entry.getKey().value(), entry.getValue().value());
+        }
+        return flach;
+    }
+
     public static Messages.BetView bet(Bet bet) {
-        return new Messages.BetView(bet.id(), bet.question(), bet.note(), bet.outcomes());
+        List<Messages.OutcomeView> outcomes = new ArrayList<>();
+        for (Outcome outcome : bet.outcomes()) {
+            outcomes.add(new Messages.OutcomeView(outcome.id().value(), outcome.label(), outcome.note()));
+        }
+        return new Messages.BetView(bet.id().value(), bet.question(), bet.note(), outcomes);
     }
 
     /** Der ganze Wettkatalog (ADR-017) fuer WELCOME. */

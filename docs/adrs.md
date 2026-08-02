@@ -29,6 +29,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-022 | „Wette" statt „Markt", Tipp heißt im Code `Pick` | Akzeptiert |
 | ADR-023 | Snapshot auf Platte übersteht einen Neustart innerhalb des Abends | Akzeptiert |
 | ADR-024 | Onion-Architektur mit Ringen, Ports und Adaptern | Akzeptiert |
+| ADR-025 | DDD-Taktik im Domänenmodell, ArchUnit, Test Doubles statt Mockito | Akzeptiert |
 
 ---
 
@@ -641,9 +642,12 @@ Was das konkret erzwungen hat:
   Leitung, nicht der Oberfläche, und gehört deshalb nach innen.
 
 **Konsequenzen:**
-- **Die Ringregel steht als Test.** `ArchitectureTest` prüft die
-  Importzeilen der Quellen. Ohne ihn wäre die Struktur eine
-  Absichtserklärung, die ein einziger bequemer Import durchlöchert.
+- **Die Ringregel steht als Test.** `ArchitectureTest` prüfte zunächst die
+  Importzeilen der Quellen, seit ADR-025 prüft ArchUnit den Bytecode — das
+  fand sofort einen Verstoß, den die Importsuche nicht sehen konnte
+  (`Room` rief `Bets.byId` auf, Modell → Service statt umgekehrt). Ohne
+  einen solchen Test wäre die Struktur eine Absichtserklärung, die ein
+  einziger bequemer Import durchlöchert.
 - **Eine bewusst zugelassene Ausnahme:** Die Nachrichtentypen tragen
   Jackson-Annotationen, liegen aber im Anwendungsring. Sie über Mixins zu
   entkoppeln wäre für fünf Records mehr Zeremonie als Gewinn; Annotationen
@@ -663,3 +667,81 @@ Was das konkret erzwungen hat:
 - Der Preis sind mehr Pakete und mehr Dateien für dieselbe Fachlichkeit.
   Bei dieser Größe ist das vertretbar, weil der Kern dadurch wirklich
   framework-frei und ohne Spring-Kontext instanziierbar ist.
+
+---
+
+## ADR-025: DDD-Taktik im Domänenmodell, ArchUnit, Test Doubles statt Mockito
+
+**Status:** Akzeptiert
+
+**Kontext:** ADR-024 hat die Architektur strategisch nach DDD geschnitten
+(Ringe, Ports, Adapter). Innerhalb des Domänenrings blieb das Modell aber
+primitiv: `Player`, `Round` und `Pick` trugen ihre Identitäten und Mengen als
+`String` und `int`. Zwei Folgen davon waren real, nicht nur ästhetisch —
+`Settlement` kappte die Strafe auf den Kontostand einmal in `Settlement` und
+einmal im `RoomActor` (behoben mit dem Result-Objekt, aber die Möglichkeit
+der Dopplung blieb, weil nichts sie verhinderte), und eine vertauschte
+Spieler-ID/Sitzungs-ID/Token wäre erst zur Laufzeit aufgefallen. Der
+Architekturtest selbst prüfte nur Importzeilen im Quelltext und konnte
+Verstöße über Rückgabetypen oder Feldtypen nicht sehen.
+
+**Entscheidung:**
+
+1. **Taktisches DDD im Domänenmodell.** `Room` ist Aggregate Root, `Player`
+   und `Round` sind Entities darin (Identität über `PlayerId`/`RoundId`,
+   Mutatoren paket-privat — die Aggregatgrenze aus ADR-024 bleibt bestehen).
+   Value Objects für jede Identität (`PlayerId`, `RoundId`, `BetId`,
+   `OutcomeId`, `Token`) und jede Menge (`Points`, `PointsDelta`, `Share`,
+   `PlayerName`). `Settlement` bleibt Domain Service: Er gehört zu keiner
+   einzelnen Entity, sondern zur Runde als Ganzes.
+
+   Die Ubiquitous Language wird dadurch nicht neu erfunden, sondern aus
+   `anforderungen.md` und ADR-022 direkt übernommen: „Anteil" heißt `Share`,
+   „Pool" bleibt als Feld `Points pool`, „Strafe" ist `Params.penalty()` vom
+   Typ `Points`. Bezeichner bleiben englisch (Konvention), die Begriffe
+   selbst sind die deutschen Fachbegriffe aus den Anforderungen.
+
+2. **`Points` versus `PointsDelta` versus `Share` — drei Typen für dieselbe
+   Ganzzahl, absichtlich.** Anforderung 7 trennt „echte Punkte" von
+   „Anteile am Gewinn" ausdrücklich; das Modell erzwingt die Trennung jetzt,
+   statt sie nur zu behaupten. `Points` ist nie negativ (Invariante 5 als
+   Typinvariante — ein Konstruktoraufruf mit negativem Wert wirft).
+   `PointsDelta` ist das Gegenteil und darf negativ sein, sonst müsste
+   `Points` die Bedingung aufgeben, die es trägt.
+
+3. **ArchUnit statt einer selbstgebauten Importprüfung.** Prüft den
+   Bytecode, nicht den Quelltext — Rückgabetypen und Feldtypen zählen mit.
+   Fand beim ersten Lauf sofort einen echten Verstoß (siehe Kontext).
+   Zusätzlich zur Ringregel aus ADR-024: kein Spring/Jakarta in `domain`
+   und `application`, kein `java.util.concurrent` in `domain` (Invariante 1
+   — der Raum-Thread ist die Synchronisierung, nicht die Datenstruktur).
+
+4. **Test Doubles von Hand statt Mockito.** Mockito steckte nur noch in
+   `ClientSessionTest`. Was der Test wirklich braucht — beim Senden
+   blockieren, Reihenfolge mitschreiben, Schließungen zählen — ist
+   Verhalten, kein Aufrufprotokoll; `FakeWebSocketSession` implementiert das
+   in klarem Code statt einer `doAnswer`-Kette. Mockito ist zusätzlich aus
+   `spring-boot-starter-test` ausgeschlossen, damit es keine Absprache
+   bleibt, sondern eine Regel: Ein `mock(...)` kompiliert nicht mehr.
+
+**Konsequenzen:**
+- `RoomSnapshot` bleibt bewusst ohne Value Objects — es ist das Dateiformat
+  für die Platte (ADR-023), nicht das Modell. `Room.toSnapshot`/
+  `fromSnapshot` rechnet um; ein Byte auf der Platte ändert sich dadurch
+  nicht, `schemaVersion` bleibt unverändert.
+- `Bets` liegt in `domain/model`, nicht in `domain/service`: Es ist nach
+  ADR-017 eine Datenstruktur (der Wettkatalog), kein Dienst. ArchUnit
+  erzwingt diese Unterscheidung im Onion — das Modell ist der innerste
+  Ring, Services liegen darum herum.
+- Die Nachrichtentypen (`Messages.BetView`/`OutcomeView`) serialisieren
+  jetzt eigene, einfache Typen statt der Domänen-`Outcome` direkt — sonst
+  hätte `OutcomeId` als verschachteltes Objekt im JSON-Frame gelegen und
+  das Protokoll geändert, ohne dass das Absicht gewesen wäre.
+- Ein Test in `RoomActorStateMachineTest`, der über `Player.setPoints`
+  einen Kontostand direkt gesetzt hat, ließ sich nicht mehr kompilieren:
+  Mutatoren sind jetzt konsequent paket-privat. Die Fälle sind entweder
+  über eine echte, aufgelöste Runde nachgebaut (`RestoreTest`) oder als
+  Dopplung erkannt und entfernt, weil `PlayerTest` dieselbe Regel schon
+  direkt am Domänentyp prüft.
+- Mehr Typen für dieselbe Fachlichkeit — bei dieser Größe vertretbar, weil
+  jeder neue Typ eine Regel trägt, die vorher nur ein Kommentar war.

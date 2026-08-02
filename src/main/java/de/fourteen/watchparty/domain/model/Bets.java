@@ -1,6 +1,5 @@
 package de.fourteen.watchparty.domain.model;
 
-
 import java.util.List;
 
 /**
@@ -21,27 +20,27 @@ public final class Bets {
 
     /** Anforderung 4.1: die sieben kanonischen Drive-Ausgänge. */
     public static final Bet DRIVE_OUTCOME = new Bet(
-            "drive-outcome",
+            BetId.of("drive-outcome"),
             "Ausgang des nächsten Drives",
             null,
             List.of(
-                    new Outcome("touchdown", "Touchdown", null),
-                    new Outcome("field-goal", "Field Goal", "nur bei erfolgreichem Kick"),
-                    new Outcome("punt", "Punt", null),
-                    new Outcome("turnover", "Turnover", "Interception oder verlorener Fumble"),
-                    new Outcome("turnover-on-downs", "Turnover on Downs",
+                    Outcome.of("touchdown", "Touchdown", null),
+                    Outcome.of("field-goal", "Field Goal", "nur bei erfolgreichem Kick"),
+                    Outcome.of("punt", "Punt", null),
+                    Outcome.of("turnover", "Turnover", "Interception oder verlorener Fumble"),
+                    Outcome.of("turnover-on-downs", "Turnover on Downs",
                             "umfasst auch den verschossenen Field Goal (Gegner übernimmt am Ort)"),
-                    new Outcome("safety", "Safety", null),
-                    new Outcome("end-of-half", "End of Half / Game",
+                    Outcome.of("safety", "Safety", null),
+                    Outcome.of("end-of-half", "End of Half / Game",
                             "Drive läuft mit Halbzeit- oder Spielende aus")));
 
     public static final Bet FIELD_GOAL = new Bet(
-            "field-goal-attempt",
+            BetId.of("field-goal-attempt"),
             "Field Goal: gut?",
             null,
             List.of(
-                    new Outcome("good", "Gut", null),
-                    new Outcome("no-good", "Kein Field Goal", "verschossen oder geblockt")));
+                    Outcome.of("good", "Gut", null),
+                    Outcome.of("no-good", "Kein Field Goal", "verschossen oder geblockt")));
 
     /**
      * Extrapunkt und Two-Point Conversion sind eine Wette, nicht zwei: Beim
@@ -52,15 +51,15 @@ public final class Bets {
      * getippt und zahlen deshalb gut (Anforderung 2).
      */
     public static final Bet TRY_AFTER_TOUCHDOWN = new Bet(
-            "try",
+            BetId.of("try"),
             "Versuch nach dem Touchdown?",
             "Gilt für den kompletten Versuch, egal ob gekickt wird oder nicht.",
             List.of(
-                    new Outcome("extra-point-good", "Extrapunkt gut", "der Kick sitzt, 1 Punkt"),
-                    new Outcome("extra-point-no-good", "Extrapunkt vergeben",
+                    Outcome.of("extra-point-good", "Extrapunkt gut", "der Kick sitzt, 1 Punkt"),
+                    Outcome.of("extra-point-no-good", "Extrapunkt vergeben",
                             "verschossen, geblockt oder durch Strafe vertan"),
-                    new Outcome("two-point-good", "Two-Point gut", "2 Punkte"),
-                    new Outcome("two-point-no-good", "Two-Point gescheitert",
+                    Outcome.of("two-point-good", "Two-Point gut", "2 Punkte"),
+                    Outcome.of("two-point-no-good", "Two-Point gescheitert",
                             "auch wenn die Verteidigung den Ball zurückträgt")));
 
     /**
@@ -70,19 +69,19 @@ public final class Bets {
      * anderes wert sind als zwanzig durch die Luft.
      */
     public static final Bet BIG_PLAY = new Bet(
-            "big-play",
+            BetId.of("big-play"),
             "Big Play im nächsten Drive?",
             "Big Play = ein einzelner Spielzug mit Lauf ab 20, Pass ab 30 oder Return ab 50 Yards.",
             List.of(
-                    new Outcome("yes", "Ja", null),
-                    new Outcome("no", "Nein", null)));
+                    Outcome.of("yes", "Ja", null),
+                    Outcome.of("no", "Nein", null)));
 
     /** Reihenfolge der Host-Auswahl: der Drive-Ausgang zuerst, er läuft am häufigsten. */
     public static final List<Bet> CATALOG =
             List.of(DRIVE_OUTCOME, BIG_PLAY, FIELD_GOAL, TRY_AFTER_TOUCHDOWN);
 
     /** {@code null}, wenn die ID unbekannt ist — der Aufrufer meldet das als Fehler. */
-    public static Bet byId(String id) {
+    public static Bet byId(BetId id) {
         return CATALOG.stream()
                 .filter(bet -> bet.id().equals(id))
                 .findFirst()

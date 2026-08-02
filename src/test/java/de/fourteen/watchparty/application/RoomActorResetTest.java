@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.application;
 
 import de.fourteen.watchparty.domain.model.Phase;
+import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.Room;
 
 import org.junit.jupiter.api.BeforeEach;

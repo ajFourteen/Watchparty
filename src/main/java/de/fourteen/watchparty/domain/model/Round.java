@@ -1,6 +1,5 @@
 package de.fourteen.watchparty.domain.model;
 
-
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -8,29 +7,33 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Eine Runde: eine geoeffnete Wette von OPEN bis RESOLVED (ADR-020). Jede
- * Runde traegt eine eigene, monoton steigende ID, damit ein verspaeteter
- * Auto-Close-Task nicht versehentlich die naechste, schon wieder offene
- * Runde schliesst (ADR-010).
+ * Eine Runde: eine geoeffnete Wette von OPEN bis RESOLVED (ADR-020).
+ * <b>Entity</b> innerhalb des Aggregats {@link Room}, Identitaet ueber
+ * {@link RoundId}.
  *
- * Nur vom {@code RoomActor} auf dem Raum-Thread beruehrt, daher ohne jede
+ * Die ID ist monoton steigend, damit ein verspaeteter Auto-Close-Task nicht
+ * versehentlich die naechste, schon wieder offene Runde schliesst (ADR-010).
+ *
+ * Nur ueber das Aggregat erreichbar: Die Mutatoren sind paket-privat, und
+ * genau das ist die Aggregatgrenze. Wer eine Runde weiterschalten will, sagt
+ * es {@link Room}. Nur vom Raum-Thread beruehrt, daher ohne jede
  * Synchronisierung (Invariante 1).
  */
 public class Round {
 
-    private final long id;
+    private final RoundId id;
     private final Bet bet;
     private final Instant closesAt;
 
     /** Beim Oeffnen eingefroren (Anforderung 8.1): nur diese Spieler koennen bestraft werden. */
-    private final Set<String> participants;
+    private final Set<PlayerId> participants;
 
-    private final Map<String, Pick> picks = new LinkedHashMap<>();
+    private final Map<PlayerId, Pick> picks = new LinkedHashMap<>();
 
     private Phase phase = Phase.OPEN;
-    private String winningOutcomeId;
-    private Map<String, Integer> deltas;
-    private int pool;
+    private OutcomeId winningOutcomeId;
+    private Map<PlayerId, PointsDelta> deltas;
+    private Points pool = Points.ZERO;
     private boolean annulled;
 
     /**
@@ -41,14 +44,14 @@ public class Round {
      */
     private boolean annulledByHost;
 
-    Round(long id, Bet bet, Instant closesAt, Set<String> participants) {
+    Round(RoundId id, Bet bet, Instant closesAt, Set<PlayerId> participants) {
         this.id = id;
         this.bet = bet;
         this.closesAt = closesAt;
         this.participants = new LinkedHashSet<>(participants);
     }
 
-    public long getId() {
+    public RoundId getId() {
         return id;
     }
 
@@ -60,17 +63,42 @@ public class Round {
         return closesAt;
     }
 
-    public Set<String> getParticipants() {
-        return participants;
+    /** ADR-011: allein dieser Vergleich entscheidet, nicht ob der Timer schon gefeuert hat. */
+    public boolean isOpenAt(Instant now) {
+        return phase == Phase.OPEN && now.isBefore(closesAt);
     }
 
-    public Map<String, Pick> getPicks() {
-        return picks;
+    public Set<PlayerId> getParticipants() {
+        return Set.copyOf(participants);
+    }
+
+    public Map<PlayerId, Pick> getPicks() {
+        return Map.copyOf(picks);
+    }
+
+    /** In Einfuegereihenfolge — die Abrechnung braucht sie stabil (Groesste-Reste-Verfahren, 7.2). */
+    public java.util.List<Pick> picksInOrder() {
+        return java.util.List.copyOf(picks.values());
     }
 
     /** Abfrage, kein Uebergang — darf deshalb nach aussen, anders als die Mutatoren. */
-    public boolean hasPick(String playerId) {
+    public boolean hasPick(PlayerId playerId) {
         return picks.containsKey(playerId);
+    }
+
+    public Pick pickOf(PlayerId playerId) {
+        return picks.get(playerId);
+    }
+
+    /**
+     * Teilnehmer, die nicht getippt haben (Anforderung 8.1) — nur sie zahlen
+     * die Strafe. Der Teilnehmerkreis ist beim Oeffnen eingefroren, wer
+     * spaeter dazukommt, ist nicht dabei.
+     */
+    public Set<PlayerId> nonPickers() {
+        Set<PlayerId> ohneTipp = new LinkedHashSet<>(participants);
+        ohneTipp.removeAll(picks.keySet());
+        return ohneTipp;
     }
 
     void addPick(Pick pick) {
@@ -85,27 +113,27 @@ public class Round {
         this.phase = phase;
     }
 
-    public String getWinningOutcomeId() {
+    public OutcomeId getWinningOutcomeId() {
         return winningOutcomeId;
     }
 
-    void setWinningOutcomeId(String winningOutcomeId) {
+    void setWinningOutcomeId(OutcomeId winningOutcomeId) {
         this.winningOutcomeId = winningOutcomeId;
     }
 
-    public Map<String, Integer> getDeltas() {
-        return deltas;
+    public Map<PlayerId, PointsDelta> getDeltas() {
+        return deltas == null ? null : Map.copyOf(deltas);
     }
 
-    void setDeltas(Map<String, Integer> deltas) {
+    void setDeltas(Map<PlayerId, PointsDelta> deltas) {
         this.deltas = deltas;
     }
 
-    public int getPool() {
+    public Points getPool() {
         return pool;
     }
 
-    void setPool(int pool) {
+    void setPool(Points pool) {
         this.pool = pool;
     }
 

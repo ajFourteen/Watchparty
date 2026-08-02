@@ -21,11 +21,23 @@ class SnapshotTest {
 
     private static final Instant NOW = Instant.parse("2026-08-01T20:00:00Z");
 
+    private static PlayerId spieler(String id) {
+        return PlayerId.of(id);
+    }
+
+    private static Player addPlayer(Room room, String id, String token, String name) {
+        return room.addPlayer(PlayerId.of(id), Token.of(token), PlayerName.of(name));
+    }
+
+    private static Pick pick(String playerId, String outcomeId, int stake) {
+        return new Pick(PlayerId.of(playerId), OutcomeId.of(outcomeId), Points.of(stake));
+    }
+
     @Test
     void idleRaumUeberstehtDenRundweg() {
         Room room = new Room();
-        room.addPlayer("p1", "t1", "Anna");
-        Player p2 = room.addPlayer("p2", "t2", "Bo");
+        addPlayer(room, "p1", "t1", "Anna");
+        Player p2 = addPlayer(room, "p2", "t2", "Bo");
         p2.setConnected(false);
         p2.incrementMissedRounds();
 
@@ -35,44 +47,44 @@ class SnapshotTest {
         assertThat(restored.getHostPlayerId()).isEqualTo(room.getHostPlayerId());
         assertThat(restored.players()).hasSize(2);
 
-        Player anna = restored.byId("p1");
-        assertThat(anna.getName()).isEqualTo("Anna");
-        assertThat(anna.getToken()).isEqualTo("t1");
+        Player anna = restored.byId(spieler("p1"));
+        assertThat(anna.getName()).isEqualTo(PlayerName.of("Anna"));
+        assertThat(anna.getToken()).isEqualTo(Token.of("t1"));
         assertThat(anna.getPoints()).isEqualTo(Room.STARTING_POINTS);
         assertThat(anna.isConnected()).isFalse();
 
-        assertThat(restored.byId("p2").getMissedRounds()).isEqualTo(1);
-        assertThat(restored.byToken("t2").getId()).isEqualTo("p2");
+        assertThat(restored.byId(spieler("p2")).getMissedRounds()).isEqualTo(1);
+        assertThat(restored.byToken(Token.of("t2")).getId()).isEqualTo(spieler("p2"));
     }
 
     @Test
     void offeneRundeUeberstehtDenRundwegMitTippsUndTeilnehmerkreis() {
         Room room = new Room();
-        room.addPlayer("host", "th", "Host");
-        room.addPlayer("p2", "t2", "Bo");
+        addPlayer(room, "host", "th", "Host");
+        addPlayer(room, "p2", "t2", "Bo");
         Round round = room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
-        round.addPick(new Pick("p2", "touchdown", 100));
+        round.addPick(pick("p2", "touchdown", 100));
 
         Room restored = Room.fromSnapshot(room.toSnapshot(NOW.toEpochMilli()));
 
         assertThat(restored.getPhase()).isEqualTo(Phase.OPEN);
         Round restoredRound = restored.getCurrentRound();
         assertThat(restoredRound.getId()).isEqualTo(round.getId());
-        assertThat(restoredRound.getBet().id()).isEqualTo("drive-outcome");
+        assertThat(restoredRound.getBet().id()).isEqualTo(BetId.of("drive-outcome"));
         assertThat(restoredRound.getClosesAt()).isEqualTo(round.getClosesAt());
-        assertThat(restoredRound.getParticipants()).containsExactlyInAnyOrder("host", "p2");
-        assertThat(restoredRound.getPicks().get("p2").outcomeId()).isEqualTo("touchdown");
-        assertThat(restoredRound.getPicks().get("p2").stake()).isEqualTo(100);
+        assertThat(restoredRound.getParticipants()).containsExactlyInAnyOrder(spieler("host"), spieler("p2"));
+        assertThat(restoredRound.pickOf(spieler("p2")).outcomeId()).isEqualTo(OutcomeId.of("touchdown"));
+        assertThat(restoredRound.pickOf(spieler("p2")).stake()).isEqualTo(Points.of(100));
     }
 
     @Test
     void geschlosseneRundeUeberstehtDenRundwegMitAllenAufgedecktenTipps() {
         Room room = new Room();
-        room.addPlayer("host", "th", "Host");
-        room.addPlayer("p2", "t2", "Bo");
+        addPlayer(room, "host", "th", "Host");
+        addPlayer(room, "p2", "t2", "Bo");
         Round round = room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
-        round.addPick(new Pick("host", "punt", 25));
-        round.addPick(new Pick("p2", "touchdown", 100));
+        round.addPick(pick("host", "punt", 25));
+        round.addPick(pick("p2", "touchdown", 100));
         round.setPhase(Phase.CLOSED);
 
         Room restored = Room.fromSnapshot(room.toSnapshot(NOW.toEpochMilli()));
@@ -84,15 +96,15 @@ class SnapshotTest {
     @Test
     void aufgeloesteRundeUeberstehtDenRundwegMitErgebnisPoolUndDeltas() {
         Room room = new Room();
-        room.addPlayer("host", "th", "Host");
-        room.addPlayer("p2", "t2", "Bo");
+        addPlayer(room, "host", "th", "Host");
+        addPlayer(room, "p2", "t2", "Bo");
         Round round = room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
-        round.addPick(new Pick("host", "touchdown", 100));
-        round.addPick(new Pick("p2", "punt", 50));
+        round.addPick(pick("host", "touchdown", 100));
+        round.addPick(pick("p2", "punt", 50));
         round.setPhase(Phase.CLOSED);
-        round.setWinningOutcomeId("touchdown");
-        round.setDeltas(Map.of("host", 50, "p2", -50));
-        round.setPool(150);
+        round.setWinningOutcomeId(OutcomeId.of("touchdown"));
+        round.setDeltas(Map.of(spieler("host"), PointsDelta.of(50), spieler("p2"), PointsDelta.of(-50)));
+        round.setPool(Points.of(150));
         round.setAnnulled(false);
         round.setPhase(Phase.RESOLVED);
 
@@ -100,20 +112,21 @@ class SnapshotTest {
 
         Round restoredRound = restored.getCurrentRound();
         assertThat(restoredRound.getPhase()).isEqualTo(Phase.RESOLVED);
-        assertThat(restoredRound.getWinningOutcomeId()).isEqualTo("touchdown");
-        assertThat(restoredRound.getPool()).isEqualTo(150);
+        assertThat(restoredRound.getWinningOutcomeId()).isEqualTo(OutcomeId.of("touchdown"));
+        assertThat(restoredRound.getPool()).isEqualTo(Points.of(150));
         assertThat(restoredRound.isAnnulled()).isFalse();
-        assertThat(restoredRound.getDeltas()).containsEntry("host", 50).containsEntry("p2", -50);
+        assertThat(restoredRound.getDeltas()).containsEntry(spieler("host"), PointsDelta.of(50))
+                .containsEntry(spieler("p2"), PointsDelta.of(-50));
     }
 
     @Test
     void vomHostAnnullierteRundeUeberstehtDenRundweg() {
         Room room = new Room();
-        room.addPlayer("host", "th", "Host");
+        addPlayer(room, "host", "th", "Host");
         Round round = room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
         round.setPhase(Phase.CLOSED);
         round.setDeltas(Map.of());
-        round.setPool(0);
+        round.setPool(Points.ZERO);
         round.setAnnulled(true);
         round.setAnnulledByHost(true);
         round.setPhase(Phase.RESOLVED);
@@ -123,14 +136,14 @@ class SnapshotTest {
         Round restoredRound = restored.getCurrentRound();
         assertThat(restoredRound.isAnnulled()).isTrue();
         assertThat(restoredRound.isAnnulledByHost()).isTrue();
-        assertThat(restoredRound.getPool()).isZero();
+        assertThat(restoredRound.getPool()).isEqualTo(Points.ZERO);
     }
 
     @Test
     void unbekannteWetteImSnapshotVerwirftDieRundeAberNichtDieSpieler() {
         Room room = new Room();
-        room.addPlayer("host", "th", "Host");
-        room.addPlayer("p2", "t2", "Bo");
+        addPlayer(room, "host", "th", "Host");
+        addPlayer(room, "p2", "t2", "Bo");
         room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
         RoomSnapshot original = room.toSnapshot(NOW.toEpochMilli());
         RoomSnapshot.RoundSnapshot roundMitUnbekannterWette = new RoomSnapshot.RoundSnapshot(
@@ -144,6 +157,6 @@ class SnapshotTest {
 
         assertThat(restored.getPhase()).isEqualTo(Phase.IDLE);
         assertThat(restored.players()).hasSize(2);
-        assertThat(restored.byId("p2").getName()).isEqualTo("Bo");
+        assertThat(restored.byId(spieler("p2")).getName()).isEqualTo(PlayerName.of("Bo"));
     }
 }

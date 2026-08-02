@@ -1,10 +1,14 @@
 package de.fourteen.watchparty.application;
 
 import de.fourteen.watchparty.application.port.out.Scheduler;
+import de.fourteen.watchparty.domain.model.OutcomeId;
 import de.fourteen.watchparty.domain.model.Phase;
+import de.fourteen.watchparty.domain.model.Points;
+import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.Player;
 import de.fourteen.watchparty.domain.model.Room;
+import de.fourteen.watchparty.domain.model.RoundId;
 import de.fourteen.watchparty.domain.model.Round;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +53,7 @@ class RoomActorStateMachineTest {
         return sessionId;
     }
 
-    private String playerId(String session) {
+    private PlayerId playerId(String session) {
         return gateway.playerIdOf(session);
     }
 
@@ -88,7 +92,7 @@ class RoomActorStateMachineTest {
         actor.awaitIdle();
 
         // Immer noch dieselbe Runde, keine zweite wurde angelegt.
-        assertThat(actor.getRoomForTest().getCurrentRound().getId()).isEqualTo(1);
+        assertThat(actor.getRoomForTest().getCurrentRound().getId()).isEqualTo(RoundId.of(1));
     }
 
     @Test
@@ -101,8 +105,8 @@ class RoomActorStateMachineTest {
         actor.awaitIdle();
 
         Pick pick = actor.getRoomForTest().getCurrentRound().getPicks().get(playerId(host));
-        assertThat(pick.outcomeId()).isEqualTo("touchdown");
-        assertThat(pick.stake()).isEqualTo(25);
+        assertThat(pick.outcomeId()).isEqualTo(OutcomeId.of("touchdown"));
+        assertThat(pick.stake()).isEqualTo(Points.of(25));
     }
 
     @Test
@@ -130,24 +134,16 @@ class RoomActorStateMachineTest {
         actor.placePick(host, "punt", 50);
         actor.awaitIdle();
 
-        Pick pick = actor.getRoomForTest().getCurrentRound().getPicks().get(playerId(host));
-        assertThat(pick.stake()).isEqualTo(100);
-        assertThat(pick.outcomeId()).isEqualTo("touchdown");
+        Pick pick = actor.getRoomForTest().getCurrentRound().pickOf(playerId(host));
+        assertThat(pick.stake()).isEqualTo(Points.of(100));
+        assertThat(pick.outcomeId()).isEqualTo(OutcomeId.of("touchdown"));
     }
 
-    @Test
-    void spielerUnterDemMindesteinsatzGehtZwangsweiseAllIn() {
-        String host = join("Host");
-        Player player = actor.getRoomForTest().byId(playerId(host));
-        player.setPoints(10);
-
-        actor.openBet(host, null);
-        actor.placePick(host, "touchdown", 5);
-        actor.awaitIdle();
-
-        Pick pick = actor.getRoomForTest().getCurrentRound().getPicks().get(playerId(host));
-        assertThat(pick.stake()).isEqualTo(10);
-    }
+    // spielerUnterDemMindesteinsatzGehtZwangsweiseAllIn entfaellt hier: Die
+    // Regel sitzt in Player.stakeFor und ist dort direkt getestet
+    // (PlayerTest.unterDemMindesteinsatzGehtEsZwangsweiseAllIn). Player.setPoints
+    // ist seit den Value Objects bewusst paket-privat -- Mutation laeuft ueber
+    // das Aggregat, nicht von aussen.
 
     @Test
     void manuellesSchliessenBringtDieRundeNachClosedUndDeckdtTippsAufWennResolved() {
@@ -223,9 +219,9 @@ class RoomActorStateMachineTest {
 
         Room room = actor.getRoomForTest();
         assertThat(room.getPhase()).isEqualTo(Phase.RESOLVED);
-        assertThat(room.byId(playerId(host)).getPoints()).isEqualTo(Room.STARTING_POINTS + 50);
-        assertThat(room.byId(playerId(anna)).getPoints()).isEqualTo(Room.STARTING_POINTS - 50);
-        assertThat(room.getCurrentRound().getPool()).isEqualTo(150);
+        assertThat(room.byId(playerId(host)).getPoints()).isEqualTo(Points.of(Room.STARTING_POINTS.value() + 50));
+        assertThat(room.byId(playerId(anna)).getPoints()).isEqualTo(Points.of(Room.STARTING_POINTS.value() - 50));
+        assertThat(room.getCurrentRound().getPool()).isEqualTo(Points.of(150));
         assertThat(room.getCurrentRound().isAnnulled()).isFalse();
     }
 
@@ -264,7 +260,7 @@ class RoomActorStateMachineTest {
         assertThat(room.getPhase()).isEqualTo(Phase.RESOLVED);
         assertThat(room.getCurrentRound().isAnnulled()).isTrue();
         assertThat(room.getCurrentRound().isAnnulledByHost()).isTrue();
-        assertThat(room.getCurrentRound().getPool()).isZero();
+        assertThat(room.getCurrentRound().getPool()).isEqualTo(Points.ZERO);
         assertThat(room.players()).allSatisfy(
                 player -> assertThat(player.getPoints()).isEqualTo(Room.STARTING_POINTS));
     }
@@ -273,7 +269,7 @@ class RoomActorStateMachineTest {
     void annullierenGehtAuchNachDemSchliessenUndZaehltKeineVerpassteRunde() {
         String host = join("Host");
         String anna = join("Anna");
-        String annaId = playerId(anna);
+        PlayerId annaId = playerId(anna);
 
         actor.openBet(host, null);
         actor.placePick(host, "touchdown", null);
@@ -309,14 +305,14 @@ class RoomActorStateMachineTest {
         actor.closeBet(host);
         actor.resolve(host, "touchdown");
         actor.awaitIdle();
-        int pointsAfterResolve = actor.getRoomForTest().byId(playerId(host)).getPoints();
+        Points pointsAfterResolve = actor.getRoomForTest().byId(playerId(host)).getPoints();
 
         actor.annul(host);
         actor.awaitIdle();
 
         Round round = actor.getRoomForTest().getCurrentRound();
         assertThat(round.isAnnulled()).isFalse();
-        assertThat(round.getWinningOutcomeId()).isEqualTo("touchdown");
+        assertThat(round.getWinningOutcomeId()).isEqualTo(OutcomeId.of("touchdown"));
         assertThat(actor.getRoomForTest().byId(playerId(host)).getPoints()).isEqualTo(pointsAfterResolve);
     }
 
@@ -336,7 +332,7 @@ class RoomActorStateMachineTest {
     void getrennterSpielerZahltDieErstenZweiVerpasstenRundenUndPausiertAbDerDritten() {
         String host = join("Host");
         String anna = join("Anna");
-        String annaId = playerId(anna);
+        PlayerId annaId = playerId(anna);
 
         actor.disconnected(anna);
         actor.awaitIdle();
@@ -344,13 +340,13 @@ class RoomActorStateMachineTest {
         // Runde 1: Anna ist im eingefrorenen Kreis und zahlt die Strafe.
         playAndResolveRoundWithoutAnna(host);
         assertThat(actor.getRoomForTest().byId(annaId).getPoints())
-                .isEqualTo(Room.STARTING_POINTS - 25);
+                .isEqualTo(Points.of(Room.STARTING_POINTS.value() - 25));
         assertThat(actor.getRoomForTest().byId(annaId).getMissedRounds()).isEqualTo(1);
 
         // Runde 2: noch einmal.
         playAndResolveRoundWithoutAnna(host);
         assertThat(actor.getRoomForTest().byId(annaId).getPoints())
-                .isEqualTo(Room.STARTING_POINTS - 50);
+                .isEqualTo(Points.of(Room.STARTING_POINTS.value() - 50));
         assertThat(actor.getRoomForTest().byId(annaId).getMissedRounds()).isEqualTo(2);
         assertThat(actor.getRoomForTest().byId(annaId).isPaused()).isTrue();
 
@@ -360,7 +356,7 @@ class RoomActorStateMachineTest {
         assertThat(actor.getRoomForTest().getCurrentRound().getParticipants()).doesNotContain(annaId);
         playAndResolveRoundWithoutAnna(host);
         assertThat(actor.getRoomForTest().byId(annaId).getPoints())
-                .isEqualTo(Room.STARTING_POINTS - 50);
+                .isEqualTo(Points.of(Room.STARTING_POINTS.value() - 50));
     }
 
     private void playAndResolveRoundWithoutAnna(String host) {
@@ -375,7 +371,7 @@ class RoomActorStateMachineTest {
     void hostVerliertRolleSofortAberFruehererJoinerBekommtSieErstBeiResolvedZurueck() {
         String host = join("Host");
         String anna = join("Anna");
-        String hostId = playerId(host);
+        PlayerId hostId = playerId(host);
 
         actor.openBet(host, null);
         actor.awaitIdle();
@@ -397,8 +393,8 @@ class RoomActorStateMachineTest {
         assertThat(hostReturned).isNotNull();
     }
 
-    private String rejoin(String name, String expectedPlayerId) {
-        String token = actor.getRoomForTest().byId(expectedPlayerId).getToken();
+    private String rejoin(String name, PlayerId expectedPlayerId) {
+        String token = actor.getRoomForTest().byId(expectedPlayerId).getToken().value();
         String sessionId = name + "-rejoin-socket";
         actor.connected(sessionId);
         actor.join(sessionId, name, token);
