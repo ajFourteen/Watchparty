@@ -68,8 +68,7 @@ die niemandem sagt, was zu tun ist.
    der schnelle Lauf), `adapterTest`, `apiTest`. `check` hängt alle ein.
    Die Test Doubles bleiben in einem gemeinsamen Quellbaum; genau dafür sind
    es Tags und keine Source Sets.
-4. **Deutsche Basisklasse** mit den Einstiegen `angenommen()`,
-   `gegebenSei()`, `gegebenSeien()`, `wenn()`, `dann()`.
+4. **Deutsche Basisklasse** mit den Einstiegen `angenommen()`,`wenn()`, `dann()`.
 5. **Stufen-Paket** einrichten, dazu die ArchUnit-Regel, dass jede
    JGiven-`Stage` dort liegt — das ist die Grenze der Sprachausnahme.
 6. **Je ein Pilotszenario pro Ebene**, um das Gerüst zu beweisen statt es zu

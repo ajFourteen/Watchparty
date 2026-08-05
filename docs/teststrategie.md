@@ -436,12 +436,10 @@ keinen Code liest. Daraus folgen drei Regeln:
    **Reporttext in Java-Syntax** — sie steht auf derselben Seite wie
    „Kommentare und Dokumentation deutsch".
 
-   Verwendet wird der **deutsche Gherkin-Dialekt**: *Angenommen* bzw.
-   *Gegeben sei* / *Gegeben seien* für die Vorbedingung, *Wenn* für die
+   Verwendet wird der **deutsche Gherkin-Dialekt**: *Angenommen*, *Wenn* für die
    Handlung, *Dann* für die Erwartung, *Und* für Fortsetzungen. „Angenommen"
    passt, wo ein Umstand gesetzt wird („angenommen, das Wettfenster ist
-   offen"), „gegeben sei(en)", wo etwas vorhanden ist („gegeben seien drei
-   Spieler mit je 1000 Punkten"). Eine projekteigene Basisklasse stellt die
+   offen"). Eine projekteigene Basisklasse stellt die
    Einstiege unter diesen Namen bereit, damit der Testcode denselben Dialekt
    spricht wie der Report.
 2. **Vokabular.** Ein Schritttext benutzt nur Begriffe aus
@@ -473,7 +471,7 @@ Nummern aus anforderungen.md, oder: neu (dann dort ergänzen).
 Nummeriert. Jedes eine prüfbare Aussage.
 
 ## Szenarien
-Angenommen / Gegeben sei(en) — Wenn — Dann, in Prosa und in der
+Angenommen — Wenn — Dann, in Prosa und in der
 Sprache der Anforderungen. Werden eins zu eins zu JGiven-Szenarien.
 
 ## Kritikalität
