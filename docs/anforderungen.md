@@ -189,3 +189,159 @@ Wer weiterspielen will, tritt mit neuem Namen erneut bei; kein automatisches Wie
 
 - Weitere Wetten über die fünf aus Abschnitt 4 hinaus.
 - Nachjustierung der Parameter aus 3.1 am realen Spielgefühl.
+
+---
+
+## Anhang A: Atomare Regeln und Prüfbarkeit
+
+Der Fließtext oben ist die fachliche Wahrheit; dieser Anhang zerlegt ihn in
+einzeln prüfbare Regeln und sagt für jede, **wo sie geprüft wird**. Er ist
+die Referenz für die Feature-Abdeckung aus `teststrategie.md`: Jedes
+Testszenario zeigt über den Tag `@Anforderung("…")` auf eine ID von hier,
+und jede Regel mit der Marke `backend` ohne grünes Szenario ist ein
+Fehlschlag im Build.
+
+**Zur Nummerierung.** Bestehende Nummern (3.1, 4.1, 7.2, 8.6 …) bleiben
+unverändert — sie sind aus CLAUDE.md, den ADRs und `probelauf.md` verlinkt.
+Regeln, die im Fließtext als Aufzählungspunkt ohne eigene Nummer stehen,
+bekommen einen Buchstaben-Suffix (`6-a`, `8.1-c`). Beide Formen sind
+gleichwertige IDs; die Buchstabenform sagt nur, dass die Regel im Text
+keine eigene Überschrift hat.
+
+**Zu den Marken.**
+
+| Marke | Bedeutung |
+|---|---|
+| `backend` | im Backend prüfbar, zählt zur Feature-Abdeckung |
+| `frontend` | Sache der Oberfläche, außerhalb der Backend-Teststrategie |
+| `organisatorisch` | Verantwortung von Menschen oder des Betriebs; kein Programm kann das prüfen |
+| `beobachtung` | erst am echten Spielabend feststellbar; gehört auf den Beobachtungsbogen in `probelauf.md` |
+
+Eine Regel trägt genau eine Marke. Wo eine Aussage im Text zwei Seiten hat —
+der Server liefert etwas, die Oberfläche zeigt es —, ist sie hier in zwei
+Regeln zerlegt. Die Unschärfe gehört in die Anforderung aufgelöst, nicht in
+die Marke.
+
+### 1. Zweck und Kontext
+
+| ID | Regel | Marke |
+|---|---|---|
+| 1-a | Alle Teilnehmer sitzen vor demselben Fernseher; nur Vor-Ort-Nutzung. | organisatorisch |
+| 1-b | Es gibt genau einen Spielraum, und immer nur eine Runde gleichzeitig. | backend |
+| 1-c | Keine Persistenz über Spielabende hinweg; jeder Abend beginnt frisch. | backend |
+| 1-d | Ein Snapshot übersteht einen Neustart innerhalb desselben Abends und verfällt spätestens nach sechs Stunden. | backend |
+| 1-e | Der Beitritt verlangt nur einen Namen — kein Account, keine Anmeldung. | backend |
+| 1-f | Teilnahme ohne Installation: Link im Handy-Browser öffnen genügt. | frontend |
+
+### 2. Wett-Grundprinzip
+
+| ID | Regel | Marke |
+|---|---|---|
+| 2-a | Alle Einsätze einer Runde wandern in einen gemeinsamen Pool. | backend |
+| 2-b | Wer richtig liegt, teilt sich den Pool. | backend |
+| 2-c | Ein selten getippter Ausgang zahlt pro Gewinner mehr als ein häufig getippter. | backend |
+| 2-d | Nullsumme: Punkte entstehen und verschwinden nicht. Der Pool ist exakt die Summe aller Einsätze plus der tatsächlich eingesammelten Strafen. | backend |
+
+### 3. Spieler und Punktekonten
+
+| ID | Regel | Marke |
+|---|---|---|
+| 3-a | Jeder Spieler startet mit einem festen Punkte-Startguthaben. | backend |
+| 3-b | Punkte sind ganzzahlig; es gibt keine Bruchteile. | backend |
+| 3-c | Der Server liefert die aktuellen Kontostände aller Spieler. | backend |
+| 3-d | Ein Leaderboard zeigt die Kontostände an. | frontend |
+| 3-e | Ein Konto wird nie negativ. | backend |
+| 3.1 | Startguthaben 1000, Mindesteinsatz 25, Nicht-Tipper-Strafe 25. | backend |
+| 3.1-a | Die drei Werte stehen an einer Stelle im Code, nicht verstreut. | backend |
+| 3.1-b | Ob die drei Werte sich am realen Spielgefühl bewähren. | beobachtung |
+
+### 4. Wetten
+
+| ID | Regel | Marke |
+|---|---|---|
+| 4-a | Eine Wette ist eine Frage mit fester Liste möglicher Ausgänge und späterer Auflösung, als eigenständige Struktur — weitere Wetten sind ohne Umbau ergänzbar. | backend |
+| 4-b | Der Wettkatalog steht auf dem Server; der Host wählt beim Öffnen aus. | backend |
+| 4-c | Jede Wette hat mindestens zwei Ausgänge mit eindeutigen Kennungen. | backend |
+| 4-d | Die Ausgänge sind lückenlos und überschneidungsfrei: Jeder reale Verlauf fällt in genau einen Eimer. | organisatorisch |
+| 4-e | Wo die Abgrenzung nicht offensichtlich ist, liefert der Server die Anmerkung mit. | backend |
+| 4-f | Die Anmerkungen sind in der Oberfläche sichtbar. | frontend |
+| 4.1 | Der Katalog enthält „Ausgang des nächsten Drives" mit den sieben genannten Ausgängen und ihren Anmerkungen. | backend |
+| 4.2 | Der Katalog enthält „Big Play im nächsten Drive?" mit Ja/Nein und der Schwellen-Anmerkung. | backend |
+| 4.3 | Der Katalog enthält „Field Goal: gut?" mit Gut / Kein Field Goal. | backend |
+| 4.4 | Der Katalog enthält „Versuch nach dem Touchdown?" mit den vier genannten Ausgängen. | backend |
+| 4.4-a | Kick und Two-Point sind eine Wette, nicht zwei. | backend |
+| 4.4-b | Verantwortung des Hosts: Die Field-Goal-Wette gehört auf den Field-Goal-Versuch, nicht auf gut Glück. | organisatorisch |
+
+### 5. Wettfenster und Timing
+
+| ID | Regel | Marke |
+|---|---|---|
+| 5-a | Der Host entscheidet, welche Wette wann öffnet. | backend |
+| 5-b | Nach dem Öffnen bleibt das Fenster 15 Sekunden offen und schließt dann automatisch. | backend |
+| 5-c | Der Host hat einen „Jetzt schließen"-Knopf als Notbremse. | backend |
+| 5-d | Das Fenster schließt bei Ablauf der 15 Sekunden oder beim Host-Klick — je nachdem, was zuerst eintritt. | backend |
+| 5-e | Verantwortung des Hosts: das Fenster so öffnen, dass die 15 Sekunden vor dem Snap ablaufen. | organisatorisch |
+| 5-f | Ob 15 Sekunden für alle Wetten die richtige Länge sind. | beobachtung |
+
+### 6. Wettmechanik
+
+| ID | Regel | Marke |
+|---|---|---|
+| 6-a | Ein Tipp pro Spieler pro Runde: kein Aufteilen des Einsatzes, kein Nachbessern. | backend |
+| 6-b | Solange das Fenster offen ist, ist nur sichtbar, *wie viele* getippt haben, nicht *was*. | backend |
+| 6-c | Ein Tipp ohne ausdrücklichen Einsatz setzt den Mindesteinsatz. | backend |
+| 6-d | Die Oberfläche erlaubt, den Einsatz vor dem Bestätigen zu erhöhen. | frontend |
+| 6-e | Einsätze sind ganze Zahlen ab dem Mindesteinsatz bis zum eigenen Kontostand. | backend |
+| 6-f | Wer weniger Punkte hat als den Mindesteinsatz, darf mitwetten und geht zwangsweise All-in — auch mit 0 Punkten. | backend |
+
+### 7. Auszahlung
+
+| ID | Regel | Marke |
+|---|---|---|
+| 7.1 | Anteil = max(Einsatz, Mindesteinsatz). Jeder Gewinner zählt mindestens mit dem Mindest-Anteil, auch bei weniger oder 0 gesetzten Punkten. | backend |
+| 7.1-a | Gesetzte Punkte und Anteile am Gewinn sind entkoppelt; größere Scheiben Einzelner gehen zulasten der anderen Gewinner, nicht aus dem Nichts. | backend |
+| 7.2 | Auszahlungen sind ganzzahlig; der Rest wird nach dem Größte-Reste-Verfahren vergeben, und die Summe entspricht exakt dem Pool. | backend |
+
+### 8. Strafen, Sonder- und Randfälle
+
+| ID | Regel | Marke |
+|---|---|---|
+| 8.1 | Wer in einer Runde gar nicht tippt, zahlt eine Strafe, die in den Pool fließt. | backend |
+| 8.1-a | Die Strafe trifft jeden im Teilnehmerkreis, der nicht getippt hat — unabhängig vom Grund. | backend |
+| 8.1-b | Der Teilnehmerkreis wird beim Öffnen eingefroren: Wer während des offenen Fensters dazukommt, darf tippen und gewinnen, wird aber nicht bestraft. | backend |
+| 8.1-c | Die Strafe wird auf den Kontostand gekappt; eingesammelt wird min(Strafe, Kontostand). | backend |
+| 8.1-d | Ein getrennter Spieler zahlt für die erste und zweite verpasste Runde und pausiert ab der dritten; bei Reconnect beginnt der Zähler von vorn. | backend |
+| 8.1-e | Die Pause greift nur bei getrennter Verbindung: Wer verbunden ist und nicht tippt, zahlt jede Runde. | backend |
+| 8.2 | Tippt niemand den Gewinner-Ausgang, bekommen alle Wetter ihren Einsatz zurück. | backend |
+| 8.2-a | Beim Push werden die eingezahlten Strafen anteilig auf alle verteilt, die überhaupt getippt haben. | backend |
+| 8.3 | Auch mit 0 Punkten darf jeder mitwetten und kann über den Mindest-Anteil zurück ins Spiel kommen; die Null ist kein absorbierender Zustand. | backend |
+| 8.4 | Tippt überhaupt niemand, wird die Runde annulliert: keine Strafen, keine Auszahlung. | backend |
+| 8.5 | Tippen alle denselben, richtigen Ausgang, bekommt jeder näherungsweise seinen Einsatz zurück. | backend |
+| 8.6 | Der Host kann eine laufende Runde annullieren, solange sie offen oder geschlossen ist. | backend |
+| 8.6-a | Beim Annullieren passiert nichts: keine Einsätze, keine Strafen, keine Auszahlung, kein Eintrag auf dem Verpasste-Runden-Zähler. | backend |
+| 8.6-b | Nach dem Auflösen ist Annullieren nicht mehr möglich. | backend |
+| 8.7 | Der Host kann den Raum zurücksetzen — Spieler, Punktestände und laufende Runde in einem Schritt, in jeder Phase. | backend |
+| 8.7-a | Nach dem Zurücksetzen gibt es kein automatisches Wiederbeitreten. | backend |
+| 8.7-b | Der Zurücksetzen-Knopf ist bewusst unscheinbar. | frontend |
+
+### 9. Ablauf einer Runde
+
+| ID | Regel | Marke |
+|---|---|---|
+| 9-a | Der Ablauf durchläuft Leerlauf → Öffnen → Tippen → Schließen → Auflösen → Leerlauf. | backend |
+| 9-b | Ab dem Schließen werden alle abgegebenen Tipps offen angezeigt, und es kann nicht mehr getippt werden. | backend |
+| 9-c | Erst beim Auflösen werden Punkte verrechnet: Pool bilden, Strafen einsammeln, Gewinner nach Anteilen auszahlen, Kontostände aktualisieren. | backend |
+
+### 10. Rollen
+
+| ID | Regel | Marke |
+|---|---|---|
+| 10-a | Der Host hat zusätzlich die Steuerknöpfe: Wette öffnen, jetzt schließen, auflösen, annullieren, zurücksetzen. Ansonsten ist er normaler Spieler. | backend |
+| 10-b | Ein Spieler ohne Host-Rolle kann diese Kommandos nicht auslösen. | backend |
+| 10-c | Spieler sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard. | frontend |
+
+### 11. Betrieb
+
+| ID | Regel | Marke |
+|---|---|---|
+| 11-a | Genau eine Server-Instanz; kein Autoscaling, kein Sharding. | organisatorisch |
