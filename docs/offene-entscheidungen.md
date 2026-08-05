@@ -17,6 +17,19 @@ Die 15 Sekunden aus Anforderung 5 gelten für alle Wetten gleich. Ob ein Kick
 ein kürzeres und der Drive-Ausgang ein längeres Fenster braucht, zeigt sich
 erst am Spielabend. Bis dahin bleibt es bei einem Wert für alle.
 
+**Die Host-Rolle hat keine Anforderung.**
+Aufgefallen beim Zerlegen der Anforderungen in Anhang A (2026-08-05). Dass
+der erste Beitretende Host wird und die Rolle bei Verlust der Verbindung
+weiterwandert, ist fachliches Verhalten, steht aber nur in ADR-016 und
+ADR-021. Abschnitt 10 der Anforderungen sagt lediglich, *was* der Host darf,
+nicht *wer* es wird. Damit gibt es dafür keine ID in Anhang A und keine
+Feature-Abdeckung, obwohl das Verhalten umgesetzt und beobachtbar ist.
+
+Nach `teststrategie.md` (9.2) wird eine solche Lücke nicht aus dem Code
+beantwortet, sondern vom Fachexperten. Zu klären ist, ob die Regel als
+Anforderung nachgetragen wird (dann mit IDs in Anhang A und Szenarien) oder
+ob sie bewusst eine rein technische Festlegung bleiben soll.
+
 ## Technisch
 
 **Verhalten bei sehr kleiner Runde.**

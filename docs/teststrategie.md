@@ -168,7 +168,9 @@ dieser Strategie:
 - Das Kritikalitäts-Paket enthält ausschließlich Annotationen und hängt von
   nichts ab (Abschnitt 6.2).
 - Jede Anforderungs-ID in einer `@Anforderung`-Annotation existiert in
-  `anforderungen.md` (Abschnitt 5).
+  Anhang A von `anforderungen.md` (Abschnitt 5).
+- Jede JGiven-`Stage` liegt im dafür bestimmten Paket — das ist die Grenze
+  der Sprachausnahme aus Abschnitt 8.
 - Die als sehr kritisch annotierten Klassen sind genau die, die im
   Mutationslauf konfiguriert sind (Abschnitt 7.2).
 
@@ -245,45 +247,55 @@ geschenkt. Der bereits vorhandene handgeschriebene Zufallstest in
 
 ### 5.1 Der Tag
 
-Jedes Szenario trägt `@Anforderung("8.1")` — einen JGiven-`@IsTag`, der im
+Jedes Szenario trägt `@Anforderung("8.1-c")` — einen JGiven-`@IsTag`, der im
 Report zur Gliederung wird und zugleich die Feature-Abdeckung trägt. Ein
-Szenario darf mehrere Anforderungen belegen, eine Anforderung mehrere
-Szenarien haben.
+Szenario darf mehrere Regeln belegen, eine Regel mehrere Szenarien haben.
+Das ist kein Schlupfloch, sondern gewollt: Abschnitt 2 der Anforderungen
+nennt das Grundprinzip, das Abschnitt 7 konkretisiert — ein Szenario zur
+Anteilsformel belegt beide, ohne doppelt geschrieben zu werden.
 
 ### 5.2 Die Messung
 
-Ein Test liest die Anforderungs-IDs aus `docs/anforderungen.md` und die Tags
-aus dem Testbestand und bildet die Differenz:
+Bezugsliste ist **Anhang A von `anforderungen.md`**: die Zerlegung des
+Fließtexts in einzeln prüfbare Regeln, jede mit ID und Marke. Ein Test liest
+den Anhang und die Tags aus dem Testbestand und bildet die Differenz:
 
-- Eine ID in einem Tag, die es in `anforderungen.md` nicht gibt → Fehler.
-- Eine backend-prüfbare ID ohne grünes Szenario → Fehler.
+- Eine ID in einem Tag, die es in Anhang A nicht gibt → Fehler.
+- Eine Regel mit der Marke `backend` ohne grünes Szenario → Fehler.
 
 Damit ist „100 % Feature-Abdeckung" eine Zahl aus dem Build und keine
 Selbsteinschätzung.
 
-### 5.3 Ohne Klassifikation ist die Messung nicht erreichbar
+Die Liste liegt in derselben Datei wie die Anforderungen selbst. Eine
+zweite Datei wäre eine zweite Wahrheit, die still veraltet.
 
-Nicht jede Anforderung ist im Backend prüfbar. Anforderung 4 verlangt, dass
-die Anmerkungen zu den Ausgängen *in der Oberfläche sichtbar* sind; 5 legt
-dem Host eine Verantwortung auf, die kein Programm einhalten kann; 8.7 sagt,
-der Zurücksetzen-Knopf sei bewusst unscheinbar. Ohne Kennzeichnung stünde
-die Abdeckung dauerhaft unter 100 %, und das Ziel wäre wertlos.
+### 5.3 Warum es die Zerlegung braucht
 
-Jede Anforderung bekommt deshalb eine von vier Marken:
+Zwei Gründe, beide für die Messung erledigend.
 
-| Marke | Bedeutung |
-|---|---|
-| `backend` | im Backend prüfbar, zählt zur Feature-Abdeckung |
-| `frontend` | außerhalb dieser Strategie (Backend-Scope) |
-| `organisatorisch` | Verantwortung von Menschen, kein Programm prüft das |
-| `beobachtung` | nur am echten Spielabend feststellbar; wird beobachtet, nicht getestet, und gehört in `probelauf.md` |
+**Erstens ist die Nummerierung im Fließtext zu grob.** Nummern gibt es nur
+bei 3.1, 4.1–4.4, 7.1–7.2 und 8.1–8.7. Abschnitt 6 trägt unter einer
+einzigen Nummer fünf eigenständige Regeln. „Anforderung 6 ist abgedeckt"
+hätte also bedeutet: *irgendeine* der fünf hat ein Szenario — vier könnten
+ungetestet sein, und die Abdeckung stünde auf 100 %. Genau die Zahl, die wir
+nicht wollen. Anhang A vergibt deshalb Buchstaben-Suffixe (`6-a` … `6-f`)
+für alles, was im Text keine eigene Überschrift hat; die bestehenden Nummern
+bleiben unangetastet, weil CLAUDE.md, die ADRs und `probelauf.md` auf sie
+verweisen.
 
-Ein Grenzfall, der die Marke `backend` trotzdem verdient: Anforderung 4
-verlangt lückenlose und überschneidungsfreie Ausgänge. Ob die Eimer die
-Wirklichkeit abdecken, kann kein Test wissen — dass jede Wette mindestens
-zwei Ausgänge hat, dass IDs eindeutig sind und dass die Anmerkungen
-mitgeliefert werden, sehr wohl. Solche Anforderungen werden **teilweise**
-geprüft, und das Szenario sagt im Report, welcher Teil das ist.
+**Zweitens ist nicht jede Regel im Backend prüfbar.** Der Host kann per
+Programm nicht dazu gebracht werden, das Fenster vor dem Snap zu öffnen
+(5-e); ob die Eimer einer Wette die Wirklichkeit lückenlos abdecken, weiß
+kein Test (4-d); der unscheinbare Zurücksetzen-Knopf ist Oberfläche (8.7-b).
+Ohne Marken stünde die Abdeckung dauerhaft unter 100 % und das Ziel wäre
+wertlos.
+
+Die vier Marken sind in Anhang A definiert. Wichtig ist die Regel dahinter:
+**Jede Regel trägt genau eine Marke.** Wo eine Aussage im Text zwei Seiten
+hat, wird sie in zwei Regeln zerlegt — der Server liefert die Anmerkungen zu
+den Ausgängen (4-e, `backend`), die Oberfläche zeigt sie (4-f, `frontend`).
+Früher hätte das eine „teilweise geprüfte" Anforderung ergeben. Die
+Unschärfe gehört in die Anforderung aufgelöst, nicht in die Testmarke.
 
 ### 5.4 Regressionen aus dem Probelauf
 
@@ -397,10 +409,12 @@ Tag getrennt erhoben wird: **Deckt ein Adapter- oder API-Test eine
 Domänenzeile ab, die kein Port-to-Port- und kein Domänentest abdeckt, ist das
 eine Lücke weiter innen** — nicht ein Verdienst der äußeren Ebene.
 
-Die Prüfung ist nicht gratis (getrennte JaCoCo-Läufe, Differenzbildung). Sie
-sollte deshalb erst automatisiert werden, wenn sich zeigt, dass die Regel im
-Review nicht hält. Bis dahin gilt sie als Reviewregel — das ist ehrlicher,
-als Werkzeug zu bauen, das niemand liest.
+Die Prüfung läuft **von Anfang an automatisiert**: getrennte JaCoCo-Läufe je
+Tag, Differenzbildung über die Domänenzeilen. Der Preis dafür ist Laufzeit —
+die Testmenge wird mehrfach ausgeführt. Läuft das Zeitbudget aus
+Abschnitt 10 dadurch voll, wird gegengesteuert, statt die Prüfung
+stillschweigend fallen zu lassen: zuerst über die Häufigkeit (nur auf
+`master` statt bei jedem Lauf), danach über den Umfang.
 
 ## 8. Der Report
 
@@ -412,6 +426,15 @@ keinen Code liest. Daraus folgen drei Regeln:
    benannt; der übrige Produktivcode bleibt englisch (Konvention aus
    CLAUDE.md). Das ist eine bewusste, eng begrenzte Ausnahme, die als ADR
    festgehalten wird.
+
+   Die Ausnahme ist **strukturell eingehegt**, nicht dem Augenmaß
+   überlassen: Stufenklassen leben ausschließlich in einem dafür bestimmten
+   Paket, und ArchUnit prüft, dass jede JGiven-`Stage` dort liegt. „Deutsche
+   Bezeichner" ist damit keine Ermessensfrage mehr, sondern eine Frage des
+   Pakets. Die Begründung ist enger als „Ausnahme, weil wir sie brauchen":
+   Eine JGiven-Stufe ist kein Bezeichner im Sinne der Konvention, sondern
+   **Reporttext in Java-Syntax** — sie steht auf derselben Seite wie
+   „Kommentare und Dokumentation deutsch".
 
    Verwendet wird der **deutsche Gherkin-Dialekt**: *Angenommen* bzw.
    *Gegeben sei* / *Gegeben seien* für die Vorbedingung, *Wenn* für die
@@ -520,18 +543,26 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
   nicht als *getestet*, und dürfen nicht durch eine grüne Abdeckung als
   erledigt erscheinen.
 
-## 12. Offene Punkte
+## 12. Stand
 
-Zwei Festlegungen fehlen noch und sind nicht stillschweigend zu treffen:
+Die Strategie ist vollständig festgelegt; die drei zuletzt offenen Punkte
+sind entschieden:
 
-1. **Die Klassifikation der Anforderungen** (Abschnitt 5.3) muss einmal
-   Zeile für Zeile durch `anforderungen.md` gehen. Ohne sie ist die
-   Feature-Abdeckung nicht erreichbar. Das ist eine fachliche Entscheidung
-   — und sie hängt an einer zweiten, technischen: `anforderungen.md`
-   vergibt heute nur stellenweise Nummern (3.1, 4.1–4.4, 7.1–7.2,
-   8.1–8.7). Ganze Abschnitte wie 2, 6 und 9 tragen mehrere eigenständige
-   Regeln unter einer einzigen Nummer. Solange das so ist, ist „Anforderung
-   6 ist abgedeckt" eine sehr grobe Aussage.
-2. **Die Sprachausnahme für die JGiven-Stufen** (Abschnitt 8) weicht von der
-   Konvention „Bezeichner englisch" ab. Sie folgt zwingend aus dem
-   Zielleser, gehört aber als ADR festgehalten und nicht als stille Praxis.
+- **Klassifikation der Anforderungen** — erledigt als Anhang A von
+  `anforderungen.md`, mit atomaren Regeln und einer Marke je Regel.
+- **Kritikalitätseinstufung des Bestands** — bestätigt (Abschnitt 6.4).
+- **Sprachausnahme für die JGiven-Stufen** — entschieden (Abschnitt 8),
+  strukturell durch ArchUnit eingehegt; als ADR festzuhalten.
+
+Was noch offen ist, ist **nicht mehr die Strategie, sondern ihre
+Umsetzung** — und eine fachliche Frage, die beim Zerlegen der Anforderungen
+aufgefallen ist:
+
+**Die Host-Rolle steht nur in ADRs, nicht in den Anforderungen.** Dass der
+erste Beitretende Host wird und die Rolle bei Verlust der Verbindung
+weiterwandert, ist echtes fachliches Verhalten (ADR-016, ADR-021), hat aber
+keine Entsprechung in `anforderungen.md` — Abschnitt 10 sagt nur, *was* der
+Host darf, nicht *wer* es wird. Damit gibt es dafür auch keine ID in
+Anhang A und keine Feature-Abdeckung. Nach Abschnitt 9.2 ist das kein Fall
+für eine stillschweigende Ergänzung, sondern für den Fachexperten; bis zur
+Klärung steht die Frage in `offene-entscheidungen.md`.
