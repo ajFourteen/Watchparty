@@ -1,3 +1,16 @@
+# [3.2.0](https://github.com/ajFourteen/Watchparty/compare/v3.1.0...v3.2.0) (2026-08-05)
+
+
+### Bug Fixes
+
+* awaitWritten wartet auf die laufende Nummer statt auf ein Idle-Flag ([6fb20a2](https://github.com/ajFourteen/Watchparty/commit/6fb20a29f77ffc47a6307aa24e3e2dcde15ec37e))
+
+
+### Features
+
+* jMolecules-Stereotypen fuer DDD-Bausteine und Onion-Ringe (ADR-027) ([53bcb07](https://github.com/ajFourteen/Watchparty/commit/53bcb0703637739fa4895f0b9ecb829637eee6ff))
+* JSpecify-Nullness mit NullAway durchgesetzt (ADR-026) ([549ec68](https://github.com/ajFourteen/Watchparty/commit/549ec68345c188bc1439bf944f21fc8b39775629))
+
 # [3.1.0](https://github.com/ajFourteen/Watchparty/compare/v3.0.0...v3.1.0) (2026-08-02)
 
 
