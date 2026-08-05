@@ -936,3 +936,57 @@ Apache) würde genau das erlauben.
   auch für abgeleitete Kopien.
 - Diese Entscheidung betrifft nur Repo-Hülle und Lizenz, keine der übrigen
   Invarianten oder die Architektur.
+
+---
+
+## ADR-029: Java 25 durchgehend, mit den dafür nötigen Versionssprüngen
+
+**Status:** Akzeptiert
+
+**Kontext:** Der Stack stand auf Java 21; die Entwicklungsumgebung bringt
+inzwischen JDK 25 mit. Der Build brach damit ab — mit der nichtssagenden
+Meldung `What went wrong: 25.0.3`. Die Ursache lag nicht im Code und auch
+nicht an der Toolchain-Einstellung: **Gradle 8.10.2 kann selbst nicht auf
+JDK 25 laufen**, es kennt Java nur bis 23.
+
+Zwei Java-Versionen nebeneinander sind kein tragfähiger Zustand. Wer das
+Repo auscheckt, bekommt denselben Abbruch, und in der Pipeline, die nach
+`teststrategie.md` künftig Tests ausführen soll, wäre es dieselbe Falle —
+nur unbemerkt, weil dort niemand danebensteht.
+
+**Entscheidung:** Java 25 durchgehend — Toolchain, Gradle-Daemon,
+Docker-Build-Image und Laufzeit-Image. Keine zwei Versionen nebeneinander.
+
+Das zog eine Kette nach sich. Jedes Glied ist durch einen Testlauf belegt,
+nicht durch eine Kompatibilitätstabelle:
+
+1. **Gradle 8.10.2 → 9.6.1.** 8.10 läuft nicht auf JDK 25.
+2. **ArchUnit 1.3.0 → 1.4.1.** Das mitgelieferte ASM liest Klassendateien
+   der Version 69 nicht (`Unsupported class file major version 69`) — alle
+   acht Architekturregeln fielen aus.
+3. **Spring Boot 3.3.4 → 3.5.16.** Spring Framework 6.1 bringt ein eigenes,
+   repackagtes ASM mit demselben Problem; der `@SpringBootTest` scheiterte
+   beim Lesen der Klassen-Metadaten. Das ist der Punkt, an dem „läuft schon
+   irgendwie" nicht mehr trägt: Boot 3.3 unterstützt Java 25 nicht.
+
+**Konsequenzen:**
+- Alle 95 Tests grün, `bootJar` läuft.
+- Der Sprung auf Boot 4.x (Spring Framework 7) war **nicht** nötig und ist
+  bewusst unterblieben. 3.5 ist die letzte 3.x-Linie und der deutlich
+  kleinere Eingriff; ein Framework-Major gehört nicht als Beifang in eine
+  JDK-Anhebung.
+- Die Gradle-9-Umstellung machte eine Deprecation im Build-Skript sichtbar
+  (`val x by tasks.registering(...)`, in Gradle 10 entfernt). Umgestellt auf
+  `tasks.register<Exec>("name")`; der Build ist damit warnungsfrei.
+- Dockerfile: `gradle:9.6-jdk25` zum Bauen, `eclipse-temurin:25-jre-alpine`
+  zur Laufzeit. An ADR-018 (512-MB-Maschine, `MaxRAMPercentage`) ändert das
+  nichts.
+- Die Pipeline muss die Java-Version ausdrücklich setzen, statt zu nehmen,
+  was der Runner zufällig mitbringt.
+- **Beobachtet, nicht erklärt:** `RestoreTest.wiederherstellungMitOffener‐
+  RundeInDerZukunft…` war in einem von zehn Läufen rot und ließ sich in
+  neun weiteren Läufen (fünf isoliert, drei voll, zwei nach `clean`) nicht
+  reproduzieren. Der Test wartet auf einen Schreibvorgang, der nach ADR-023
+  auf einem eigenen Thread läuft — das ist ein Verdacht, kein Befund. Nach
+  `teststrategie.md` ist ein sporadisch roter Test ein Fehlschlag und kein
+  Wiederholungsfall; aufgelöst wird er beim Umbau von `RestoreTest`.

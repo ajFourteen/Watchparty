@@ -4,8 +4,8 @@ import net.ltgt.gradle.nullaway.nullaway
 
 plugins {
     java
-    id("org.springframework.boot") version "3.3.4"
-    id("io.spring.dependency-management") version "1.1.6"
+    id("org.springframework.boot") version "3.5.16"
+    id("io.spring.dependency-management") version "1.1.7"
     // Setzen JSpecify durch: ein @Nullable an der falschen Stelle ist ein
     // Compile-Fehler, keine Doku (ADR-026).
     id("net.ltgt.errorprone") version "4.1.0"
@@ -17,7 +17,7 @@ version = "0.1.0"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -62,7 +62,7 @@ dependencies {
     // -onion-architecture) sind reine Marker ohne diese Abhaengigkeit;
     // geprueft werden sie unten mit denselben, stabilen ArchUnit-Bausteinen,
     // die der Rest dieser Klasse schon benutzt.
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
 
     // Ab Gradle 9 liegt der Launcher nicht mehr automatisch auf dem
     // Test-Classpath; ohne ihn startet der Test-Executor gar nicht erst.
@@ -130,14 +130,14 @@ val skipFrontend = providers.gradleProperty("skipFrontend").isPresent
 val isWindows = System.getProperty("os.name").lowercase().contains("windows")
 val npm = if (isWindows) "npm.cmd" else "npm"
 
-val npmInstall by tasks.registering(Exec::class) {
+val npmInstall = tasks.register<Exec>("npmInstall") {
     workingDir = frontendDir.asFile
     commandLine(npm, "install")
     inputs.file(frontendDir.file("package.json"))
     outputs.dir(frontendDir.dir("node_modules"))
 }
 
-val npmBuild by tasks.registering(Exec::class) {
+val npmBuild = tasks.register<Exec>("npmBuild") {
     dependsOn(npmInstall)
     workingDir = frontendDir.asFile
     commandLine(npm, "run", "build", "--", "--outDir", frontendOut.get().asFile.absolutePath, "--emptyOutDir")

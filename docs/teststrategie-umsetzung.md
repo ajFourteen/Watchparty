@@ -11,10 +11,17 @@ dort, nicht hier.
   umgebaut, nicht weggeworfen.
 - **Die Pipeline führt keinen einzigen Test aus.** `release.yml` macht
   Semantic Release und Deploy; `gradle bootJar` zieht `test` nicht an.
-- **Der Testlauf braucht JDK 21.** Das `gradle`/`java` auf dem PATH dieser
-  Umgebung ist JDK 25, und die Toolchain wird nicht automatisch
-  bereitgestellt — der Lauf bricht mit `What went wrong: 25.0.3` ab. Das ist
-  keine Randnotiz: Die Pipeline muss die Version festnageln.
+- **Der Stack läuft seit ADR-029 durchgehend auf Java 25.** Der Umstieg war
+  Voraussetzung für alles Weitere: Gradle 8.10.2 lief nicht auf JDK 25, und
+  die Kette zog Gradle 9.6.1, ArchUnit 1.4.1 und Spring Boot 3.5.16 nach
+  sich. Für die Pipeline heißt das: Die Java-Version wird ausdrücklich
+  gesetzt, nicht vom Runner geerbt.
+- **Ein bekannter Wackelkandidat.**
+  `RestoreTest.wiederherstellungMitOffenerRundeInDerZukunft…` war einmal in
+  zehn Läufen rot und danach nicht mehr reproduzierbar (ADR-029). Nach der
+  Strategie ist das ein Fehlschlag, kein Wiederholungsfall — er wird in
+  Phase 3.3 beim Umbau von `RestoreTest` aufgelöst, nicht vorher
+  weggedrückt.
 - **Nicht vorhanden:** JGiven, jqwik, JaCoCo, PIT, Anforderungs-Tags,
   Kritikalitäts-Annotationen, Ebenen-Trennung.
 - **Vorhanden und tragfähig:** ArchUnit mit acht Regeln, die
@@ -43,7 +50,7 @@ die niemandem sagt, was zu tun ist.
 ## Phase 0 — Die Pipeline führt Tests aus
 
 1. Neuer Workflow `.github/workflows/build.yml`: läuft auf `push` und
-   `pull_request`, setzt mit `actions/setup-java@v4` **Java 21** (siehe
+   `pull_request`, setzt mit `actions/setup-java@v4` **Java 25** (siehe
    Ausgangslage), führt `./gradlew check -PskipFrontend` aus. Das Frontend
    bleibt außen vor — es wird im Docker-Build ohnehin getrennt gebaut.
 2. `release.yml`: Der `release`-Job bekommt `needs: build`. Ein roter Test
@@ -75,7 +82,7 @@ die niemandem sagt, was zu tun ist.
    behaupten: 8.1-c (gekappte Strafe) auf Domänenebene, 8.1-b (eingefrorener
    Teilnehmerkreis) auf Port-Ebene, der Snapshot-Round-Trip auf
    Adapter-Ebene, ein vollständiger Rundenablauf auf API-Ebene.
-7. **ADR-028** schreiben: die Teststrategie als Entscheidung, einschließlich
+7. **ADR-030** schreiben: die Teststrategie als Entscheidung, einschließlich
    der Sprachausnahme für die Stufenklassen und ihrer strukturellen Grenze.
 
 **Fertig, wenn** `./gradlew check` einen JGiven-Report mit vier
@@ -213,7 +220,8 @@ Pipeline rot macht.
 | Rotes Gate ab Tag eins gewöhnt an Rot | Abdeckung startet als Bericht, wird am Ende von Phase 3 zum Gate — terminiert, nicht optional |
 | Characterization-Falle: Tests zementieren Fehler | Szenarien zuerst aus Anhang A, dann Zuordnung zum Bestand; Lücken zum Fachexperten |
 | Laufzeit sprengt die 10 Minuten | ab Phase 4 messen; Gegensteuerung ist benannt |
-| JDK-Falle: Standard-JDK ist 25, der Build braucht 21 | Version in der Pipeline festnageln (Phase 0) |
+| Java-Version driftet zwischen Runner, Container und Toolchain | Java 25 ist seit ADR-029 durchgehend gesetzt; die Pipeline setzt die Version ausdrücklich (Phase 0) |
+| Sporadisch roter `RestoreTest` verdeckt echte Fehlschläge | in Phase 3.3 auflösen; bis dahin nicht durch Wiederholung übertünchen |
 
 ## Was der Plan bewusst nicht enthält
 

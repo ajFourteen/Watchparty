@@ -24,7 +24,7 @@ kalibriert.
 
 ## Stack
 
-- Java 21, Spring Boot 3.3, rohe WebSocket (kein STOMP), Gradle (Kotlin DSL)
+- Java 25, Spring Boot 3.5, rohe WebSocket (kein STOMP), Gradle (Kotlin DSL)
 - React 18 mit Vite, Build wird ins Jar gepackt
 - Ein Container, eine Instanz, Zustand im Arbeitsspeicher — seit ADR-023
   zusätzlich als Snapshot auf einem Fly-Volume gesichert (kein Ersatz,
