@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.adapter.out.file;
 
 import de.fourteen.watchparty.domain.model.RoomSnapshot;
+import de.fourteen.watchparty.teststrategy.AdapterTest;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -21,6 +22,7 @@ import static org.awaitility.Awaitility.await;
  * mehrerer Schreibvorgaenge und die Sonderfaelle beim Laden aus Abschnitt 6
  * des Plans (Datei fehlt, ist kaputt, ist abgelaufen).
  */
+@AdapterTest
 class SnapshotStoreTest {
 
     private static final Instant NOW = Instant.parse("2026-08-01T20:00:00Z");

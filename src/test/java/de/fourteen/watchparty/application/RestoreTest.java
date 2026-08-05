@@ -11,6 +11,7 @@ import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.Player;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.Round;
+import de.fourteen.watchparty.teststrategy.PortTest;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code SnapshotTest} (Datenmodell) und {@code SnapshotStoreTest} (I/O) den
  * gesamten Weg Room -> Datei -> neuer RoomActor -> Room ab.
  */
+@PortTest
 class RestoreTest {
 
     private static final Instant START = Instant.parse("2026-08-01T20:00:00Z");

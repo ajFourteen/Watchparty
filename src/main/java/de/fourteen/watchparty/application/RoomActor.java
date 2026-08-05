@@ -491,11 +491,13 @@ public class RoomActor implements RoomCommands {
     }
 
     /**
-     * Paket-privater Testzugang: blockiert, bis alle bis hierhin eingereihten
-     * Kommandos abgearbeitet sind. Ohne ihn waeren Actor-Tests race-behaftet,
-     * weil {@code loop.execute(...)} asynchron ist.
+     * Testzugang: blockiert, bis alle bis hierhin eingereihten Kommandos
+     * abgearbeitet sind. Ohne ihn waeren Port-to-Port-Szenarien race-behaftet,
+     * weil {@code loop.execute(...)} asynchron ist. Oeffentlich, weil die
+     * JGiven-Stufen im Stufen-Paket (docs/teststrategie.md, Abschnitt 8) in
+     * einem anderen Paket liegen als {@code application}.
      */
-    void awaitIdle() {
+    public void awaitIdle() {
         try {
             loop.submit(() -> null).get(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {

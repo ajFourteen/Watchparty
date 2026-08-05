@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import de.fourteen.watchparty.teststrategy.UnitTest;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -8,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Die Einsatzregel aus Anforderung 6/8.3, direkt geprueft — ohne Raum,
  * ohne Actor, ohne WebSocket.
  */
+@UnitTest
 class PlayerTest {
 
     private static final Params PARAMS = Params.DEFAULT;

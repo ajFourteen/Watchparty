@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
 import de.fourteen.watchparty.adapter.out.file.SnapshotStore;
+import de.fourteen.watchparty.teststrategy.UnitTest;
 
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * — die Serialisierung auf die Platte prüft {@code SnapshotStoreTest}, das
  * Laden beim Start {@code RestoreTest}.
  */
+@UnitTest
 class SnapshotTest {
 
     private static final Instant NOW = Instant.parse("2026-08-01T20:00:00Z");

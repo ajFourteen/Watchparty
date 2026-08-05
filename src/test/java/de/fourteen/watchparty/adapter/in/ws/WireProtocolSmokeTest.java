@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.adapter.in.ws;
 
 import de.fourteen.watchparty.domain.model.Phase;
+import de.fourteen.watchparty.teststrategy.ApiTest;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.WebSocketSession;
@@ -31,8 +33,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Im Zentrum steht Invariante 4 (ADR-013): Waehrend ein Wettfenster offen
  * ist, darf kein einzelner Tipp ueber die Leitung gehen, nur der Zaehler.
  * Wer die Frames mitliest -- was dieser Test tut -- darf nichts erfahren.
+ *
+ * {@code @DirtiesContext}: Invariante 6 (genau eine Server-Instanz) bedeutet
+ * einen einzigen {@code Room} als Singleton-Bean. Spring cacht den
+ * Testkontext ueber Testklassen mit identischer Konfiguration hinweg --
+ * ohne diese Annotation wuerde sich der Raumzustand mit jedem weiteren
+ * {@code @SpringBootTest} auf der API-Ebene (etwa {@code RundenablaufScenarioTest})
+ * denselben Room teilen.
  */
+@ApiTest
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class WireProtocolSmokeTest {
 
     @LocalServerPort

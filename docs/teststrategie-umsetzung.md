@@ -86,13 +86,14 @@ die niemandem sagt, was zu tun ist.
    der Sprachausnahme für die Stufenklassen und ihrer strukturellen Grenze.
 
 **Fertig, wenn** `./gradlew check` einen JGiven-Report mit vier
-Pilotszenarien erzeugt und ArchUnit das Stufen-Paket bewacht.
+Pilotszenarien erzeugt und ArchUnit das Stufen-Paket bewacht. **Erledigt** —
+siehe ADR-030.
 
-**Offene Detailfrage:** Ob sich die Abschnittsüberschriften des HTML-Reports
-auf den deutschen Dialekt umstellen lassen, ist nicht verifiziert. Falls
-nicht, bleiben sie englisch, während die Schritttexte deutsch sind —
-kosmetisch unschön, inhaltlich unkritisch. Wird hier entschieden, nicht
-vertagt.
+**Offene Detailfrage — entschieden (ADR-030):** Die Abschnittsüberschriften
+des HTML-Reports lassen sich mit JGiven 2.0.3 nicht auf Deutsch umstellen
+(`jgiven-html-app` hat dafür keinen Lokalisierungs-Hook, geprüft durch
+Zerlegen von `app.bundle.js`). Sie bleiben englisch, die Schritttexte sind
+deutsch — kosmetisch unschön, inhaltlich unkritisch.
 
 ---
 

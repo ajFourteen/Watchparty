@@ -3,6 +3,7 @@ package de.fourteen.watchparty.application;
 import de.fourteen.watchparty.domain.model.Phase;
 import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.Room;
+import de.fourteen.watchparty.teststrategy.PortTest;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Neustart als impliziten Reset braucht der Host einen expliziten, der
  * anders als {@code ANNUL} auch die Spieler mitnimmt.
  */
+@PortTest
 class RoomActorResetTest {
 
     private static final Instant START = Instant.parse("2026-08-01T20:00:00Z");

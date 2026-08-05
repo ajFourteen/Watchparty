@@ -10,6 +10,7 @@ import de.fourteen.watchparty.domain.model.Player;
 import de.fourteen.watchparty.domain.model.Room;
 import de.fourteen.watchparty.domain.model.RoundId;
 import de.fourteen.watchparty.domain.model.Round;
+import de.fourteen.watchparty.teststrategy.PortTest;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@link RoomActor#getRoomForTest()} den Raumzustand direkt, statt das
  * JSON-Protokoll zu parsen — das prueft der Rauchtest ueber die Leitung.
  */
+@PortTest
 class RoomActorStateMachineTest {
 
     private static final Instant START = Instant.parse("2026-08-01T20:00:00Z");

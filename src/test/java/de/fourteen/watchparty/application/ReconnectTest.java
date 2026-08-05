@@ -6,6 +6,7 @@ import de.fourteen.watchparty.domain.model.Points;
 import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.Round;
+import de.fourteen.watchparty.teststrategy.PortTest;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * deterministisch nachstellen, indem dieselbe ClientSession disconnected und
  * eine neue mit demselben Token wieder verbunden wird (ADR-014).
  */
+@PortTest
 class ReconnectTest {
 
     private static final Instant START = Instant.parse("2026-08-01T20:00:00Z");

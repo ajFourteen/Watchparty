@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.application;
 
 import de.fourteen.watchparty.application.port.out.Scheduler;
+import de.fourteen.watchparty.teststrategy.PortTest;
 
 import org.junit.jupiter.api.Test;
 
@@ -10,6 +11,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Testinfrastruktur der Port-Ebene: {@link FakeScheduler} macht deren Zeit- und Reihenfolge-Szenarien deterministisch. */
+@PortTest
 class FakeSchedulerTest {
 
     @Test

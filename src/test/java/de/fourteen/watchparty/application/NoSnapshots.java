@@ -14,7 +14,7 @@ import java.util.Optional;
  * Entspricht dem frueheren {@code new SnapshotStore(null)} — nur ohne den
  * Datei-Adapter aus dem Anwendungsring heraus anfassen zu muessen.
  */
-class NoSnapshots implements SnapshotRepository {
+public class NoSnapshots implements SnapshotRepository {
 
     @Override
     public void save(RoomSnapshot snapshot) {

@@ -1,6 +1,8 @@
 import net.ltgt.gradle.errorprone.errorprone
 import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.nullaway.nullaway
+import com.tngtech.jgiven.gradle.JGivenTaskExtension
+import com.tngtech.jgiven.gradle.JGivenReportTask
 
 plugins {
     java
@@ -10,6 +12,9 @@ plugins {
     // Compile-Fehler, keine Doku (ADR-026).
     id("net.ltgt.errorprone") version "4.1.0"
     id("net.ltgt.nullaway") version "3.1.0"
+    // Erzeugt den JGiven-HTML-Report aus den JSON-Ergebnissen, die
+    // jgiven-junit5 beim Testlauf schreibt (docs/teststrategie.md, Abschnitt 8).
+    id("com.tngtech.jgiven.gradle-plugin") version "2.0.3"
 }
 
 group = "de.fourteen"
@@ -64,6 +69,12 @@ dependencies {
     // die der Rest dieser Klasse schon benutzt.
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
 
+    // Report- und Szenariowerkzeug der Teststrategie (docs/teststrategie.md).
+    // jgiven-junit5 bringt die JUnit5-Erweiterung fuer ScenarioTest mit;
+    // jqwik die Property-Tests (Abschnitt 4).
+    testImplementation("com.tngtech.jgiven:jgiven-junit5:2.0.3")
+    testImplementation("net.jqwik:jqwik:1.9.3")
+
     // Ab Gradle 9 liegt der Launcher nicht mehr automatisch auf dem
     // Test-Classpath; ohne ihn startet der Test-Executor gar nicht erst.
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -74,6 +85,73 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// --- Ebenen als Gradle-Tasks (docs/teststrategie.md, Abschnitt 1) ----------
+//
+// Getrennt wird ueber JUnit-Tags, nicht ueber eigene Source Sets: Die
+// handgeschriebenen Test Doubles bleiben in einem gemeinsamen Quellbaum
+// (src/test/java), erreichbar von jeder Ebene. `test` ist bewusst der
+// schnelle Lauf (unit, port, arch); `adapterTest` und `apiTest` kommen extra
+// dazu, weil sie Spring bzw. einen echten Socket brauchen (Phase 1 der
+// Teststrategie-Umsetzung).
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        includeTags("unit", "port", "arch")
+    }
+}
+
+val adapterTest = tasks.register<Test>("adapterTest") {
+    description = "Adapter-Ebene: kann der Adapter alles uebertragen, was der Port ausdrueckt? (Abschnitt 2.3)"
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags("adapter")
+    }
+    shouldRunAfter(tasks.test)
+}
+
+val apiTest = tasks.register<Test>("apiTest") {
+    description = "API-Ebene: echter Server, echter Socket, echtes JSON (Abschnitt 2.4)."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags("api")
+    }
+    shouldRunAfter(adapterTest)
+}
+
+tasks.named("check") {
+    dependsOn(adapterTest, apiTest)
+}
+
+// --- Ein JGiven-Report ueber alle Ebenen hinweg -----------------------------
+//
+// Das JGiven-Gradle-Plugin verdrahtet jeden Test-Task automatisch mit einem
+// eigenen Ergebnisordner (build/<Taskname>/jgiven-results), haengt aber nur
+// fuer den vorgefundenen Standard-Task `test` einen Report-Task ein -- die
+// erst spaeter im Skript definierten `adapterTest`/`apiTest` kommen dabei zu
+// spaet. Alle drei schreiben deshalb in denselben Ordner (Dateinamen sind je
+// Testklasse eindeutig, Kollisionen also ausgeschlossen), und der
+// vorhandene `jgivenTestReport`-Task liest von dort -- ein einziger Report
+// mit allen Szenarien aus allen Ebenen (docs/teststrategie.md, Abschnitt 8).
+val jgivenResultsDir = layout.buildDirectory.dir("jgiven-results/alle-ebenen")
+
+tasks.withType<Test>().configureEach {
+    extensions.configure<JGivenTaskExtension> {
+        resultsDir.set(jgivenResultsDir)
+    }
+}
+
+tasks.named<JGivenReportTask>("jgivenTestReport") {
+    dependsOn(tasks.test, adapterTest, apiTest)
+    results.set(jgivenResultsDir)
+}
+
+tasks.named("check") {
+    dependsOn("jgivenTestReport")
 }
 
 // --- Null-Sicherheit (ADR-026) ---------------------------------------------

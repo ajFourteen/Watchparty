@@ -33,6 +33,8 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-026 | JSpecify-Nullness mit NullAway durchgesetzt | Akzeptiert |
 | ADR-027 | jMolecules-Stereotypen für DDD-Bausteine und Onion-Ringe | Akzeptiert |
 | ADR-028 | Repo öffentlich, Default-Branch `main`, Business Source License | Akzeptiert |
+| ADR-029 | Java 25 durchgehend, mit den dafür nötigen Versionssprüngen | Akzeptiert |
+| ADR-030 | Teststrategie: Ebenen über JGiven-Tags, Sprachausnahme fürs Stufen-Paket | Akzeptiert |
 
 ---
 
@@ -990,3 +992,93 @@ nicht durch eine Kompatibilitätstabelle:
   auf einem eigenen Thread läuft — das ist ein Verdacht, kein Befund. Nach
   `teststrategie.md` ist ein sporadisch roter Test ein Fehlschlag und kein
   Wiederholungsfall; aufgelöst wird er beim Umbau von `RestoreTest`.
+
+---
+
+## ADR-030: Teststrategie: Ebenen über JGiven-Tags, Sprachausnahme fürs Stufen-Paket
+
+**Status:** Akzeptiert
+
+**Kontext:** `docs/teststrategie.md` legt fest, was auf welcher Ebene
+geprüft wird (Domäne, Port-to-Port, Adapter, API, Struktur), mit JGiven als
+Report- und Szenariowerkzeug, jqwik für Property-Tests und einem deutschen
+Gherkin-Dialekt für den Report, weil dessen Zielleser eine Fachabteilung ist,
+die `anforderungen.md` kennt und keinen Code liest. Diese Strategie ist seit
+Abschnitt 12 dort vollständig festgelegt; offen war nur ihre Umsetzung
+(`docs/teststrategie-umsetzung.md`, Phase 1 "Gerüst").
+
+Der deutsche Dialekt ist eine bewusste, eng begrenzte Ausnahme von der
+Konvention "Bezeichner englisch, Kommentare und Dokumentation deutsch"
+(CLAUDE.md): Eine JGiven-`Stage` ist Reporttext in Java-Syntax, kein
+Bezeichner im gewöhnlichen Sinn. Ohne eine strukturelle Grenze wäre "deutsche
+Bezeichner, weil es eine Stage ist" aber eine Ermessensfrage, die mit jeder
+neuen Klasse neu verhandelt würde.
+
+Offen war außerdem eine Detailfrage aus Phase 1: ob sich auch die
+*Abschnittsüberschriften* des JGiven-HTML-Reports (die feste UI-Chrome wie
+"Given"/"When"/"Then"/"Scenarios", nicht die Schritttexte) auf Deutsch
+umstellen lassen. Geprüft durch Zerlegen des ausgelieferten
+`app.bundle.js` (JGiven 2.0.3, `jgiven-html-app`): Die einzigen Treffer für
+`i18n`/`locale`/`language` gehören zu moment.js, einer Bibliothek für die
+Zeitstempel-Anzeige, nicht zum Report selbst. Es gibt keinen Lokalisierungs-
+Hook für die feste Oberfläche.
+
+**Entscheidung:**
+
+1. **Fünf Ebenen, fünf Verantwortlichkeiten**, wie in `teststrategie.md`
+   Abschnitt 1 beschrieben: Domäne (`unit`), Port-to-Port (`port`), Adapter
+   (`adapter`), API (`api`), Struktur (`arch`, ArchUnit — kein JGiven, siehe
+   Tabelle in Abschnitt 1). Getrennt wird über JUnit-Tags in einem
+   gemeinsamen Quellbaum, nicht über eigene Source Sets, damit die
+   handgeschriebenen Test Doubles (`FakeClock`, `FakeScheduler`,
+   `NoSnapshots`, `RecordingClientGateway`) auf jeder Ebene dieselben
+   bleiben. `RecordingClientGateway`, `NoSnapshots` und
+   `RoomActor.awaitIdle()` wurden dafür von paket-privat auf `public`
+   angehoben — das Stufen-Paket (Punkt 3) liegt in einem anderen Paket als
+   `application` und braucht sie von dort.
+2. **Vier Meta-Annotationen** (`@UnitTest`, `@PortTest`, `@AdapterTest`,
+   `@ApiTest` in `de.fourteen.watchparty.teststrategy`) tragen den
+   JUnit-Tag und den JGiven-`@IsTag`-Report-Tag zusammen, damit beides nicht
+   auseinanderläuft — Wortlaut wie im Beispiel aus `teststrategie.md`
+   Abschnitt 1. Drei Gradle-Tasks werten sie aus: `test` (unit, port, arch —
+   der schnelle Lauf), `adapterTest`, `apiTest`; `check` hängt alle drei
+   ein, dazu einen einzigen `jgivenTestReport`, der alle drei
+   Ergebnisordner zusammenführt (das Gradle-Plugin hängt Report-Tasks nur an
+   Test-Tasks, die beim Anwenden des Plugins schon existieren — `test` tut
+   das, `adapterTest`/`apiTest` als später im Skript definierte Tasks
+   nicht; alle drei schreiben deshalb in denselben Ergebnisordner, statt
+   drei getrennte Reports zu erzeugen).
+3. **Die Sprachausnahme ist strukturell eingehegt.** `DeutschesSzenario`
+   (`teststrategy`) stellt `angenommen()`/`wenn()`/`dann()` bereit,
+   `DeutscheStufe` (`teststrategy.stufen`) `und()` — beide nur dünne
+   Übersetzer auf JGivens `given()`/`when()`/`then()`/`and()`. Jede
+   JGiven-`Stage` muss im Paket `de.fourteen.watchparty.teststrategy.stufen`
+   liegen; `TeststrategyArchitectureTest` (mit
+   `ImportOption.OnlyIncludeTests`, komplementär zu
+   `ArchitectureTest#ringeZeigenNachInnen`, das bewusst nur Produktivcode
+   analysiert) hält das nach. "Deutsche Bezeichner" ist damit eine Frage des
+   Pakets, nicht des Augenmaßes.
+4. **Die Report-Abschnittsüberschriften bleiben Englisch.** Es gibt keinen
+   Lokalisierungs-Hook in `jgiven-html-app` 2.0.3 (siehe Kontext) — nur die
+   Schritttexte selbst sind Deutsch, weil sie aus den deutschen
+   Stage-Methodennamen entstehen. Kosmetisch unschön, inhaltlich unkritisch,
+   wie in `teststrategie.md` Abschnitt 8 vorgesehen.
+5. **Zwei `@SpringBootTest`-Klassen auf der API-Ebene teilen sich sonst
+   denselben Room.** Invariante 6 (genau eine Server-Instanz) bedeutet einen
+   einzigen `Room` als Singleton-Bean; Spring cacht den Testkontext über
+   Testklassen mit identischer Konfiguration hinweg. Jede
+   `@SpringBootTest`-Klasse auf der API-Ebene trägt deshalb
+   `@DirtiesContext(classMode = AFTER_CLASS)`.
+
+**Konsequenzen:**
+- Vier Pilotszenarien beweisen das Gerüst statt es zu behaupten: 8.1-c
+  (gekappte Strafe, Domäne), 8.1-b (eingefrorener Teilnehmerkreis,
+  Port-to-Port), der Snapshot-Round-Trip (Adapter), ein vollständiger
+  Rundenablauf über echten Socket (API). Die vollständige Nachrüstung aller
+  60 `backend`-Regeln ist Phase 3 von `teststrategie-umsetzung.md`, nicht
+  Teil dieser Entscheidung.
+- `RoomActor.awaitIdle()` ist jetzt öffentlich statt paket-privat;
+  `getRoomForTest()` bleibt vorerst paket-privat und wird erst mit dem
+  Umbau der bestehenden Actor-Tests in Phase 3.3 entfernt.
+- jqwik ist eingebunden, aber noch ungenutzt — die Property-Tests aus
+  Abschnitt 4 der Strategie sind ebenfalls Phase 3.1.

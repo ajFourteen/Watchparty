@@ -6,6 +6,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import org.junit.jupiter.api.Tag;
 import org.jmolecules.architecture.onion.classical.ApplicationServiceRing;
 import org.jmolecules.architecture.onion.classical.DomainModelRing;
 import org.jmolecules.architecture.onion.classical.DomainServiceRing;
@@ -38,6 +39,7 @@ import static com.tngtech.archunit.library.Architectures.onionArchitecture;
  * Geprueft wird auf dem Bytecode: Damit zaehlen auch Rueckgabetypen,
  * Feldtypen und Annotationen, nicht nur die Importzeile.
  */
+@Tag("arch")
 @AnalyzeClasses(packages = "de.fourteen.watchparty", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 

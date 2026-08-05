@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
+import de.fourteen.watchparty.teststrategy.UnitTest;
 
 import org.junit.jupiter.api.Test;
 
@@ -8,6 +9,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@UnitTest
 class BetsTest {
 
     @Test

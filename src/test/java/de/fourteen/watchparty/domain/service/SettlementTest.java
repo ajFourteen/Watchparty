@@ -6,6 +6,7 @@ import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.PlayerId;
 import de.fourteen.watchparty.domain.model.Points;
 import de.fourteen.watchparty.domain.model.PointsDelta;
+import de.fourteen.watchparty.teststrategy.UnitTest;
 
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@UnitTest
 class SettlementTest {
 
     private static final Params PARAMS = Params.DEFAULT;

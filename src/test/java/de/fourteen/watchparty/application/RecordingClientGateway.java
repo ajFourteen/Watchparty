@@ -21,8 +21,13 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * Geschrieben wird vom Raum-Thread, gelesen vom Test-Thread — daher
  * nebenlaeufigkeitsfeste Sammlungen. Gelesen wird nach {@code awaitIdle()}.
+ *
+ * Oeffentlich, damit auch die JGiven-Stufen im Stufen-Paket
+ * (docs/teststrategie.md, Abschnitt 8) sie fuer Port-to-Port-Szenarien
+ * verwenden koennen -- derselbe gemeinsame Quellbaum, den die Teststrategie
+ * fuer alle Ebenen vorsieht (Abschnitt 1).
  */
-class RecordingClientGateway implements ClientGateway {
+public class RecordingClientGateway implements ClientGateway {
 
     private final Map<String, List<Object>> bySession = new ConcurrentHashMap<>();
 
@@ -42,12 +47,12 @@ class RecordingClientGateway implements ClientGateway {
         bySession.computeIfAbsent(sessionId, id -> new java.util.concurrent.CopyOnWriteArrayList<>()).add(message);
     }
 
-    List<Object> messagesFor(String sessionId) {
+    public List<Object> messagesFor(String sessionId) {
         return new ArrayList<>(bySession.getOrDefault(sessionId, List.of()));
     }
 
     /** Die Spieler-ID aus dem WELCOME — der Weg, auf dem ein echter Client sie erfaehrt. */
-    PlayerId playerIdOf(String sessionId) {
+    public PlayerId playerIdOf(String sessionId) {
         return messagesFor(sessionId).stream()
                 .filter(Messages.Welcome.class::isInstance)
                 .map(Messages.Welcome.class::cast)
@@ -58,7 +63,7 @@ class RecordingClientGateway implements ClientGateway {
     }
 
     /** Der zuletzt an diese Sitzung geschickte Zustand. */
-    Messages.State lastStateFor(String sessionId) {
+    public Messages.State lastStateFor(String sessionId) {
         return messagesFor(sessionId).stream()
                 .filter(Messages.State.class::isInstance)
                 .map(Messages.State.class::cast)
@@ -67,7 +72,7 @@ class RecordingClientGateway implements ClientGateway {
     }
 
     /** Alle Fehlermeldungen an diese Sitzung, in Reihenfolge. */
-    List<String> errorsFor(String sessionId) {
+    public List<String> errorsFor(String sessionId) {
         return messagesFor(sessionId).stream()
                 .filter(Messages.Error.class::isInstance)
                 .map(Messages.Error.class::cast)

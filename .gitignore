@@ -5,3 +5,7 @@ frontend/dist/
 *.log
 .DS_Store
 .claude/
+
+# jqwik legt hier Zufalls-Seeds fehlgeschlagener Property-Tests ab (Abschnitt 4
+# der Teststrategie) -- lokaler Laufzustand, kein Quelltext.
+.jqwik-database

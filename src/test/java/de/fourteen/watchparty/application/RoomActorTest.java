@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.application;
 
 import de.fourteen.watchparty.application.message.Messages;
+import de.fourteen.watchparty.teststrategy.PortTest;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Actor spricht nur noch Sitzungs-IDs und Nachrichtenobjekte. Statt "es wurde
  * irgendetwas gesendet" laesst sich jetzt pruefen, <em>was</em> ankam.
  */
+@PortTest
 class RoomActorTest {
 
     @Test

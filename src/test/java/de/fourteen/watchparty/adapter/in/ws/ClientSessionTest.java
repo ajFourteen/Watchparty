@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.adapter.in.ws;
 
+import de.fourteen.watchparty.teststrategy.AdapterTest;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * hier geprueft wird, ist Verhalten unter Nebenlaeufigkeit, kein Aufruf-
  * protokoll.
  */
+@AdapterTest
 class ClientSessionTest {
 
     private static final Duration GEDULD = Duration.ofSeconds(2);
