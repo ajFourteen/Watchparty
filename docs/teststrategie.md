@@ -554,15 +554,11 @@ sind entschieden:
 - **Sprachausnahme für die JGiven-Stufen** — entschieden (Abschnitt 8),
   strukturell durch ArchUnit eingehegt; als ADR festzuhalten.
 
-Was noch offen ist, ist **nicht mehr die Strategie, sondern ihre
-Umsetzung** — und eine fachliche Frage, die beim Zerlegen der Anforderungen
-aufgefallen ist:
+Was noch offen ist, ist **nicht mehr die Strategie, sondern ihre Umsetzung**.
+Der Arbeitsplan dafür steht in `teststrategie-umsetzung.md`.
 
-**Die Host-Rolle steht nur in ADRs, nicht in den Anforderungen.** Dass der
-erste Beitretende Host wird und die Rolle bei Verlust der Verbindung
-weiterwandert, ist echtes fachliches Verhalten (ADR-016, ADR-021), hat aber
-keine Entsprechung in `anforderungen.md` — Abschnitt 10 sagt nur, *was* der
-Host darf, nicht *wer* es wird. Damit gibt es dafür auch keine ID in
-Anhang A und keine Feature-Abdeckung. Nach Abschnitt 9.2 ist das kein Fall
-für eine stillschweigende Ergänzung, sondern für den Fachexperten; bis zur
-Klärung steht die Frage in `offene-entscheidungen.md`.
+Ein Beleg dafür, dass das Verfahren aus Abschnitt 9.2 trägt: Beim Zerlegen
+der Anforderungen fiel auf, dass die Host-Rolle nur in ADR-016 und ADR-021
+stand — Abschnitt 10 sagte, *was* der Host darf, nicht *wer* es wird. Die
+Lücke wurde nicht aus dem Code beantwortet, sondern dem Fachexperten
+vorgelegt und als Anforderung 10.1 nachgetragen. Genau so ist es gemeint.

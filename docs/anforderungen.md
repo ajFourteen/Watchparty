@@ -177,6 +177,17 @@ Wer weiterspielen will, tritt mit neuem Namen erneut bei; kein automatisches Wie
 - **Host:** hat zusätzlich die Steuerknöpfe (Wette auswählen und öffnen, jetzt schließen, Ausgang auflösen, Runde annullieren, Raum zurücksetzen). Ansonsten normaler Spieler.
 - **Spieler:** tippen, sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard.
 
+### 10.1 Wer Host ist
+
+**Host ist immer der am frühesten beigetretene verbundene Spieler.** Beim Start des Abends ist das der erste Beitretende; verliert er die Verbindung, wandert die Rolle weiter, sonst wäre der Raum steuerlos. Es braucht dafür keinen zusätzlichen Einstiegsschritt — keine eigene Host-URL, kein Kennwort. „Erster Beitretender wird Host" gilt damit nicht nur einmal beim Start, sondern dauerhaft, und jede Kombination aus Weggehen und Zurückkommen ist abgedeckt.
+
+Die Übergabe ist asymmetrisch:
+
+- **Verlieren wirkt sofort, in jeder Phase.** Sonst wäre der Raum mitten im offenen Fenster ohne Steuerung — genau dann, wenn jemand schließen können muss.
+- **Zurückholen wirkt erst im Leerlauf oder nach dem Auflösen.** Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst danach ausgeführt. Sonst rutschen dem Vertreter die Steuerknöpfe mitten in einer laufenden Runde weg.
+
+Die Rolle kann über den Abend zwischen den Runden mehrfach wandern, wenn Handys ein- und aufwachen. Sie landet dabei immer bei dem, der am längsten dabei ist — in der Praxis der, der die Fernbedienung hat.
+
 ## 11. Bewusst nicht enthalten (out of scope)
 
 - Kein Remote-/Online-Play über mehrere Orte hinweg.
@@ -187,7 +198,7 @@ Wer weiterspielen will, tritt mit neuem Namen erneut bei; kein automatisches Wie
 
 ## 12. Offene Punkte / spätere Erweiterungen
 
-- Weitere Wetten über die fünf aus Abschnitt 4 hinaus.
+- Weitere Wetten über die vier aus Abschnitt 4 hinaus.
 - Nachjustierung der Parameter aus 3.1 am realen Spielgefühl.
 
 ---
@@ -339,6 +350,10 @@ die Marke.
 | 10-a | Der Host hat zusätzlich die Steuerknöpfe: Wette öffnen, jetzt schließen, auflösen, annullieren, zurücksetzen. Ansonsten ist er normaler Spieler. | backend |
 | 10-b | Ein Spieler ohne Host-Rolle kann diese Kommandos nicht auslösen. | backend |
 | 10-c | Spieler sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard. | frontend |
+| 10.1 | Host ist immer der am frühesten beigetretene verbundene Spieler. | backend |
+| 10.1-a | Verliert der Host die Verbindung, wandert die Rolle sofort weiter — in jeder Phase. | backend |
+| 10.1-b | Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst im Leerlauf bzw. nach dem Auflösen ausgeführt. | backend |
+| 10.1-c | Die Host-Rolle verlangt keinen zusätzlichen Einstiegsschritt: keine eigene URL, kein Kennwort. | backend |
 
 ### 11. Betrieb
 
