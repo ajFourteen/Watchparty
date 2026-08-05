@@ -103,9 +103,10 @@ Aufdecken beim Schließen und Verrechnen beim Auflösen (Anforderung 9).
 
 **Zeit und Reihenfolge sind hier eine eigene Kategorie von Szenarien**, kein
 eigenes Verfahren. Weil der `FakeScheduler` die Verschränkung deterministisch
-macht, lassen sich die Rennen als gewöhnliches Given-When-Then schreiben:
+macht, lassen sich die Rennen als gewöhnliches Angenommen-Wenn-Dann
+schreiben:
 
-> *Gegeben* ein Wettfenster ist offen,
+> *Angenommen* ein Wettfenster ist offen,
 > *wenn* der Host von Hand schließt und danach der Auto-Close-Timer der
 > beendeten Runde feuert,
 > *dann* bleibt die Runde geschlossen und es wird nicht doppelt abgerechnet.
@@ -275,7 +276,7 @@ Jede Anforderung bekommt deshalb eine von vier Marken:
 | `backend` | im Backend prüfbar, zählt zur Feature-Abdeckung |
 | `frontend` | außerhalb dieser Strategie (Backend-Scope) |
 | `organisatorisch` | Verantwortung von Menschen, kein Programm prüft das |
-| `feld` | nur am Spielabend beobachtbar, gehört in `probelauf.md` |
+| `beobachtung` | nur am echten Spielabend feststellbar; wird beobachtet, nicht getestet, und gehört in `probelauf.md` |
 
 Ein Grenzfall, der die Marke `backend` trotzdem verdient: Anforderung 4
 verlangt lückenlose und überschneidungsfreie Ausgänge. Ob die Eimer die
@@ -341,11 +342,11 @@ existiert.
 | mittelkritisch (`MEDIUM`) | zusätzlich: **keine Methode ohne Test**. Jede öffentliche Methode der beteiligten Klassen wird von mindestens einem Test erreicht. |
 | sehr kritisch (`HIGH`) | zusätzlich: **Mutation Score ≥ 99 %** auf den beteiligten Klassen. |
 
-### 6.4 Vorläufige Einstufung des Bestands — zu bestätigen
+### 6.4 Einstufung des Bestands
 
 Für neue Features entsteht die Einstufung beim Feature-Request. Der
-vorhandene Code braucht eine einmalige Bewertung. Mein Vorschlag, der vom
-Fachexperten zu bestätigen ist:
+vorhandene Code braucht eine einmalige Bewertung; die folgende ist vom
+Fachexperten bestätigt:
 
 | Bereich | Stufe | Begründung |
 |---|---|---|
@@ -411,6 +412,15 @@ keinen Code liest. Daraus folgen drei Regeln:
    benannt; der übrige Produktivcode bleibt englisch (Konvention aus
    CLAUDE.md). Das ist eine bewusste, eng begrenzte Ausnahme, die als ADR
    festgehalten wird.
+
+   Verwendet wird der **deutsche Gherkin-Dialekt**: *Angenommen* bzw.
+   *Gegeben sei* / *Gegeben seien* für die Vorbedingung, *Wenn* für die
+   Handlung, *Dann* für die Erwartung, *Und* für Fortsetzungen. „Angenommen"
+   passt, wo ein Umstand gesetzt wird („angenommen, das Wettfenster ist
+   offen"), „gegeben sei(en)", wo etwas vorhanden ist („gegeben seien drei
+   Spieler mit je 1000 Punkten"). Eine projekteigene Basisklasse stellt die
+   Einstiege unter diesen Namen bereit, damit der Testcode denselben Dialekt
+   spricht wie der Report.
 2. **Vokabular.** Ein Schritttext benutzt nur Begriffe aus
    `anforderungen.md`: Wette, Wettfenster, Runde, Tipp, Einsatz, Anteil,
    Pool, Strafe, Auflösen (ADR-022). Keine Klassennamen, keine
@@ -440,8 +450,8 @@ Nummern aus anforderungen.md, oder: neu (dann dort ergänzen).
 Nummeriert. Jedes eine prüfbare Aussage.
 
 ## Szenarien
-Given-When-Then in Prosa, in der Sprache der Anforderungen.
-Werden eins zu eins zu JGiven-Szenarien.
+Angenommen / Gegeben sei(en) — Wenn — Dann, in Prosa und in der
+Sprache der Anforderungen. Werden eins zu eins zu JGiven-Szenarien.
 
 ## Kritikalität
 Eintrittswahrscheinlichkeit × Schadensausmaß, begründet.
@@ -512,14 +522,16 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
 
 ## 12. Offene Punkte
 
-Drei Festlegungen fehlen noch und sind nicht stillschweigend zu treffen:
+Zwei Festlegungen fehlen noch und sind nicht stillschweigend zu treffen:
 
 1. **Die Klassifikation der Anforderungen** (Abschnitt 5.3) muss einmal
    Zeile für Zeile durch `anforderungen.md` gehen. Ohne sie ist die
-   Feature-Abdeckung nicht erreichbar. Das ist eine fachliche Entscheidung.
-2. **Die Kritikalitätseinstufung des Bestands** (Abschnitt 6.4) ist ein
-   Vorschlag und braucht die Bestätigung des Fachexperten — sie bestimmt
-   unmittelbar den Umfang des Mutationslaufs.
-3. **Die Sprachausnahme für die JGiven-Stufen** (Abschnitt 8) weicht von der
+   Feature-Abdeckung nicht erreichbar. Das ist eine fachliche Entscheidung
+   — und sie hängt an einer zweiten, technischen: `anforderungen.md`
+   vergibt heute nur stellenweise Nummern (3.1, 4.1–4.4, 7.1–7.2,
+   8.1–8.7). Ganze Abschnitte wie 2, 6 und 9 tragen mehrere eigenständige
+   Regeln unter einer einzigen Nummer. Solange das so ist, ist „Anforderung
+   6 ist abgedeckt" eine sehr grobe Aussage.
+2. **Die Sprachausnahme für die JGiven-Stufen** (Abschnitt 8) weicht von der
    Konvention „Bezeichner englisch" ab. Sie folgt zwingend aus dem
    Zielleser, gehört aber als ADR festgehalten und nicht als stille Praxis.
