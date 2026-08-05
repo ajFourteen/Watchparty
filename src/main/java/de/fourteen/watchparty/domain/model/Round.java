@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import de.fourteen.watchparty.criticality.Criticality;
+
 import org.jmolecules.ddd.annotation.Entity;
 import org.jmolecules.ddd.annotation.Identity;
 import org.jspecify.annotations.Nullable;
@@ -24,6 +26,8 @@ import java.util.Set;
  * Synchronisierung (Invariante 1).
  */
 @Entity
+@Criticality(level = Criticality.Level.MEDIUM,
+        requirements = { "5-a", "5-b", "5-c", "5-d", "8.6", "8.6-a", "8.6-b", "9-a", "9-b", "9-c" })
 public class Round {
 
     @Identity

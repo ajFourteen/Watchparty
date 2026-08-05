@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import de.fourteen.watchparty.criticality.Criticality;
+
 import org.jmolecules.ddd.annotation.AggregateRoot;
 import org.jspecify.annotations.Nullable;
 
@@ -32,6 +34,9 @@ import java.util.Set;
  * vortaeuschen, die es in diesem System nicht gibt.
  */
 @AggregateRoot
+@Criticality(level = Criticality.Level.MEDIUM,
+        requirements = { "5-a", "5-b", "5-c", "5-d", "8.6", "8.6-a", "8.6-b", "8.7", "8.7-a",
+                "9-a", "9-b", "9-c", "10-a", "10-b", "10.1", "10.1-a", "10.1-b", "10.1-c" })
 public class Room {
 
     /** Startguthaben (Anforderung 3.1). Wert wird am Spielgefuehl kalibriert. */

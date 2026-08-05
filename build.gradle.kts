@@ -154,6 +154,83 @@ tasks.named("check") {
     dependsOn("jgivenTestReport")
 }
 
+// --- Feature-Abdeckung (docs/teststrategie.md, Abschnitt 5.2) --------------
+//
+// Liest Anhang A aus derselben Datei wie die Anforderungen selbst -- eine
+// zweite Datei waere eine zweite Wahrheit, die still veraltet (Abschnitt
+// 5.2). Bewusst ein nachgelagerter Task und kein Test: Gezaehlt wird, was
+// *gruen gelaufen* ist, nicht was annotiert ist -- sonst belegt ein
+// fehlschlagendes Szenario weiterhin seine Regel.
+//
+// Bewusst (noch) kein Gate: Bei 60 offenen Regeln waere der Build ab Tag
+// eins rot. Scharf gestellt wird das am Ende von Phase 3 der
+// Teststrategie-Umsetzung (docs/teststrategie-umsetzung.md, Phase 2).
+tasks.register("abdeckung") {
+    group = "verification"
+    description = "Vergleicht die backend-Regeln aus Anhang A mit den gruen gelaufenen @Anforderung-Szenarien."
+    dependsOn(tasks.test, adapterTest, apiTest)
+
+    val anforderungenDatei = layout.projectDirectory.file("docs/anforderungen.md")
+    val ergebnisVerzeichnis = jgivenResultsDir
+    val berichtsDatei = layout.buildDirectory.file("reports/abdeckung.txt")
+
+    inputs.file(anforderungenDatei)
+    inputs.dir(ergebnisVerzeichnis)
+    outputs.file(berichtsDatei)
+
+    doLast {
+        val zeilePattern = Regex(
+            """^\|\s*([0-9]+(?:\.[0-9]+)?(?:-[a-z])?)\s*\|.*\|\s*(backend|frontend|organisatorisch|beobachtung)\s*\|\s*$""")
+        var inAnhangA = false
+        val backendRegeln = linkedSetOf<String>()
+        anforderungenDatei.asFile.forEachLine { zeile ->
+            if (zeile.startsWith("## Anhang A")) {
+                inAnhangA = true
+            } else if (inAnhangA) {
+                val treffer = zeilePattern.matchEntire(zeile)
+                if (treffer != null && treffer.groupValues[2] == "backend") {
+                    backendRegeln += treffer.groupValues[1]
+                }
+            }
+        }
+
+        val praefix = "de.fourteen.watchparty.teststrategy.Anforderung-"
+        val belegteRegeln = mutableSetOf<String>()
+        val slurper = groovy.json.JsonSlurper()
+        ergebnisVerzeichnis.get().asFile.listFiles { f -> f.extension == "json" }?.forEach { jsonDatei ->
+            @Suppress("UNCHECKED_CAST")
+            val wurzel = slurper.parse(jsonDatei) as Map<String, Any?>
+            @Suppress("UNCHECKED_CAST")
+            val szenarien = wurzel["scenarios"] as List<Map<String, Any?>>
+            for (szenario in szenarien) {
+                @Suppress("UNCHECKED_CAST")
+                val faelle = szenario["scenarioCases"] as List<Map<String, Any?>>
+                val gruen = faelle.isNotEmpty() && faelle.all { it["status"] == "SUCCESS" }
+                if (!gruen) continue
+                @Suppress("UNCHECKED_CAST")
+                val tagIds = szenario["tagIds"] as List<String>
+                tagIds.filter { it.startsWith(praefix) }
+                    .forEach { belegteRegeln += it.removePrefix(praefix) }
+            }
+        }
+
+        val fehlend = (backendRegeln - belegteRegeln).sorted()
+        val bericht = buildString {
+            appendLine("Feature-Abdeckung: ${backendRegeln.size - fehlend.size} von ${backendRegeln.size} backend-Regeln belegt.")
+            if (fehlend.isEmpty()) {
+                appendLine("Keine offenen backend-Regeln.")
+            } else {
+                appendLine("Offen (${fehlend.size}):")
+                fehlend.forEach { appendLine("  - $it") }
+            }
+        }
+        println(bericht)
+        val datei = berichtsDatei.get().asFile
+        datei.parentFile.mkdirs()
+        datei.writeText(bericht)
+    }
+}
+
 // --- Null-Sicherheit (ADR-026) ---------------------------------------------
 //
 // NullAway prueft im JSpecify-Modus nur Code, der explizit @NullMarked ist

@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.application;
 
 import de.fourteen.watchparty.application.message.Messages;
+import de.fourteen.watchparty.criticality.Criticality;
 import de.fourteen.watchparty.domain.model.Bet;
 import de.fourteen.watchparty.domain.model.Bets;
 import de.fourteen.watchparty.domain.model.Outcome;
@@ -38,6 +39,7 @@ import java.util.Map;
  * Invariante 1 bleibt unberuehrt — aufgerufen wird ausschliesslich vom
  * Raum-Thread, wie jede andere Lesung des Raumzustands.
  */
+@Criticality(level = Criticality.Level.HIGH, requirements = { "6-b", "9-b" })
 public final class RoomView {
 
     private RoomView() {

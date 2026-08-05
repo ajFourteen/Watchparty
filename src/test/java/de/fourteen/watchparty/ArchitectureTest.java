@@ -6,6 +6,8 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import de.fourteen.watchparty.criticality.Criticality;
+import de.fourteen.watchparty.teststrategy.AnhangA;
 import org.junit.jupiter.api.Tag;
 import org.jmolecules.architecture.onion.classical.ApplicationServiceRing;
 import org.jmolecules.architecture.onion.classical.DomainModelRing;
@@ -214,6 +216,33 @@ class ArchitectureTest {
             .because("Zustandsaenderungen laufen ueber benannte Uebergaenge, nicht ueber Setter (ADR-025)")
             .allowEmptyShould(true);
 
+    // --- Kritikalitaet (docs/teststrategie.md, Abschnitt 6.2, ADR-030) --------
+
+    /**
+     * Das Kritikalitaets-Paket ist ein reiner Marker ohne Laufzeitverhalten,
+     * wie JSpecify (ADR-026) und jMolecules (ADR-027): nur die
+     * {@code Criticality}-Annotation und ihr verschachtelter {@code Level}-Typ,
+     * sonst nichts.
+     */
+    @ArchTest
+    static final ArchRule kritikalitaetsPaketEnthaeltNurAnnotationen = classes()
+            .that().resideInAPackage("de.fourteen.watchparty.criticality")
+            .and().doNotHaveSimpleName("package-info")
+            .should(einAnnotationstypOderEinVerschachtelterEnumSein())
+            .because("das Kritikalitaets-Paket traegt keine Logik (Abschnitt 6.2)");
+
+    /**
+     * Eine erfundene oder verschriebene Anforderungs-ID in {@code @Criticality}
+     * waere eine Begruendung, die niemand nachschlagen kann -- deshalb muss
+     * jede genannte ID in Anhang A von {@code anforderungen.md} existieren
+     * (Abschnitt 6.2, analog zu Abschnitt 5.2 fuer {@code @Anforderung}).
+     */
+    @ArchTest
+    static final ArchRule jedeKritikalitaetsAnforderungExistiertInAnhangA = classes()
+            .that().areAnnotatedWith(Criticality.class)
+            .should(nurAnforderungsIdsAusAnhangATragen())
+            .because("eine @Criticality-Anforderungs-ID ohne Beleg in Anhang A ist eine Begruendung ins Leere (Abschnitt 6.2)");
+
     /**
      * Fuer jede {@code package-info}-Klasse: welche der vier Ring-Annotationen
      * traegt sie tatsaechlich, welche haette sie nach ADR-024 tragen muessen
@@ -269,6 +298,47 @@ class ArchitectureTest {
 
     private static DescribedPredicate<JavaClass> alwaysTrue() {
         return DescribedPredicate.describe("beliebig", javaClass -> true);
+    }
+
+    /**
+     * {@code Criticality} selbst ist eine Annotation, ihr verschachtelter
+     * {@code Level}-Typ ({@code Criticality$Level} im Bytecode, aber im
+     * selben Paket) ein Enum -- beides ist im Kritikalitaets-Paket erlaubt,
+     * alles andere waere Logik, die dort nicht hingehoert.
+     */
+    private static com.tngtech.archunit.lang.ArchCondition<JavaClass> einAnnotationstypOderEinVerschachtelterEnumSein() {
+        return new com.tngtech.archunit.lang.ArchCondition<>("ein Annotationstyp oder ein verschachtelter Enum-Typ sein") {
+            @Override
+            public void check(JavaClass javaClass, com.tngtech.archunit.lang.ConditionEvents events) {
+                if (!javaClass.isAnnotation() && !javaClass.isEnum()) {
+                    events.add(com.tngtech.archunit.lang.SimpleConditionEvent.violated(
+                            javaClass, javaClass.getName() + " ist weder Annotation noch Enum"));
+                }
+            }
+        };
+    }
+
+    /**
+     * Liest {@code @Criticality(requirements = {...})} per Reflection zurueck
+     * und prueft jede ID gegen {@link AnhangA#alleRegeln()}. Reflection statt
+     * ArchUnit-Annotation-API, weil ArchUnit Array-Attribute nur als
+     * {@code Object} liefert -- der direkte Weg ueber {@code javaClass.reflect()}
+     * ist hier lesbarer als das Auspacken ueber die ArchUnit-eigene API.
+     */
+    private static com.tngtech.archunit.lang.ArchCondition<JavaClass> nurAnforderungsIdsAusAnhangATragen() {
+        java.util.Set<String> bekannt = AnhangA.alleRegeln().keySet();
+        return new com.tngtech.archunit.lang.ArchCondition<>("nur Anforderungs-IDs aus Anhang A tragen") {
+            @Override
+            public void check(JavaClass javaClass, com.tngtech.archunit.lang.ConditionEvents events) {
+                Criticality annotation = javaClass.reflect().getAnnotation(Criticality.class);
+                for (String id : annotation.requirements()) {
+                    if (!bekannt.contains(id)) {
+                        events.add(com.tngtech.archunit.lang.SimpleConditionEvent.violated(javaClass,
+                                javaClass.getName() + " nennt unbekannte Anforderungs-ID '" + id + "'"));
+                    }
+                }
+            }
+        };
     }
 
     /**

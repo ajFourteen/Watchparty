@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.adapter.out.file;
 
 import de.fourteen.watchparty.teststrategy.AdapterTest;
+import de.fourteen.watchparty.teststrategy.Anforderung;
 import de.fourteen.watchparty.teststrategy.DeutschesSzenario;
 import de.fourteen.watchparty.teststrategy.stufen.SnapshotStufen;
 
@@ -19,6 +20,7 @@ import java.nio.file.Path;
 class SnapshotRoundTripScenarioTest extends DeutschesSzenario<SnapshotStufen, SnapshotStufen, SnapshotStufen> {
 
     @Test
+    @Anforderung("1-d")
     void schreibenUndLadenErgibtDenselbenStand(@TempDir Path verzeichnis) {
         angenommen().einRaumSnapshotMitEinerAbgeschlossenenRunde(verzeichnis);
 

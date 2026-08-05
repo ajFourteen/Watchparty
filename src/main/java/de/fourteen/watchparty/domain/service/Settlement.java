@@ -2,6 +2,7 @@ package de.fourteen.watchparty.domain.service;
 
 import org.jmolecules.ddd.annotation.Service;
 
+import de.fourteen.watchparty.criticality.Criticality;
 import de.fourteen.watchparty.domain.model.OutcomeId;
 import de.fourteen.watchparty.domain.model.Params;
 import de.fourteen.watchparty.domain.model.Pick;
@@ -32,6 +33,8 @@ import java.util.Set;
  * Kontostaende, nur Einsaetze und Anteile.
  */
 @Service
+@Criticality(level = Criticality.Level.HIGH,
+        requirements = { "7.1", "7.1-a", "7.2", "8.1-c", "8.2", "8.2-a", "8.3", "8.5" })
 public final class Settlement {
 
     private Settlement() {

@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import de.fourteen.watchparty.criticality.Criticality;
+
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -23,6 +25,7 @@ import java.util.Map;
  * ändert oder die {@code schemaVersion} steigen müsste. Die Umrechnung
  * steht in {@code Room.toSnapshot}/{@code fromSnapshot}.
  */
+@Criticality(level = Criticality.Level.MEDIUM, requirements = { "1-d" })
 public record RoomSnapshot(
         int schemaVersion,
         long savedAt,

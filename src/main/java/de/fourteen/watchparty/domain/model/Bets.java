@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.domain.model;
 
+import de.fourteen.watchparty.criticality.Criticality;
+
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -15,6 +17,8 @@ import java.util.List;
  * loest von Hand auf und braucht eine Regel, ueber die am Tisch nicht
  * gestritten wird.
  */
+@Criticality(level = Criticality.Level.LOW,
+        requirements = { "4-a", "4-b", "4-c", "4-e", "4.1", "4.2", "4.3", "4.4", "4.4-a" })
 public final class Bets {
 
     private Bets() {

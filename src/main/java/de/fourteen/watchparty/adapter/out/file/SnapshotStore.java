@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.adapter.out.file;
 
 import de.fourteen.watchparty.application.port.out.SnapshotRepository;
+import de.fourteen.watchparty.criticality.Criticality;
 import de.fourteen.watchparty.domain.model.RoomSnapshot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * {@code path == null} bedeutet Persistenz aus — die Voreinstellung für
  * lokale Entwicklung und Tests, siehe {@code watchparty.snapshot.path}.
  */
+@Criticality(level = Criticality.Level.MEDIUM, requirements = { "1-d" })
 public class SnapshotStore implements SnapshotRepository {
 
     private static final Logger log = LoggerFactory.getLogger(SnapshotStore.class);

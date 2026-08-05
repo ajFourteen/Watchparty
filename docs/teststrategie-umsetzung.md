@@ -116,7 +116,10 @@ deutsch — kosmetisch unschön, inhaltlich unkritisch.
 5. Die Einstufung aus Abschnitt 6.4 der Strategie an den Code anbringen.
 
 **Fertig, wenn** `./gradlew abdeckung` die namentliche Liste der noch
-unbelegten `backend`-Regeln ausgibt. Startwert: 60.
+unbelegten `backend`-Regeln ausgibt. **Erledigt** — Stand nach Phase 2: 55
+offen, 5 belegt (die vier Pilotszenarien aus Phase 1 tragen inzwischen
+`@Anforderung`: 8.1-c, 8.1-a, 8.1-b, 1-d, 9-a). Die restlichen 55 sind
+Phase 3.
 
 ---
 

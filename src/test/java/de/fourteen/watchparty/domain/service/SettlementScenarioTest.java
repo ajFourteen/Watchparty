@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.service;
 
+import de.fourteen.watchparty.teststrategy.Anforderung;
 import de.fourteen.watchparty.teststrategy.DeutschesSzenario;
 import de.fourteen.watchparty.teststrategy.UnitTest;
 import de.fourteen.watchparty.teststrategy.stufen.AbrechnungStufen;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 class SettlementScenarioTest extends DeutschesSzenario<AbrechnungStufen, AbrechnungStufen, AbrechnungStufen> {
 
     @Test
+    @Anforderung("8.1-c")
     void strafeWirdAufDenKontostandGekappt() {
         angenommen()
                 .einTippAufTouchdownMitEinsatz("a", 25)

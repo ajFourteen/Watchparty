@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.adapter.in.ws;
 
+import de.fourteen.watchparty.teststrategy.Anforderung;
 import de.fourteen.watchparty.teststrategy.ApiTest;
 import de.fourteen.watchparty.teststrategy.DeutschesSzenario;
 import de.fourteen.watchparty.teststrategy.stufen.RundenablaufStufen;
@@ -29,6 +30,7 @@ class RundenablaufScenarioTest
     private int port;
 
     @Test
+    @Anforderung("9-a")
     void einVollstaendigerRundenablaufUeberEchtenSocket() throws Exception {
         angenommen()
                 .einServerLaeuftAufPort(port)

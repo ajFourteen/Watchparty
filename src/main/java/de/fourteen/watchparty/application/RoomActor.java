@@ -5,6 +5,7 @@ import de.fourteen.watchparty.application.port.in.RoomCommands;
 import de.fourteen.watchparty.application.port.out.ClientGateway;
 import de.fourteen.watchparty.application.port.out.Scheduler;
 import de.fourteen.watchparty.application.port.out.SnapshotRepository;
+import de.fourteen.watchparty.criticality.Criticality;
 import de.fourteen.watchparty.domain.model.Bet;
 import de.fourteen.watchparty.domain.model.BetId;
 import de.fourteen.watchparty.domain.model.Bets;
@@ -57,6 +58,9 @@ import java.util.concurrent.TimeoutException;
  * JSON. Verdrahtet wird sie in {@code config}, gesendet wird ueber den
  * {@link ClientGateway}, geschrieben ueber das {@link SnapshotRepository}.
  */
+@Criticality(level = Criticality.Level.MEDIUM,
+        requirements = { "5-a", "5-b", "5-c", "5-d", "8.6", "8.6-a", "8.6-b", "8.7", "8.7-a",
+                "9-a", "9-b", "9-c", "10-a", "10-b", "10.1", "10.1-a", "10.1-b", "10.1-c" })
 public class RoomActor implements RoomCommands {
 
     private static final Logger log = LoggerFactory.getLogger(RoomActor.class);
