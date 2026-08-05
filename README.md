@@ -70,7 +70,7 @@ Produktiv läuft die App auf Fly.io unter
 
 ### Automatischer Deploy (Semantic Release)
 
-Normalfall ist nicht der manuelle Befehl, sondern ein Merge nach `master`
+Normalfall ist nicht der manuelle Befehl, sondern ein Merge nach `main`
 (ADR-019). `.github/workflows/release.yml` wertet die Commit-Messages aus:
 
 - `fix: …` → Patch-Release
@@ -82,7 +82,7 @@ Normalfall ist nicht der manuelle Befehl, sondern ein Merge nach `master`
 Nur bei einem tatsächlich veröffentlichten Release folgt automatisch
 `flyctl deploy --ha=false`. Damit gilt die Deploy-Regel von oben weiterhin,
 nur verschoben: **Ein release-relevanter Commit (`fix:`/`feat:`) darf nicht
-am Spieltag nach `master` gemerged werden** — der Deploy folgt dann
+am Spieltag nach `main` gemerged werden** — der Deploy folgt dann
 automatisch und sofort.
 
 Einmalige Einrichtung, zwei Repo-Secrets unter *Settings → Secrets and
@@ -134,7 +134,7 @@ falls doch ein Fix während der laufenden Partie raus musste. Die Regel
 bleibt trotzdem: Ein Volume überlebt ein Deploy, aber keine Garantie ist
 ein Grund, sie leichtfertig zu testen. Beim automatischen Weg heißt das
 konkret: **release-relevante Commits (`fix:`/`feat:`) nicht am Spieltag
-nach `master` mergen**, wenn es nicht sein muss — der Merge selbst ist
+nach `main` mergen**, wenn es nicht sein muss — der Merge selbst ist
 bereits der Auslöser.
 
 ### Raumzustand über einen Neustart (ADR-023)

@@ -3,11 +3,11 @@ name: Release & Deploy
 # Ausloeser ist Semantic Release, nicht jeder Push (ADR-019): nur ein Commit
 # mit "fix:", "feat:" o.ae. erzeugt einen Release, und nur ein tatsaechlich
 # veroeffentlichter Release loest den Fly-Deploy aus. Ein reiner "chore:"-
-# oder "docs:"-Commit auf master deployed nichts.
+# oder "docs:"-Commit auf main deployed nichts.
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
+          ref: main
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 

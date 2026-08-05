@@ -32,6 +32,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-025 | DDD-Taktik im Domänenmodell, ArchUnit, Test Doubles statt Mockito | Akzeptiert |
 | ADR-026 | JSpecify-Nullness mit NullAway durchgesetzt | Akzeptiert |
 | ADR-027 | jMolecules-Stereotypen für DDD-Bausteine und Onion-Ringe | Akzeptiert |
+| ADR-028 | Repo öffentlich, Default-Branch `main`, Business Source License | Akzeptiert |
 
 ---
 
@@ -899,3 +900,39 @@ die Durchsetzung übernimmt `ArchitectureTest` mit eigenen ArchUnit-Regeln:
   `Room`, eine entfernte Ring-Annotation — jedes Mal schlägt genau die
   zuständige Regel fehl, sonst keine, und nach dem Zurücknehmen ist wieder
   alles grün.
+
+## ADR-028: Repo öffentlich, Default-Branch `main`, Business Source License
+
+**Status:** Akzeptiert
+
+**Kontext:** Das Repo war privat und der Default-Branch hieß `master`. Das
+Projekt soll künftig als Demo/Beispielanwendung für Workshops dienen und
+dafür öffentlich einsehbar sein. Gleichzeitig soll der Code später auch
+Grundlage für ein eigenes Produkt werden, das nicht von Dritten als
+Konkurrenzprodukt verkauft werden soll — eine reine permissive Lizenz (MIT/
+Apache) würde genau das erlauben.
+
+**Entscheidung:**
+- Default-Branch heißt ab jetzt `main` statt `master` (nur Namenswechsel,
+  keine inhaltliche Änderung; alle Referenzen in `.github/workflows/
+  release.yml`, `.releaserc.json` und `README.md` sind mitgezogen).
+- Das Repo ist öffentlich. Da `ajFourteen` weiterhin einziger Collaborator
+  ist, ändert das an Invariante 6 (genau eine Server-Instanz, ein Betreiber)
+  nichts — Dritte können forken und Pull Requests vorschlagen, aber nicht
+  direkt in dieses Repo pushen.
+- Lizenz ist die Business Source License 1.1 (`LICENSE`): Quellcode frei
+  einsehbar, änderbar und für nicht-kommerzielle Zwecke (Lernen, Workshops,
+  private Nutzung) nutzbar, aber nicht als Produkt oder Dienstleistung
+  verkaufbar. Change Date 2036-08-05, danach automatisch Apache License 2.0.
+  Als Change License ist strenggenommen laut MariaDBs eigenem Covenant nur
+  GPLv2-kompatibles vorgesehen; Apache 2.0 wurde trotzdem gewählt (üblich in
+  der Praxis, z. B. bei Sentry), weil hier niemand die Namensrechte an
+  „Business Source License" beansprucht.
+
+**Konsequenzen:**
+- Der alte `master`-Branch wird nach dem Umbenennen remote gelöscht, damit
+  nicht zwei Stände nebeneinander existieren.
+- Wer das Repo forkt, bekommt automatisch dieselbe Lizenz — die BSL gilt
+  auch für abgeleitete Kopien.
+- Diese Entscheidung betrifft nur Repo-Hülle und Lizenz, keine der übrigen
+  Invarianten oder die Architektur.
