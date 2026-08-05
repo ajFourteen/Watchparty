@@ -1,0 +1,35 @@
+name: Build & Test
+
+# Laeuft auf jedem Push und jeder Pull Request, damit ein roter Test sichtbar
+# wird, bevor er ueberhaupt die Chance hat, auf main zu landen (Phase 0 der
+# Teststrategie-Umsetzung, docs/teststrategie-umsetzung.md). Das Frontend
+# bleibt aussen vor -- es wird im Docker-Build ohnehin getrennt gebaut.
+
+on:
+  push:
+  pull_request:
+  # Erlaubt release.yml, diesen Workflow als Job einzuhaengen (jobs.needs
+  # wirkt nur innerhalb einer Workflow-Datei; ueber workflow_call wird daraus
+  # ein wiederverwendbarer Baustein statt einer zweiten Testdefinition).
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: check
+        run: ./gradlew check -PskipFrontend
+
+      - name: Testbericht
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test

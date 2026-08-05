@@ -16,7 +16,15 @@ permissions:
   pull-requests: write
 
 jobs:
+  # Ruft build.yml als wiederverwendbaren Workflow auf, statt die Pruefung
+  # hier zu duplizieren (Phase 0 der Teststrategie-Umsetzung). Ein roter Test
+  # verhindert damit Release und Deploy, nicht erst der menschliche Blick auf
+  # main.
+  build:
+    uses: ./.github/workflows/build.yml
+
   release:
+    needs: build
     runs-on: ubuntu-latest
     outputs:
       new_release_published: ${{ steps.semrelease.outputs.new_release_published }}
