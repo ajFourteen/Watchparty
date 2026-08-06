@@ -230,6 +230,27 @@ tasks.named("check") {
     dependsOn("jacocoTestReport", jacocoAdapterTestReport, jacocoApiTestReport)
 }
 
+// --- Mutationstests auf den HIGH-Klassen (docs/teststrategie.md, Abschnitt 7.2) --
+//
+// Nur die als HIGH eingestuften Klassen (Abschnitt 6.4) und nur die Tags
+// unit und port als Testmenge -- kein Spring, kein Socket, kein
+// Reportschreiben, sonst wird der Lauf unbenutzbar (PIT wiederholt Tests je
+// Mutant). includedGroups reicht bis zur JUnit5Configuration des
+// PIT-Plugins durch und filtert dort per Tag, genau wie unser eigener
+// test-Task.
+pitest {
+    targetClasses.set(setOf(
+            "de.fourteen.watchparty.domain.service.Settlement",
+            "de.fourteen.watchparty.application.RoomView"))
+    targetTests.set(setOf("de.fourteen.watchparty.*"))
+    includedGroups.set(setOf("unit", "port"))
+    testPlugin.set("junit5")
+    junit5PluginVersion.set("1.2.3")
+    mutationThreshold.set(99)
+    outputFormats.set(setOf("HTML", "XML"))
+    timestampedReports.set(false)
+}
+
 // --- Feature-Abdeckung (docs/teststrategie.md, Abschnitt 5.2) --------------
 //
 // Liest Anhang A aus derselben Datei wie die Anforderungen selbst -- eine
