@@ -83,6 +83,59 @@ class SettlementScenarioTest extends DeutschesSzenario<AbrechnungStufen, Abrechn
     }
 
     /**
+     * 7.2, zugespitzt: Der Rest geht an den mit dem groessten Rest, nicht an
+     * den zuerst eingefuegten. "y" ist zuerst dabei, hat aber den kleinsten
+     * Anteil (25 von 150) und damit den kleinsten Rest -- "x", zuletzt
+     * eingefuegt mit dem groessten Anteil (75 von 150), bekommt den einen
+     * uebrigen Punkt. Eine falsche Rundung oder eine kaputte Sortierung nach
+     * Rest wuerde stattdessen "y" bevorzugen, weil es zuerst eingefuegt wurde.
+     */
+    @Test
+    @Anforderung("7.2")
+    void derGroessteRestGewinntNichtDieEinfuegereihenfolge() {
+        angenommen()
+                .einTippAufTouchdownMitEinsatz("y", 25)
+                .und().einTippAufTouchdownMitEinsatz("z", 50)
+                .und().einTippAufTouchdownMitEinsatz("x", 75)
+                .und().einTippAufPuntMitEinsatz("verlierer", 1);
+
+        wenn().dieRundeWirdMitAusgangTouchdownAbgerechnet();
+
+        dann()
+                .zahlt("y", 0)
+                .und().zahlt("z", 0)
+                .und().zahlt("x", 1)
+                .und().zahlt("verlierer", -1)
+                .und().dieSummeAllerDeltasIstExaktNull();
+    }
+
+    /**
+     * 7.2, noch einmal zugespitzt: Der Rest muss ueber den tatsaechlichen
+     * Rest {@code raw % totalShares} entschieden werden, nicht ueber die
+     * rohe Groesse {@code raw} selbst. "a" (Anteil 25) hat hier den
+     * groesseren Rest, obwohl "b" (Anteil 30) den groesseren rohen Anteil
+     * am Pool haelt -- eine Verwechslung von Rest und Groesse (etwa Modulo
+     * durch Multiplikation ersetzt) wuerde stattdessen "b" den letzten
+     * Punkt geben.
+     */
+    @Test
+    @Anforderung("7.2")
+    void derGroessteRestEntscheidetUndNichtDerRoheAnteil() {
+        angenommen()
+                .einTippAufTouchdownMitEinsatz("a", 25)
+                .und().einTippAufTouchdownMitEinsatz("b", 30)
+                .und().einNichtTipperMitKontostand("d", 2);
+
+        wenn().dieRundeWirdMitAusgangTouchdownAbgerechnet();
+
+        dann()
+                .zahlt("a", 1)
+                .und().zahlt("b", 1)
+                .und().zahlt("d", -2)
+                .und().dieSummeAllerDeltasIstExaktNull();
+    }
+
+    /**
      * 8.2 (Push: niemand tippt den Gewinner-Ausgang, alle Einsaetze gehen
      * zurueck) und 8.2-a (die eingesammelten Strafen werden anteilig unter
      * allen Tippern verteilt) in einem Szenario: "a" und "b" tippen beide
