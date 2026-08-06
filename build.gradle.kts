@@ -230,6 +230,86 @@ tasks.named("check") {
     dependsOn("jacocoTestReport", jacocoAdapterTestReport, jacocoApiTestReport)
 }
 
+// --- Ebenen-Disjunktheit (docs/teststrategie.md, Abschnitt 7.4) ------------
+//
+// Deckt ein Adapter- oder API-Test eine Domaenenzeile ab, die kein
+// Port-to-Port- und kein Domaenentest abdeckt, ist das eine Luecke weiter
+// innen -- nicht ein Verdienst der aeusseren Ebene. Lief laut Strategie von
+// Anfang an automatisiert, deshalb hier ein Gate und kein reiner Bericht
+// (anders als die JaCoCo-Zahlen selbst, die bewusst ohne Schranke bleiben).
+tasks.register("ebenenDisjunktheit") {
+    group = "verification"
+    description = "Prueft, dass Adapter/API keine Domaenenzeile abdecken, die unit/port nicht selbst erreichen."
+    dependsOn("jacocoTestReport", jacocoAdapterTestReport, jacocoApiTestReport)
+
+    val innerReport = layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml")
+    val adapterReport = layout.buildDirectory.file("reports/jacoco/jacocoAdapterTestReport/jacocoAdapterTestReport.xml")
+    val apiReport = layout.buildDirectory.file("reports/jacoco/jacocoApiTestReport/jacocoApiTestReport.xml")
+    val berichtsDatei = layout.buildDirectory.file("reports/ebenen-disjunktheit.txt")
+
+    inputs.file(innerReport)
+    inputs.file(adapterReport)
+    inputs.file(apiReport)
+    outputs.file(berichtsDatei)
+
+    doLast {
+        val domaenenPraefix = "de/fourteen/watchparty/domain"
+
+        // Das JaCoCo-Schema referenziert eine externe DTD (report.dtd), die
+        // dem Report nicht beiliegt -- ohne diese Feature-Abschaltung sucht
+        // der Parser sie relativ zur XML-Datei und scheitert dort.
+        val docBuilderFactory = DocumentBuilderFactory.newInstance()
+        docBuilderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+
+        fun gedeckteDomaenenzeilen(reportDatei: java.io.File): Set<String> {
+            val dokument = docBuilderFactory.newDocumentBuilder().parse(reportDatei)
+            val zeilen = mutableSetOf<String>()
+            val pakete = dokument.getElementsByTagName("package")
+            for (p in 0 until pakete.length) {
+                val paket = pakete.item(p) as Element
+                val paketname = paket.getAttribute("name")
+                if (!paketname.startsWith(domaenenPraefix)) continue
+                val quelldateien = paket.getElementsByTagName("sourcefile")
+                for (s in 0 until quelldateien.length) {
+                    val quelldatei = quelldateien.item(s) as Element
+                    val dateiname = quelldatei.getAttribute("name")
+                    val zeilenknoten = quelldatei.getElementsByTagName("line")
+                    for (z in 0 until zeilenknoten.length) {
+                        val zeile = zeilenknoten.item(z) as Element
+                        if (zeile.getAttribute("ci").toInt() > 0) {
+                            zeilen += "$paketname/$dateiname:${zeile.getAttribute("nr")}"
+                        }
+                    }
+                }
+            }
+            return zeilen
+        }
+
+        val innen = gedeckteDomaenenzeilen(innerReport.get().asFile)
+        val aussen = gedeckteDomaenenzeilen(adapterReport.get().asFile) + gedeckteDomaenenzeilen(apiReport.get().asFile)
+        val luecken = (aussen - innen).sorted()
+
+        val bericht = buildString {
+            appendLine("Ebenen-Disjunktheit: ${luecken.size} Domaenenzeile(n) nur von Adapter/API gedeckt.")
+            luecken.forEach { appendLine("  - $it") }
+        }
+        println(bericht)
+        val datei = berichtsDatei.get().asFile
+        datei.parentFile.mkdirs()
+        datei.writeText(bericht)
+
+        if (luecken.isNotEmpty()) {
+            throw GradleException(
+                "Ebenen-Disjunktheit verletzt: ${luecken.size} Domaenenzeile(n) nur von Adapter/API " +
+                    "gedeckt, nicht von unit/port -- Luecke weiter innen: ${luecken.joinToString(", ")}")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("ebenenDisjunktheit")
+}
+
 // --- Mutationstests auf den HIGH-Klassen (docs/teststrategie.md, Abschnitt 7.2) --
 //
 // Nur die als HIGH eingestuften Klassen (Abschnitt 6.4) und nur die Tags
