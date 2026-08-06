@@ -552,8 +552,10 @@ sind entschieden:
 - **Sprachausnahme für die JGiven-Stufen** — entschieden (Abschnitt 8),
   strukturell durch ArchUnit eingehegt; als ADR festzuhalten.
 
-Was noch offen ist, ist **nicht mehr die Strategie, sondern ihre Umsetzung**.
-Der Arbeitsplan dafür steht in `teststrategie-umsetzung.md`.
+Die Umsetzung ist inzwischen abgeschlossen (fünf Phasen, zuletzt
+ADR-030/ADR-031) — der dafür verwendete Arbeitsplan
+(`teststrategie-umsetzung.md`) war ausdrücklich vorübergehend und ist mit
+Abschluss der letzten Phase gelöscht.
 
 Ein Beleg dafür, dass das Verfahren aus Abschnitt 9.2 trägt: Beim Zerlegen
 der Anforderungen fiel auf, dass die Host-Rolle nur in ADR-016 und ADR-021

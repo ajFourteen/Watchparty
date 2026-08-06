@@ -37,11 +37,10 @@ anderen Methoden, die durchaus einen Test verdienen.
 
 Nur wenn eine Änderung am Code das **Verhalten nicht ändert** — nicht, wenn
 sie es ändert, aber kein bestehender Test es bemerkt. Letzteres ist eine
-Testlücke, keine Ausnahme: siehe die Historie in
-`docs/teststrategie-umsetzung.md`, Phase 4, wo genau dieser Unterschied
-mehrfach den Ausschlag gab, einen neuen Test zu schreiben statt eine
-Ausnahme einzutragen (etwa `RoomView.catalog()`, das bislang nur über den
-Umweg des WELCOME-Frames geprüft war).
+Testlücke, keine Ausnahme: Als beim Einrichten dieses Mechanismus (ADR-031)
+`RoomView.catalog()` als nur über den Umweg des WELCOME-Frames geprüft
+auffiel, bekam es einen neuen Test (`RoomViewCatalogTest`), keine Ausnahme
+hier.
 
 ## Wie ein neuer Eintrag angelegt wird
 

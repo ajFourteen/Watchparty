@@ -35,6 +35,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-028 | Repo öffentlich, Default-Branch `main`, Business Source License | Akzeptiert |
 | ADR-029 | Java 25 durchgehend, mit den dafür nötigen Versionssprüngen | Akzeptiert |
 | ADR-030 | Teststrategie: Ebenen über JGiven-Tags, Sprachausnahme fürs Stufen-Paket | Akzeptiert |
+| ADR-031 | Teststrategie: Metriken scharf gestellt — JaCoCo, Ebenen-Disjunktheit, PIT, Ausnahmenregister | Akzeptiert |
 
 ---
 
@@ -1102,3 +1103,95 @@ Hook für die feste Oberfläche.
   Umbau der bestehenden Actor-Tests in Phase 3.3 entfernt.
 - jqwik ist eingebunden, aber noch ungenutzt — die Property-Tests aus
   Abschnitt 4 der Strategie sind ebenfalls Phase 3.1.
+
+---
+
+## ADR-031: Teststrategie: Metriken scharf gestellt — JaCoCo, Ebenen-Disjunktheit, PIT, Ausnahmenregister
+
+**Status:** Akzeptiert
+
+**Kontext:** Nach der Nachrüstung aller 60 `backend`-Regeln (Phase 3 von
+`teststrategie-umsetzung.md`) fehlten noch die in `teststrategie.md`
+Abschnitt 7 verlangten Metriken: Zeilenabdeckung je Ebene, die
+Ebenen-Disjunktheit aus Abschnitt 7.4, ein scharf gestellter
+Mutationstest (Abschnitt 7.2) und ein Ausnahmenregister für äquivalente
+Mutanten (Abschnitt 10). Bis dahin war Abdeckung nur über die
+`abdeckung`-Anforderungszählung sichtbar (ADR-030), nicht über tatsächlich
+ausgeführte Code-Zeilen oder überlebende Mutanten.
+
+**Entscheidung:**
+
+1. **JaCoCo je Ebene, ohne Prozentschranke** (Abschnitt 7.3): drei
+   `JacocoReport`-Tasks (`jacocoTestReport`, `jacocoAdapterTestReport`,
+   `jacocoApiTestReport`), je eigene Ausführungsdaten aus `test`/
+   `adapterTest`/`apiTest`, in `check` verdrahtet. Als Zielgröße erzeugt
+   Abdeckung Tests, die für die Zahl geschrieben werden — hier dient sie
+   nur als Artefakt und als Grundlage für Punkt 2.
+2. **Ebenen-Disjunktheit als automatisiertes Gate, nicht nur als Bericht**
+   (Abschnitt 7.4 verlangt das ausdrücklich "von Anfang an automatisiert").
+   Task `ebenenDisjunktheit` vergleicht die drei JaCoCo-XML-Berichte
+   zeilenweise, nur für `domain/`-Pakete: Deckt `adapterTest`/`apiTest`
+   zusammen eine Domänenzeile ab, die `test` (unit+port) nicht selbst
+   erreicht, ist das eine Lücke weiter innen, kein Verdienst der äußeren
+   Ebene. Per Gegenprobe verifiziert (unit/port testweise ausgeschaltet:
+   324 nur-äußerlich gedeckte Zeilen gemeldet), nicht nur für den
+   Idealfall geprüft.
+3. **PIT nur auf `HIGH`-Klassen, Schwelle 99 %, Testmenge nur `unit`/`port`**
+   (Abschnitt 7.2) — kein Spring, kein Socket, kein Reportschreiben in der
+   Mutantenschleife, sonst wird der Lauf unbenutzbar. `info.solidsoft.pitest`
+   1.19.0 (1.15.0 scheitert an Gradle 9.6.1, entfernte
+   `reporting.baseDir`-Property). Dabei ein echter Versionskonflikt
+   gefunden und behoben: `jgiven-junit5` und `jqwik-engine` hängen direkt
+   höhere `org.junit.platform`-Versionen an als Spring Boots
+   Dependency-Management für die übrigen JUnit-Module durchsetzt (5.12.2 /
+   1.12.2) — für die meisten Module gewinnt Spring Boots Verwaltung den
+   Konflikt, aber `junit-platform-launcher` verwaltet Spring Boot gar
+   nicht selbst, dort gewinnt unwidersprochen die höhere Anfrage. Ergebnis
+   ohne Gegenmittel: Launcher (1.13.x) und -engine/-commons (1.12.x)
+   laufen auseinander, ein `NoSuchMethodError` beim Testlauf.
+   `configurations.all { resolutionStrategy.eachDependency { ... } }`
+   erzwingt denselben Stand überall, greift vor der Konfliktauflösung
+   selbst statt nur bei explizit anderslautender Anfrage
+   (`resolutionStrategy.force` reichte dafür nicht). Dazu ein ArchUnit-Test,
+   der die Menge der `@Criticality(HIGH)`-Klassen gegen die
+   `pitest.targetClasses`-Konfiguration abgleicht, weil beide sich nicht
+   automatisch synchron halten können.
+4. **Ausnahmenregister über eine eigene Annotation, nicht über
+   Konfiguration allein** (Abschnitt 10): PIT kennt keine
+   `excludedAnnotations`-Eigenschaft (weder im Gradle-Plugin noch im
+   Kern-CLI), wohl aber ein eingebautes, standardmäßig aktives
+   Annotationsfilter-Plugin ("FANN"), über `pitest.features` angesprochen.
+   Neue Annotation `de.fourteen.watchparty.mutationtest.AequivalenterMutant`
+   (eigenes kleines Markerpaket, analog zu `criticality`) macht die
+   Unterdrückung im Code sichtbar; `docs/test-ausnahmen.md` ist das
+   dazugehörige, mit Datum geführte Register. Aktueller Stand: kein
+   Eintrag, PIT steht bei 100 %.
+
+**Ein echter, gravierender Fund bei der Verifikation von Punkt 3:**
+`archunit-junit5-engine:1.4.1` implementiert `getTags()` auf keinem seiner
+`TestDescriptor`-Knoten. Jeder JUnit-Platform-`TagFilter` — unabhängig von
+den konkreten Tags, unabhängig davon, ob per Paket oder per Klasse
+ausgewählt wird — sortiert dadurch ausnahmslos alle ArchUnit-Tests aus,
+ohne jede Fehlermeldung. `ArchitectureTest` trug `@Tag("arch")` und lief
+dadurch bei **keinem einzigen** `test`/`check`-Lauf seit Phase 1 von
+`teststrategie-umsetzung.md` tatsächlich mit, obwohl jede bisherige
+Verifikation `BUILD SUCCESSFUL` zeigte — ein durch Tag-Filterung leeres
+Ergebnis sieht identisch aus wie ein bestandener Lauf. Nachtrag zu
+ADR-030 (dort ausführlich beschrieben): Struktur (`arch`) läuft seither in
+einem eigenen Task `archTest`, ausgewählt über `includeEngines("archunit")`
+statt über einen Tag.
+
+**Konsequenzen:**
+- `check` hängt jetzt von `jacocoTestReport`, `jacocoAdapterTestReport`,
+  `jacocoApiTestReport`, `ebenenDisjunktheit` und `archTest` ab, zusätzlich
+  zu den bereits aus ADR-030 bekannten Tasks.
+- `./gradlew pitest` ist bewusst **nicht** Teil von `check` — ein
+  Mutationslauf für zwei Klassen dauert spürbar länger als der übrige
+  schnelle Lauf und würde `check` für den alltäglichen Gebrauch
+  verlangsamen. Er läuft eigenständig und ist die Grundlage für Punkt 3.
+- Laufzeit gemessen: `./gradlew clean check pitest -PskipFrontend` von
+  Grund auf, ohne Daemon, 59 Sekunden — weit unter dem 10-Minuten-Budget
+  aus Abschnitt 10, keine Gegensteuerung nötig.
+- `docs/teststrategie-umsetzung.md` (temporärer Arbeitsplan) verzeichnet
+  alle Einzelfunde dieser Phase im Detail; dieses ADR fasst nur die
+  bleibenden Entscheidungen zusammen.
