@@ -208,10 +208,25 @@ serialisiert vollständig).
 serialisierten JSON** (der bestehende `WireProtocolSmokeTest` ist die
 Grundlage), die Vollständigkeit des Zustands nach Reconnect und die
 nicht-funktionale Prüfung: Ein Client, der nicht mehr liest, hält die
-anderen nicht auf.
+anderen nicht auf. **Erledigt**, alle drei als neue Testmethoden in
+`WireProtocolSmokeTest`: der Leck-Test vergleicht die tatsächlichen
+JSON-Feldnamen eines OPEN-Frames gegen dieselbe Positivliste wie auf der
+Port-Ebene (findet, was erst durch Jackson entsteht); der
+Reconnect-Test verbindet über einen zweiten echten Socket mit dem alten
+Token und prüft Spieler-ID und vollständigen Zustand; die NFR-Prüfung lässt
+einen Client abrupt abbrechen und zeigt, dass ein zweiter normal
+weiterläuft (das Blockieren einer einzelnen Ausgangs-Queue bei einem
+tatsächlich langsamen Client bleibt Sache von ADR-012 und
+`ClientSessionTest`).
+
+Dabei ein echter Fund: Tomcat wirft beim Schreiben in eine gerade
+schliessende Session eine `IllegalStateException`, keine `IOException` --
+`ClientSession.drain()` fing nur Letztere ab, die Ausnahme verliess den
+Sende-Pool-Thread unbehandelt. Mit Regressionstest behoben.
 
 **Fertig, wenn** `./gradlew abdeckung` null offene `backend`-Regeln meldet.
-**Unmittelbar danach**: den Bericht aus Phase 2 zum Gate machen.
+**Unmittelbar danach**: den Bericht aus Phase 2 zum Gate machen. **Beides
+erledigt** — `check` hängt jetzt von `abdeckung` ab, 60 von 60.
 
 **Risiko:** der Umfang. Gegenmittel ist die Reihenfolge — nach jedem
 Teilschritt ist ein sinnvoller, committbarer Zustand erreicht, und die

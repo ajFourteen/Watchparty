@@ -76,7 +76,13 @@ public class ClientSession {
                 }
                 try {
                     session.sendMessage(new TextMessage(message));
-                } catch (IOException e) {
+                } catch (IOException | IllegalStateException e) {
+                    // Tomcat wirft IllegalStateException statt IOException,
+                    // wenn die Session gerade schliesst und session.isOpen()
+                    // das oben noch nicht mitbekommen hat -- ohne diesen Zweig
+                    // wuerde die Ausnahme den Sende-Pool-Thread unbehandelt
+                    // verlassen, statt denselben Aufraeumpfad wie bei einem
+                    // echten I/O-Fehler zu nehmen (Invariante 2).
                     log.debug("Senden fehlgeschlagen, Session {}: {}", getId(), e.getMessage());
                     outbox.clear();
                     closeQuietly();

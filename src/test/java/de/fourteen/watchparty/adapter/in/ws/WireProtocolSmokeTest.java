@@ -18,8 +18,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,14 +38,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * {@code @DirtiesContext}: Invariante 6 (genau eine Server-Instanz) bedeutet
  * einen einzigen {@code Room} als Singleton-Bean. Spring cacht den
- * Testkontext ueber Testklassen mit identischer Konfiguration hinweg --
- * ohne diese Annotation wuerde sich der Raumzustand mit jedem weiteren
- * {@code @SpringBootTest} auf der API-Ebene (etwa {@code RundenablaufScenarioTest})
- * denselben Room teilen.
+ * Testkontext sowohl ueber Testklassen mit identischer Konfiguration hinweg
+ * (deshalb {@code AFTER_CLASS} noetig, sonst teilt sich dieser Test mit
+ * {@code RundenablaufScenarioTest} denselben Room) als auch -- wichtiger --
+ * ueber die Testmethoden dieser Klasse selbst: Ohne {@code AFTER_EACH_TEST_METHOD}
+ * wuerden alle Methoden hier denselben Room und damit denselben
+ * Teilnehmerkreis teilen.
  */
 @ApiTest
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class WireProtocolSmokeTest {
 
     @LocalServerPort
@@ -107,6 +111,101 @@ class WireProtocolSmokeTest {
         assertThat(revealed.get(0).path("playerId").asText()).isEqualTo(annaPlayerId);
         assertThat(revealed.get(0).path("outcomeId").asText()).isEqualTo(outcomeId);
         assertThat(revealed.get(0).path("stake").asInt()).isEqualTo(annasEinsatz);
+    }
+
+    /**
+     * Leck-Test am tatsaechlich serialisierten JSON (docs/teststrategie.md,
+     * Abschnitt 3.1): Eine Positivliste ueber die Feldnamen selbst statt nur
+     * ausgewaehlter Stichproben -- findet auch ein Feld, das erst durch
+     * Jackson entsteht und das der Java-seitige Leck-Test auf der
+     * Port-Ebene (siehe {@code VerdeckteTippsStufen}) gar nicht sehen kann.
+     */
+    @Test
+    void waehrendOffenemFensterStehtImJsonSelbstNurDiePositivlisteAnFeldern() throws Exception {
+        Set<String> waehrendOpenErlaubt = Set.of(
+                "type", "players", "hostPlayerId", "phase", "roundId", "bet", "closesAt", "serverNow",
+                "pickCount", "participantCount");
+
+        RecordingClient host = connect();
+        host.send("{\"type\":\"JOIN\",\"name\":\"Host\"}");
+        JsonNode hostWelcome = host.awaitType("WELCOME");
+        String betId = hostWelcome.path("catalog").get(0).path("id").asText();
+
+        host.send("{\"type\":\"OPEN_BET\",\"betId\":\"" + betId + "\"}");
+        JsonNode state = host.awaitState(s -> "OPEN".equals(s.path("phase").asText()));
+
+        Set<String> tatsaechlicheFelder = StreamSupport
+                .stream(java.util.Spliterators.spliteratorUnknownSize(state.fieldNames(), 0), false)
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(waehrendOpenErlaubt).containsAll(tatsaechlicheFelder);
+    }
+
+    /**
+     * Vollstaendigkeit nach Reconnect (Invariante 3) ueber einen echten
+     * Socket: derselbe Token liefert dieselbe Spieler-ID zurueck, und der
+     * naechste STATE-Frame zeigt wieder den vollen, aktuellen Zustand.
+     */
+    @Test
+    void reconnectUeberEchtenSocketLiefertDenVollstaendigenZustandZurueck() throws Exception {
+        RecordingClient host = connect();
+        host.send("{\"type\":\"JOIN\",\"name\":\"Host\"}");
+        JsonNode hostWelcome = host.awaitType("WELCOME");
+        String betId = hostWelcome.path("catalog").get(0).path("id").asText();
+
+        RecordingClient anna = connect();
+        anna.send("{\"type\":\"JOIN\",\"name\":\"Anna\"}");
+        JsonNode annaWelcome = anna.awaitType("WELCOME");
+        String annaPlayerId = annaWelcome.path("playerId").asText();
+        String annaToken = annaWelcome.path("token").asText();
+
+        host.send("{\"type\":\"OPEN_BET\",\"betId\":\"" + betId + "\"}");
+        host.awaitState(s -> "OPEN".equals(s.path("phase").asText()));
+
+        anna.close();
+
+        RecordingClient annaReconnected = connect();
+        annaReconnected.send("{\"type\":\"JOIN\",\"name\":\"Anna\",\"token\":\"" + annaToken + "\"}");
+        JsonNode reconnectWelcome = annaReconnected.awaitType("WELCOME");
+        assertThat(reconnectWelcome.path("playerId").asText()).isEqualTo(annaPlayerId);
+
+        JsonNode stateNachReconnect = annaReconnected.awaitState(s -> "OPEN".equals(s.path("phase").asText()));
+        assertThat(stateNachReconnect.path("players")).hasSize(2);
+        assertThat(stateNachReconnect.path("participantCount").asInt()).isEqualTo(2);
+    }
+
+    /**
+     * Nicht-funktionale Pruefung, soweit auf dieser Ebene entscheidbar
+     * (docs/teststrategie.md, Abschnitt 2.4): Eine abrupt abgebrochene
+     * Verbindung haelt den Raum-Thread nicht an -- ein zweiter, normal
+     * lesender Client bekommt seine Frames unveraendert rechtzeitig. Das
+     * Blockieren einer einzelnen Ausgangs-Queue bei einem tatsaechlich
+     * langsamen Client ist bereits auf der Adapter-Ebene unter Kontrolle
+     * (ADR-012, {@code ClientSessionTest}); hier zaehlt nur, dass der Raum
+     * insgesamt weiterlaeuft.
+     */
+    @Test
+    void eineAbgebrocheneVerbindungHaeltDenRaumNichtAn() throws Exception {
+        RecordingClient host = connect();
+        host.send("{\"type\":\"JOIN\",\"name\":\"Host\"}");
+        JsonNode hostWelcome = host.awaitType("WELCOME");
+        String betId = hostWelcome.path("catalog").get(0).path("id").asText();
+
+        RecordingClient stoerenfried = connect();
+        stoerenfried.send("{\"type\":\"JOIN\",\"name\":\"Stoerenfried\"}");
+        stoerenfried.awaitType("WELCOME");
+        stoerenfried.close();
+
+        RecordingClient anna = connect();
+        anna.send("{\"type\":\"JOIN\",\"name\":\"Anna\"}");
+        anna.awaitType("WELCOME");
+
+        host.send("{\"type\":\"OPEN_BET\",\"betId\":\"" + betId + "\"}");
+
+        // Host, Stoerenfried (getrennt, aber noch nicht pausiert) und Anna --
+        // die abgebrochene Verbindung hat den Teilnehmerkreis nicht verkleinert,
+        // nur den Raum-Thread laeuft trotzdem ganz normal weiter.
+        JsonNode annaState = anna.awaitState(s -> "OPEN".equals(s.path("phase").asText()));
+        assertThat(annaState.path("participantCount").asInt()).isEqualTo(3);
     }
 
     private RecordingClient connect() throws Exception {

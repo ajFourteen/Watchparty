@@ -175,9 +175,10 @@ tasks.named("check") {
 // JUnit-XML-Berichten aller drei Ebenen abgleichen -- das erfasst JGiven-
 // Szenarien und jqwik-Properties einheitlich ueber denselben Mechanismus.
 //
-// Bewusst (noch) kein Gate: Bei so vielen offenen Regeln waere der Build ab
-// Tag eins rot. Scharf gestellt wird das am Ende von Phase 3 der
-// Teststrategie-Umsetzung (docs/teststrategie-umsetzung.md, Phase 2).
+// Scharf gestellt seit Phase 3 (docs/teststrategie-umsetzung.md): 60 von 60
+// backend-Regeln sind belegt, `check` haengt jetzt von diesem Task ab. Der
+// Uebergang war terminiert, nicht optional -- vorher lief der Task nur als
+// Bericht, sonst waere der Build ab Tag eins rot gewesen.
 tasks.register("abdeckung") {
     group = "verification"
     description = "Vergleicht die backend-Regeln aus Anhang A mit den gruen gelaufenen @Anforderung-Testmethoden."
@@ -282,7 +283,15 @@ tasks.register("abdeckung") {
         val datei = berichtsDatei.get().asFile
         datei.parentFile.mkdirs()
         datei.writeText(bericht)
+
+        if (fehlend.isNotEmpty()) {
+            throw GradleException("Feature-Abdeckung unvollstaendig: ${fehlend.size} offene backend-Regel(n) -- ${fehlend.joinToString(", ")}")
+        }
     }
+}
+
+tasks.named("check") {
+    dependsOn("abdeckung")
 }
 
 // --- Null-Sicherheit (ADR-026) ---------------------------------------------

@@ -94,4 +94,24 @@ class ClientSessionTest {
                 .isTrue();
         assertThat(socket.anzahlSchliessungen()).isPositive();
     }
+
+    /**
+     * Tomcat wirft beim Schreiben in eine gerade schliessende Session eine
+     * {@code IllegalStateException}, keine {@code IOException} -- gefunden
+     * beim Nachruesten von Phase 3.5 als unbehandelte Ausnahme im
+     * Sende-Pool-Thread. Muss denselben Aufraeumpfad nehmen wie ein echter
+     * I/O-Fehler, statt den Thread unbehandelt zu verlassen.
+     */
+    @Test
+    void eineIllegalStateExceptionBeimSendenSchliesstDieSessionStattDenThreadZuVerlassen() throws Exception {
+        FakeWebSocketSession socket = new FakeWebSocketSession();
+        socket.wirftBeimNaechstenSendenEineIllegalStateException();
+
+        ClientSession session = new ClientSession(socket, sendPool);
+        session.send("nachricht");
+
+        assertThat(socket.warteBisGeschlossen(GEDULD))
+                .as("die Session wurde aufgeraeumt statt die Ausnahme unbehandelt zu lassen")
+                .isTrue();
+    }
 }

@@ -44,6 +44,8 @@ class FakeWebSocketSession implements WebSocketSession {
     private volatile CountDownLatch freigabe;
     private volatile CountDownLatch sendenHaengt;
 
+    private volatile boolean wirftBeimNaechstenSenden;
+
     FakeWebSocketSession() {
         this("fake-socket");
     }
@@ -86,6 +88,16 @@ class FakeWebSocketSession implements WebSocketSession {
         return List.copyOf(gesendet);
     }
 
+    /**
+     * Bildet nach, dass Tomcat beim Schreiben in eine gerade schliessende
+     * Session eine {@link IllegalStateException} wirft, keine
+     * {@link java.io.IOException} -- {@code isOpen()} hat das zu diesem
+     * Zeitpunkt noch nicht mitbekommen.
+     */
+    void wirftBeimNaechstenSendenEineIllegalStateException() {
+        wirftBeimNaechstenSenden = true;
+    }
+
     int anzahlSchliessungen() {
         return schliessungen.get();
     }
@@ -94,6 +106,10 @@ class FakeWebSocketSession implements WebSocketSession {
 
     @Override
     public void sendMessage(WebSocketMessage<?> message) {
+        if (wirftBeimNaechstenSenden) {
+            wirftBeimNaechstenSenden = false;
+            throw new IllegalStateException("Message will not be sent because the WebSocket session has been closed");
+        }
         CountDownLatch riegel = freigabe;
         if (riegel != null) {
             sendenHaengt.countDown();
