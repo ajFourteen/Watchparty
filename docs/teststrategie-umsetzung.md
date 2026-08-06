@@ -304,7 +304,14 @@ Wertvollste.
    100 %.
 5. **Laufzeit messen.** Budget sind 10 Minuten. Wird es eng, wird zuerst die
    Häufigkeit der Disjunktheitsprüfung reduziert (nur auf `master`), danach
-   ihr Umfang — nicht stillschweigend die Prüfung selbst.
+   ihr Umfang — nicht stillschweigend die Prüfung selbst. **Erledigt** —
+   `./gradlew clean check pitest -PskipFrontend` von Grund auf (kein
+   Gradle-Daemon, kein Cache-Treffer): 59 Sekunden, weit unter dem Budget.
+   Deutlich unter 10 Minuten selbst mit großem Sicherheitsabstand für einen
+   langsameren CI-Runner (kälterer Dependency-Cache, schwächere CPU) — keine
+   Gegensteuerung nötig, die in Abschnitt 7.4 vorgesehene
+   Häufigkeits-/Umfangsreduktion bleibt für später, falls sich das mit
+   wachsendem Testbestand ändert.
 
 **Fertig, wenn** ein absichtlich überlebender Mutant in `Settlement` die
 Pipeline rot macht.
