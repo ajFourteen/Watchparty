@@ -18,7 +18,7 @@ class TeilnehmerkreisScenarioTest
         extends DeutschesSzenario<TeilnehmerkreisStufen, TeilnehmerkreisStufen, TeilnehmerkreisStufen> {
 
     @Test
-    @Anforderung({ "8.1-a", "8.1-b" })
+    @Anforderung({ "8.1-a", "8.1-b", "9-c" })
     void werNachOeffnenBeitrittZahltKeineStrafeFuerDieseRunde() {
         angenommen()
                 .einHostUndBenSindImRaum()

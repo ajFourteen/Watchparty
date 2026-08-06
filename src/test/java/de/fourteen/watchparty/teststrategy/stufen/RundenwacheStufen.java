@@ -1,0 +1,74 @@
+package de.fourteen.watchparty.teststrategy.stufen;
+
+import de.fourteen.watchparty.application.message.Messages;
+
+import java.time.Duration;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Zeit- und Reihenfolge-Szenarien der Port-to-Port-Ebene (docs/teststrategie.md,
+ * Abschnitt 2.2), allen voran die Rundenwache aus ADR-010: Der
+ * {@code FakeScheduler} macht die Verschraenkung zwischen manuellem und
+ * automatischem Schluss deterministisch nachspielbar, statt auf echte 15
+ * Sekunden zu warten. Belegt 5-a bis 5-d.
+ */
+public class RundenwacheStufen extends RaumStufen<RundenwacheStufen> {
+
+    public RundenwacheStufen derHostIstImRaum() {
+        beitreten("Host");
+        return this;
+    }
+
+    public RundenwacheStufen derHostOeffnetEineWette() {
+        actor.openBet(sessionVon("Host"), null);
+        actor.awaitIdle();
+        return this;
+    }
+
+    public RundenwacheStufen fuenfzehnSekundenVergehenUndDerAutoCloseTimerFeuert() {
+        clock.advance(Duration.ofSeconds(15));
+        scheduler.fireAll();
+        actor.awaitIdle();
+        return this;
+    }
+
+    public RundenwacheStufen derHostSchliesstVonHand() {
+        actor.closeBet(sessionVon("Host"));
+        actor.awaitIdle();
+        return this;
+    }
+
+    public RundenwacheStufen derVeralteteAutoCloseTimerFeuertTrotzdem() {
+        scheduler.fireOldestIgnoringCancellation();
+        actor.awaitIdle();
+        return this;
+    }
+
+    public RundenwacheStufen derHostTipptSchliesstUndLoestZugunstenVonTouchdownAuf() {
+        actor.placePick(sessionVon("Host"), "touchdown", null);
+        actor.closeBet(sessionVon("Host"));
+        actor.resolve(sessionVon("Host"), "touchdown");
+        actor.awaitIdle();
+        return this;
+    }
+
+    public RundenwacheStufen dasFensterIstAutomatischGeschlossen() {
+        assertThat(phase()).isEqualTo("CLOSED");
+        return this;
+    }
+
+    public RundenwacheStufen dieRundeBleibtEinfachGeschlossen() {
+        assertThat(phase()).isEqualTo("CLOSED");
+        return this;
+    }
+
+    public RundenwacheStufen dieNeueRundeBleibtOffen() {
+        assertThat(phase()).isEqualTo("OPEN");
+        return this;
+    }
+
+    private String phase() {
+        return neuesterStatusFuer("Host").phase();
+    }
+}
