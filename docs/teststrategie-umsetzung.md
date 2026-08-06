@@ -284,7 +284,24 @@ Wertvollste.
 4. **Ausnahmenregister** anlegen (`docs/test-ausnahmen.md`): äquivalente
    Mutanten und bewusst nicht abgedeckte Fälle, jeweils mit Begründung und
    Datum. Ausschluss über `excludedAnnotations`, damit die Unterdrückung im
-   Code sichtbar ist.
+   Code sichtbar ist. **Erledigt** — PIT selbst kennt keine
+   `excludedAnnotations`-Eigenschaft (weder im Gradle-Plugin noch im
+   Kern-CLI), wohl aber ein eingebautes, standardmäßig aktives
+   Annotationsfilter-Plugin ("FANN"), das über `pitest.features`
+   angesprochen wird. Neue Annotation
+   `de.fourteen.watchparty.mutationtest.AequivalenterMutant` (eigenes
+   kleines Markerpaket, analog zu `criticality`), in `build.gradle.kts` per
+   `features.set(listOf("+FANN(annotation[Generated]annotation[DoNotMutate]
+   annotation[CoverageIgnore]annotation[AequivalenterMutant])"))` ergänzt.
+   Dabei ein Stolperstein: PITs Feature-Grammatik trennt mehrere Werte
+   *desselben* Parameters nicht durch Kommas (jedes Komma wird als Trenner
+   zwischen ganzen Features gelesen, mit dem Fehler "X should start with +
+   or -"), sondern durch wiederholte `schluessel[wert]`-Klauseln ohne
+   Trennzeichen dazwischen. Mit einer echten, danach wieder entfernten
+   Test-Annotation auf `Settlement.requireShare` verifiziert (Mutantenzahl
+   sank von 41 auf 40, stieg nach dem Entfernen wieder auf 41). Aktueller
+   Registerstand: keine Ausnahme eingetragen, 41 von 41 Mutanten stehen bei
+   100 %.
 5. **Laufzeit messen.** Budget sind 10 Minuten. Wird es eng, wird zuerst die
    Häufigkeit der Disjunktheitsprüfung reduziert (nur auf `master`), danach
    ihr Umfang — nicht stillschweigend die Prüfung selbst.

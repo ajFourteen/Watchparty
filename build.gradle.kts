@@ -364,6 +364,14 @@ pitest {
     mutationThreshold.set(99)
     outputFormats.set(setOf("HTML", "XML"))
     timestampedReports.set(false)
+    // Ausnahmenregister (docs/test-ausnahmen.md, Abschnitt 7.2/10): das
+    // eingebaute FANN-Plugin (an, per Default schon auf Generated/
+    // DoNotMutate/CoverageIgnore) schliesst annotierte Klassen/Methoden von
+    // der Mutation aus -- die eigene Annotation ergaenzt die drei
+    // Standardnamen, statt sie zu ersetzen (ein konfigurierter Wert
+    // ueberschreibt sonst die eingebaute Liste komplett).
+    features.set(listOf(
+            "+FANN(annotation[Generated]annotation[DoNotMutate]annotation[CoverageIgnore]annotation[AequivalenterMutant])"))
 }
 
 // --- Feature-Abdeckung (docs/teststrategie.md, Abschnitt 5.2) --------------
