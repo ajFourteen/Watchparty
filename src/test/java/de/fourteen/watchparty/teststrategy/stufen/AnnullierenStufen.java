@@ -37,6 +37,12 @@ public class AnnullierenStufen extends RaumStufen<AnnullierenStufen> {
         return this;
     }
 
+    /** Unterscheidet den Abbruch durch den Host von der automatischen Annullierung ohne Tipp (8.4). */
+    public AnnullierenStufen derAnnulReasonIst(String erwartet) {
+        assertThat(neuesterStatusFuer("Host").annulReason()).isEqualTo(erwartet);
+        return this;
+    }
+
     public AnnullierenStufen benIstAuchNachMehrerenAnnulliertenRundenNichtPausiert() {
         assertThat(neuesterStatusFuer("Host").players().stream()
                 .filter(spieler -> spieler.name().equals("Ben"))
@@ -71,6 +77,7 @@ public class AnnullierenStufen extends RaumStufen<AnnullierenStufen> {
         assertThat(status.phase()).isEqualTo("RESOLVED");
         assertThat(status.winningOutcomeId()).isEqualTo("touchdown");
         assertThat(status.annulled()).isFalse();
+        assertThat(status.annulReason()).isNull();
         return this;
     }
 

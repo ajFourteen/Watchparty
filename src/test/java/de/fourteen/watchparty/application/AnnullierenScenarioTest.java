@@ -27,6 +27,7 @@ class AnnullierenScenarioTest extends DeutschesSzenario<AnnullierenStufen, Annul
             dann()
                     .alleKontenSindUnveraendert()
                     .und().benIstAuchNachMehrerenAnnulliertenRundenNichtPausiert()
+                    .und().derAnnulReasonIst("HOST")
                     .und().invariantenGeltenWeiterhin();
         }
     }
@@ -58,6 +59,7 @@ class AnnullierenScenarioTest extends DeutschesSzenario<AnnullierenStufen, Annul
 
         dann()
                 .dieRundeIstAutomatischAnnulliertOhneVerrechnung()
+                .und().derAnnulReasonIst("NO_PICKS")
                 .und().alleKontenSindUnveraendert()
                 .und().invariantenGeltenWeiterhin();
     }
