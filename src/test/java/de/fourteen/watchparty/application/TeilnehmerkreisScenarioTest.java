@@ -29,6 +29,7 @@ class TeilnehmerkreisScenarioTest
 
         dann()
                 .zahltEineStrafe("Ben")
-                .und().zahltKeineStrafeWeilErstNachOeffnenBeigetreten("Anna");
+                .und().zahltKeineStrafeWeilErstNachOeffnenBeigetreten("Anna")
+                .und().invariantenGeltenWeiterhin();
     }
 }
