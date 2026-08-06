@@ -4,7 +4,9 @@ Kontext für die Arbeit an diesem Projekt. Bei fachlichen Fragen zuerst
 `docs/anforderungen.md` lesen, bei technischen `docs/adrs.md`. Was noch nicht
 entschieden ist, steht in `docs/offene-entscheidungen.md` — dort bitte nichts
 stillschweigend festlegen, sondern nachfragen. Was am ersten echten Spielabend
-zu beobachten ist, steht in `docs/probelauf.md`.
+zu beobachten ist, steht in `docs/probelauf.md`. Wie getestet wird — Ebenen,
+Kritikalität, Metriken, Vorgehen bei neuen Features — steht in
+`docs/teststrategie.md`.
 
 ## Was das ist
 
@@ -195,7 +197,8 @@ frontend/src/
   Guide.jsx                Kurzanleitung als Overlay, baut den Wettkatalog
                            aus den Serverdaten auf
 docs/                      Anforderungen, ADRs, offene Entscheidungen,
-                           Beobachtungsbogen für den Probelauf
+                           Beobachtungsbogen für den Probelauf,
+                           Teststrategie und Feature-Vorlage
 ```
 
 ## Nächster Schritt
@@ -232,7 +235,19 @@ selbst, die sich nicht am Schreibtisch simulieren lassen.
   ADR-027) — `ArchitectureTest` schlägt sonst fehl, nicht erst beim nächsten
   Refactoring. Passt wirklich keiner (wie bei `Bets`, dem Wettkatalog), muss
   der Typ in `ArchitectureTest` explizit als Ausnahme genannt werden, nicht
-  stillschweigend durchrutschen.
+  stillschweigend durchrutschen. Analog bekommt ein neuer Domänentyp sein
+  JGiven-Szenario sofort, nicht erst nachträglich — derselbe Grundsatz wie
+  beim Stereotyp, nur für Verhalten statt für Struktur.
+- **Neue Features sind testgetrieben** (`docs/teststrategie.md`, Abschnitt
+  9.1): Vor der Implementierung entsteht ein Feature-Dokument unter
+  `docs/features/NNN-kurzname.md` nach der Vorlage in
+  `docs/features/_vorlage.md` — Anlass, betroffene Anforderungen,
+  Akzeptanzkriterien, Szenarien in Angenommen/Wenn/Dann, Kritikalität. Die
+  Szenarien werden eins zu eins zu JGiven-Szenarien, bevor der
+  Produktivcode dafür existiert. Das gilt für neue Features; der
+  bestehende Funktionsumfang wurde einmalig als Characterization Testing
+  nachgerüstet (`docs/teststrategie-umsetzung.md`, inzwischen abgeschlossen
+  und gelöscht) und ist davon nicht rückwirkend betroffen.
 - Entities und der Aggregate Root ändern sich nur über benannte Übergänge
   (`closeCurrentRound`, `addPick`, …), nie über einen öffentlichen Setter
   (ADR-025/ADR-027) — auch das ist eine geprüfte Regel, kein reiner Stil.

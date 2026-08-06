@@ -11,6 +11,13 @@ Fachliche Grundlage ist `anforderungen.md`, technische `adrs.md`. Was der
 Abend ergibt, wird danach in `offene-entscheidungen.md` gestrichen und in die
 Quelldokumente übernommen.
 
+„Worauf zu achten ist" führt genau die Fragen, die in Anhang A von
+`anforderungen.md` als `beobachtung` markiert sind (Stand: 3.1-b, 5-f) —
+jede solche Zeile bekommt hier einen eigenen Abschnitt, sonst driften die
+beiden Listen auseinander. Die übrigen Abschnitte (Wettkatalog, Annullieren,
+kleine Runde, Handys) sind zusätzliche, nicht in Anhang A verzeichnete
+Beobachtungen für denselben Abend.
+
 ## Vorher
 
 - **Deployment steht.** Über die echte Domain öffnen, nicht über localhost —
@@ -27,7 +34,7 @@ Quelldokumente übernommen.
 
 ## Worauf zu achten ist
 
-### Die drei Parameter (Anforderung 3.1)
+### Die drei Parameter (Anforderung 3.1, Anhang A 3.1-b)
 
 Startguthaben 1000, Mindesteinsatz 25, Strafe 25. Die Herleitung war: 40
 Mindesteinsätze Puffer bei etwa 25 Drives pro Abend, und Strafe gleich
@@ -41,7 +48,7 @@ Mindesteinsatz macht Aussitzen strikt dominiert.
 - Tut die Strafe weh genug, dass niemand eine Runde auslässt, ohne es zu
   merken?
 
-### Das Wettfenster
+### Das Wettfenster (Anhang A 5-f)
 
 15 Sekunden, für alle Wetten gleich.
 
