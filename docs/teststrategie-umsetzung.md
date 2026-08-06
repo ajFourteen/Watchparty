@@ -177,16 +177,32 @@ Testklassen und gleicht sie mit den JUnit-XML-Berichten ab — ein Weg für
 JGiven-Szenarien und jqwik-Properties gleichermaßen.
 
 Bewusst nicht 1:1 nachgebaut: ein paar reine Implementierungs-Regressionstests
-ohne eigene Anhang-A-ID (doppeltes Schließen ist ein No-op, ein zweites
-Öffnen während einer laufenden Runde ist ein Fehler, ein Tipp exakt auf
-`closesAt` zählt nicht mehr). Ihre Abwesenheit ist eine bewusste
-Abwägung angesichts des Umfangs, kein Versehen — sie betreffen keine
-offene `backend`-Regel.
+ohne eigene Anhang-A-ID (doppeltes Schließen ist ein No-op, ein Tipp exakt
+auf `closesAt` zählt nicht mehr). Ihre Abwesenheit ist eine bewusste
+Abwägung angesichts des Umfangs, kein Versehen — sie betreffen keine offene
+`backend`-Regel. ("Ein zweites Öffnen während einer laufenden Runde bleibt
+bei der einen Runde" ist dagegen doch nachgebaut, als 1-b in
+`RundenwacheScenarioTest`.)
+
+**Restlücken geschlossen.** Nach 3.1–3.3 fehlten noch Katalog-Struktur
+(4-a bis 4.4-a), Pool/Gewinnaufteilung (2-a, 2-b), Ganzzahligkeit/Kontostand
+(3-b, 3-e) und Beitrittsgrundlagen (1-b, 1-e, 3-a, 3-c) — nachgetragen auf
+bestehende oder neue, kleine Szenarien/Tests. Dabei ein echter Befund:
+3.1-a stimmte nicht (Startguthaben stand getrennt von `Params`), durch
+Nutzer-Entscheidung aufgelöst (`Params` bekommt ein drittes Feld,
+`docs/offene-entscheidungen.md`). Abdeckung seither 60 von 60.
 
 **3.4 Adapter.** Fixtures werden am Port-Datentyp konstruiert, nicht durch
 die Domäne erzeugt. Snapshot-Round-Trip über einen **vollständig gefüllten**
 Raum; jeder Nachrichtentyp serialisiert; kaputte und unvollständige Frames
-töten weder Verbindung noch Raum-Thread.
+töten weder Verbindung noch Raum-Thread. **Erledigt.** Der Snapshot-Round-Trip
+aus Phase 1 (`SnapshotRoundTripScenarioTest`) war schon vollständig genug
+(zwei Spieler, einer mit `missedRounds > 0`, eine aufgelöste Runde mit
+Tipps und Deltas); neu sind `GameWebSocketHandlerTest` (kaputtes JSON,
+unbekannter Typ, fehlendes Typ-Feld, fehlende Pflichtfelder — keins davon
+tötet Verbindung oder Kommando-Fluss) und `WebSocketClientGatewayTest`
+(jeder `Messages`-Typ inklusive der RESOLVED-spezifischen Felder
+serialisiert vollständig).
 
 **3.5 API.** Ein durchgängiger Rundenablauf, der **Leck-Test am
 serialisierten JSON** (der bestehende `WireProtocolSmokeTest` ist die
