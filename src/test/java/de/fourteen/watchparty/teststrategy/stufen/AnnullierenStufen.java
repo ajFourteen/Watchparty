@@ -79,4 +79,19 @@ public class AnnullierenStufen extends RaumStufen<AnnullierenStufen> {
         assertThat(fehler).contains("Es läuft keine Runde, die sich annullieren ließe.");
         return this;
     }
+
+    /** 8.4: Tippt niemand, wird beim Aufloesen automatisch annulliert -- ohne Host-Eingriff. */
+    public AnnullierenStufen derHostSchliesstUndLoestOhneDassJemandGetipptHat() {
+        actor.closeBet(sessionVon("Host"));
+        actor.resolve(sessionVon("Host"), "touchdown");
+        actor.awaitIdle();
+        return this;
+    }
+
+    public AnnullierenStufen dieRundeIstAutomatischAnnulliertOhneVerrechnung() {
+        Messages.State status = neuesterStatusFuer("Host");
+        assertThat(status.phase()).isEqualTo("RESOLVED");
+        assertThat(status.annulled()).isTrue();
+        return this;
+    }
 }

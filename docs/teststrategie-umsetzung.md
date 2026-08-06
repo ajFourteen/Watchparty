@@ -140,23 +140,48 @@ ein Implementierungsdetail (dann entfällt er).
 **3.1 Domäne, Kritikalität HIGH.** Abrechnung und Anteile: 7.1, 7.1-a, 7.2,
 8.2, 8.2-a, 8.3, 8.5, 8.1-c. Dazu die Property-Tests für 2-c, 2-d, 7.1, 7.2
 und 8.1-c. Der handgeschriebene Zufallstest in `SettlementTest`
-(`new Random(42)`) wird dabei abgelöst.
+(`new Random(42)`) wird dabei abgelöst. **Erledigt.** Nebenbei aufgefallen:
+Property-Tests brauchen zusätzlich `net.jqwik.api.Tag`, sonst laufen sie am
+Tag-Filter des `test`-Tasks vorbei, ohne Fehlermeldung (ADR-030).
 
 **3.2 Port, Kritikalität HIGH.** Verdeckte Tipps: 6-b und 9-b. Hier
 entstehen die **Leck-Tests auf Nachrichtenebene** und die
 **Invariantenprüfung nach jedem Schritt** (kein Konto negativ, Punktesumme
-erhalten, Deltasumme null beim Auflösen).
+erhalten, Deltasumme null beim Auflösen). **Erledigt.**
 
 **3.3 Port, Kritikalität MEDIUM.** Rundenablauf (9-a bis 9-c, 5-a bis 5-d),
-Strafen und Teilnehmerkreis (8.1 bis 8.1-e), Annullieren (8.6 ff.),
+Strafen und Teilnehmerkreis (8.1 bis 8.1-e), Annullieren (8.6 ff., dazu 8.4),
 Zurücksetzen (8.7 ff.), Wettmechanik (6-a, 6-c, 6-e, 6-f), Rollen (10-a,
-10-b), Host-Rolle (10.1 ff.), Reconnect und Wiederanlauf (1-c, 1-d).
-Die Zeit- und Reihenfolge-Szenarien gehören hierher, allen voran die
-Rundenwache aus ADR-010.
+10-b), Host-Rolle (10.1 ff.), Reconnect und Wiederanlauf (1-c). Die Zeit-
+und Reihenfolge-Szenarien gehören hierher, allen voran die Rundenwache aus
+ADR-010. **Erledigt** — Stand danach: 41 von 60.
 
-In diesem Schritt wird **`getRoomForTest()` entfernt** und die vorhandenen
-`RoomActorStateMachineTest`, `ReconnectTest`, `RestoreTest` und
-`RoomActorResetTest` werden auf Prüfung über die Ports umgebaut.
+`getRoomForTest()` ist **entfernt**; `RoomActorStateMachineTest`,
+`ReconnectTest`, `RestoreTest` und `RoomActorResetTest` sind gelöscht,
+ersetzt durch `RundenwacheScenarioTest`, `PauseScenarioTest`,
+`AnnullierenScenarioTest`, `ZuruecksetzenScenarioTest`, `RollenScenarioTest`,
+`ReconnectScenarioTest` und `WiederanlaufScenarioTest` (alle über die Ports).
+Der in ADR-029 dokumentierte sporadische Fehlschlag von `RestoreTest`
+(`wiederherstellungMitOffenerRundeInDerZukunft…`) ist dabei tatsächlich
+aufgetreten und aufgelöst: `shutdown()` auf Actor/Store ohne vorheriges
+`awaitWritten()` lässt den Schreib-Thread mitten im Schreiben stehen, `@TempDir`
+räumt dann gegen eine Datei auf, die noch entsteht. `WiederanlaufStufen` wartet
+jetzt vor jedem `shutdown()` explizit auf das Ende des Schreibvorgangs.
+
+Eine Lücke im `abdeckung`-Task selbst kam dabei ans Licht: Property-Tests
+erscheinen nie als JGiven-Szenario im Report (Abschnitt 2.1), waren also für
+den ursprünglich nur JSON-lesenden Task unsichtbar, obwohl grün und korrekt
+verknüpft (2-c/2-d fehlten trotz vorhandener Szenarien). Der Task liest
+`@Anforderung`-Methoden jetzt per Reflection aus den kompilierten
+Testklassen und gleicht sie mit den JUnit-XML-Berichten ab — ein Weg für
+JGiven-Szenarien und jqwik-Properties gleichermaßen.
+
+Bewusst nicht 1:1 nachgebaut: ein paar reine Implementierungs-Regressionstests
+ohne eigene Anhang-A-ID (doppeltes Schließen ist ein No-op, ein zweites
+Öffnen während einer laufenden Runde ist ein Fehler, ein Tipp exakt auf
+`closesAt` zählt nicht mehr). Ihre Abwesenheit ist eine bewusste
+Abwägung angesichts des Umfangs, kein Versehen — sie betreffen keine
+offene `backend`-Regel.
 
 **3.4 Adapter.** Fixtures werden am Port-Datentyp konstruiert, nicht durch
 die Domäne erzeugt. Snapshot-Round-Trip über einen **vollständig gefüllten**

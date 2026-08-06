@@ -46,4 +46,19 @@ class AnnullierenScenarioTest extends DeutschesSzenario<AnnullierenStufen, Annul
                 .dieRundeBleibtAufgeloestUndNichtAnnulliert()
                 .und().derHostBekommtEinenFehlerBeimVersuchNachDemAufloesenZuAnnullieren();
     }
+
+    @Test
+    @Anforderung("8.4")
+    void tipptNiemandWirdBeimAufloesenAutomatischAnnulliertOhneVerrechnung() {
+        angenommen()
+                .einHostUndBenSindImRaumBenIstGetrennt()
+                .und().derHostOeffnetEineWette();
+
+        wenn().derHostSchliesstUndLoestOhneDassJemandGetipptHat();
+
+        dann()
+                .dieRundeIstAutomatischAnnulliertOhneVerrechnung()
+                .und().alleKontenSindUnveraendert()
+                .und().invariantenGeltenWeiterhin();
+    }
 }

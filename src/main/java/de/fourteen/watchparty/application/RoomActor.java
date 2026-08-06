@@ -489,11 +489,6 @@ public class RoomActor implements RoomCommands {
         snapshots.save(room.toSnapshot(clock.instant().toEpochMilli()));
     }
 
-    /** Paket-privater Testzugang zum Raumzustand, ohne ihn ueber die Nachrichten pruefen zu muessen. */
-    Room getRoomForTest() {
-        return room;
-    }
-
     /**
      * Testzugang: blockiert, bis alle bis hierhin eingereihten Kommandos
      * abgearbeitet sind. Ohne ihn waeren Port-to-Port-Szenarien race-behaftet,

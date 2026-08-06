@@ -3,6 +3,10 @@ import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.nullaway.nullaway
 import com.tngtech.jgiven.gradle.JGivenTaskExtension
 import com.tngtech.jgiven.gradle.JGivenReportTask
+import java.io.File
+import java.net.URLClassLoader
+import javax.xml.parsers.DocumentBuilderFactory
+import org.w3c.dom.Element
 
 plugins {
     java
@@ -162,20 +166,35 @@ tasks.named("check") {
 // *gruen gelaufen* ist, nicht was annotiert ist -- sonst belegt ein
 // fehlschlagendes Szenario weiterhin seine Regel.
 //
-// Bewusst (noch) kein Gate: Bei 60 offenen Regeln waere der Build ab Tag
-// eins rot. Scharf gestellt wird das am Ende von Phase 3 der
+// Geht bewusst NICHT ueber die JGiven-JSON-Ergebnisse: Property-Tests
+// (Abschnitt 4) tragen zwar @Anforderung, erscheinen aber nie als
+// JGiven-Szenario im Report (das ist so gewollt, Abschnitt 2.1) -- ueber die
+// JSON-Ergebnisse waeren sie fuer diesen Task unsichtbar, obwohl sie gruen
+// gelaufen und korrekt verknuepft sind. Stattdessen: @Anforderung-Methoden
+// per Reflection aus den kompilierten Testklassen einsammeln und mit den
+// JUnit-XML-Berichten aller drei Ebenen abgleichen -- das erfasst JGiven-
+// Szenarien und jqwik-Properties einheitlich ueber denselben Mechanismus.
+//
+// Bewusst (noch) kein Gate: Bei so vielen offenen Regeln waere der Build ab
+// Tag eins rot. Scharf gestellt wird das am Ende von Phase 3 der
 // Teststrategie-Umsetzung (docs/teststrategie-umsetzung.md, Phase 2).
 tasks.register("abdeckung") {
     group = "verification"
-    description = "Vergleicht die backend-Regeln aus Anhang A mit den gruen gelaufenen @Anforderung-Szenarien."
+    description = "Vergleicht die backend-Regeln aus Anhang A mit den gruen gelaufenen @Anforderung-Testmethoden."
     dependsOn(tasks.test, adapterTest, apiTest)
 
     val anforderungenDatei = layout.projectDirectory.file("docs/anforderungen.md")
-    val ergebnisVerzeichnis = jgivenResultsDir
+    val testKlassenVerzeichnisse = sourceSets.test.get().output.classesDirs
+    val testKlassenpfad = sourceSets.test.get().runtimeClasspath
+    val testErgebnisVerzeichnisse = listOf(
+        layout.buildDirectory.dir("test-results/test"),
+        layout.buildDirectory.dir("test-results/adapterTest"),
+        layout.buildDirectory.dir("test-results/apiTest"))
     val berichtsDatei = layout.buildDirectory.file("reports/abdeckung.txt")
 
     inputs.file(anforderungenDatei)
-    inputs.dir(ergebnisVerzeichnis)
+    inputs.files(testKlassenVerzeichnisse)
+    testErgebnisVerzeichnisse.forEach { inputs.dir(it) }
     outputs.file(berichtsDatei)
 
     doLast {
@@ -194,24 +213,59 @@ tasks.register("abdeckung") {
             }
         }
 
-        val praefix = "de.fourteen.watchparty.teststrategy.Anforderung-"
-        val belegteRegeln = mutableSetOf<String>()
-        val slurper = groovy.json.JsonSlurper()
-        ergebnisVerzeichnis.get().asFile.listFiles { f -> f.extension == "json" }?.forEach { jsonDatei ->
-            @Suppress("UNCHECKED_CAST")
-            val wurzel = slurper.parse(jsonDatei) as Map<String, Any?>
-            @Suppress("UNCHECKED_CAST")
-            val szenarien = wurzel["scenarios"] as List<Map<String, Any?>>
-            for (szenario in szenarien) {
-                @Suppress("UNCHECKED_CAST")
-                val faelle = szenario["scenarioCases"] as List<Map<String, Any?>>
-                val gruen = faelle.isNotEmpty() && faelle.all { it["status"] == "SUCCESS" }
-                if (!gruen) continue
-                @Suppress("UNCHECKED_CAST")
-                val tagIds = szenario["tagIds"] as List<String>
-                tagIds.filter { it.startsWith(praefix) }
-                    .forEach { belegteRegeln += it.removePrefix(praefix) }
+        // Gruen gelaufene Testmethoden aus den JUnit-XML-Berichten aller drei
+        // Ebenen, als "vollqualifizierterKlassenname#methodenname". Parametrisierte
+        // Namen wie "schreibenUndLadenErgibtDenselbenStand(Path)" werden auf den
+        // reinen Methodennamen gekuerzt, damit sie zur Reflection-Signatur passen.
+        val docBuilderFactory = DocumentBuilderFactory.newInstance()
+        val gruen = mutableSetOf<String>()
+        for (verzeichnisProvider in testErgebnisVerzeichnisse) {
+            val verzeichnis = verzeichnisProvider.get().asFile
+            verzeichnis.listFiles { f -> f.extension == "xml" }?.forEach { xmlDatei ->
+                val dokument = docBuilderFactory.newDocumentBuilder().parse(xmlDatei)
+                val testcases = dokument.getElementsByTagName("testcase")
+                for (i in 0 until testcases.length) {
+                    val testcase = testcases.item(i) as Element
+                    val hatFehlschlag = testcase.getElementsByTagName("failure").length > 0 ||
+                            testcase.getElementsByTagName("error").length > 0
+                    if (hatFehlschlag) continue
+                    val klasse = testcase.getAttribute("classname")
+                    val methode = testcase.getAttribute("name").substringBefore("(")
+                    gruen += "$klasse#$methode"
+                }
             }
+        }
+
+        // @Anforderung-annotierte Methoden per Reflection einsammeln -- derselbe
+        // Weg fuer JGiven-Szenarien (@Test @Anforderung(...)) und jqwik-Properties
+        // (@Property @Anforderung(...)), keine Fallunterscheidung noetig.
+        val klassenpfadUrls = testKlassenpfad.files.map { it.toURI().toURL() }.toTypedArray()
+        val classLoader = URLClassLoader(klassenpfadUrls, javaClass.classLoader)
+        val anforderungKlasse = classLoader.loadClass("de.fourteen.watchparty.teststrategy.Anforderung")
+        @Suppress("UNCHECKED_CAST")
+        val anforderungAnnotationKlasse = anforderungKlasse as Class<out Annotation>
+        val valueMethode = anforderungKlasse.getMethod("value")
+
+        val belegteRegeln = mutableSetOf<String>()
+        testKlassenVerzeichnisse.forEach { wurzelVerzeichnis ->
+            wurzelVerzeichnis.walkTopDown()
+                .filter { it.isFile && it.extension == "class" && !it.name.contains("$") }
+                .forEach { classFile ->
+                    val klassenname = classFile.relativeTo(wurzelVerzeichnis).path
+                        .removeSuffix(".class").replace(File.separatorChar, '.')
+                    val klasse = try {
+                        classLoader.loadClass(klassenname)
+                    } catch (e: Throwable) {
+                        return@forEach
+                    }
+                    for (methode in klasse.declaredMethods) {
+                        val annotation = methode.getAnnotation(anforderungAnnotationKlasse) ?: continue
+                        if ("$klassenname#${methode.name}" !in gruen) continue
+                        @Suppress("UNCHECKED_CAST")
+                        val ids = valueMethode.invoke(annotation) as Array<String>
+                        belegteRegeln += ids
+                    }
+                }
         }
 
         val fehlend = (backendRegeln - belegteRegeln).sorted()
