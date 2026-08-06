@@ -19,6 +19,12 @@ plugins {
     // Erzeugt den JGiven-HTML-Report aus den JSON-Ergebnissen, die
     // jgiven-junit5 beim Testlauf schreibt (docs/teststrategie.md, Abschnitt 8).
     id("com.tngtech.jgiven.gradle-plugin") version "2.0.3"
+    // Zeilen-/Zweigabdeckung je Ebene, erhoben statt als Zielgroesse
+    // (docs/teststrategie.md, Abschnitt 7.3) -- und die Grundlage fuer die
+    // Ebenen-Disjunktheit aus Abschnitt 7.4.
+    jacoco
+    // Mutationstests auf den HIGH-Klassen, Abschnitt 7.2.
+    id("info.solidsoft.pitest") version "1.19.0"
 }
 
 group = "de.fourteen"
@@ -85,6 +91,28 @@ dependencies {
 
     errorprone("com.google.errorprone:error_prone_core:2.50.0")
     errorprone("com.uber.nullaway:nullaway:0.13.8")
+}
+
+// jgiven-junit5 und jqwik-engine haengen direkt (nicht nur ueber eine
+// importierte BOM) hoehere org.junit.platform-Versionen an als Spring Boots
+// eigenes Dependency-Management fuer die uebrigen JUnit-Module durchsetzt
+// (5.12.2 / 1.12.2) -- fuer die meisten Module gewinnt Spring Boots
+// Verwaltung den Versionskonflikt, aber junit-platform-launcher verwaltet
+// Spring Boot ueberhaupt nicht selbst, dort gewinnt unwidersprochen die
+// hoehere Anfrage. Ergebnis: launcher (1.13.x) und -engine/-commons (1.12.x)
+// laufen auseinander -- ein NoSuchMethodError auf
+// NamespacedHierarchicalStore$CloseAction beim Testlauf, gefunden beim
+// Einbinden von PIT (Phase 4). eachDependency greift vor der
+// Konfliktaufloesung selbst und erzwingt denselben Stand ueberall.
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.junit.jupiter") {
+            useVersion("5.12.2")
+        }
+        if (requested.group == "org.junit.platform") {
+            useVersion("1.12.2")
+        }
+    }
 }
 
 tasks.withType<Test> {
@@ -156,6 +184,50 @@ tasks.named<JGivenReportTask>("jgivenTestReport") {
 
 tasks.named("check") {
     dependsOn("jgivenTestReport")
+}
+
+// --- Zeilen-/Zweigabdeckung je Ebene (docs/teststrategie.md, Abschnitt 7.3) -
+//
+// Erhoben und als Artefakt abgelegt, aber ohne Prozentschranke: Als Zielgroesse
+// erzeugt Abdeckung Tests, die fuer die Zahl geschrieben werden. Als Suchhilfe
+// ist sie nuetzlich -- deshalb ein Report je Test-Task (test/adapterTest/
+// apiTest), nicht nur einer fuer alle zusammen. Dieselben drei Ausfuehrungsdaten
+// sind auch die Grundlage der Ebenen-Disjunktheit weiter unten.
+jacoco {
+    toolVersion = "0.8.15"
+}
+
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.test)
+    executionData(tasks.test.get())
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+val jacocoAdapterTestReport = tasks.register<JacocoReport>("jacocoAdapterTestReport") {
+    dependsOn(adapterTest)
+    executionData(adapterTest.get())
+    sourceSets(sourceSets.main.get())
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+val jacocoApiTestReport = tasks.register<JacocoReport>("jacocoApiTestReport") {
+    dependsOn(apiTest)
+    executionData(apiTest.get())
+    sourceSets(sourceSets.main.get())
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.named("check") {
+    dependsOn("jacocoTestReport", jacocoAdapterTestReport, jacocoApiTestReport)
 }
 
 // --- Feature-Abdeckung (docs/teststrategie.md, Abschnitt 5.2) --------------
