@@ -177,7 +177,7 @@ class SettlementPropertyTest {
      * Pool -- fuer eine beliebige Anzahl Gewinner mit beliebigen Einsaetzen.
      */
     @Property
-    @Anforderung("7.2")
+    @Anforderung({ "7.2", "3-b" })
     void summeDerAuszahlungenTrifftExaktDenPool(
             @ForAll("mindestensEinGewinner") List<Integer> gewinnerEinsaetze,
             @ForAll @IntRange(min = 0, max = 500) int verliererEinsatz) {
@@ -204,7 +204,7 @@ class SettlementPropertyTest {
      * nie mehr als min(Strafe, Kontostand), fuer jeden moeglichen Kontostand.
      */
     @Property
-    @Anforderung("8.1-c")
+    @Anforderung({ "8.1-c", "3-e" })
     void eingesammelteStrafeUeberschreitetNieDenKontostand(@ForAll @IntRange(min = 0, max = 100) int kontostand) {
         PlayerId nichtTipper = PlayerId.of("n");
         List<Pick> picks = List.of(new Pick(PlayerId.of("a"), TOUCHDOWN, PARAMS.minStake()));

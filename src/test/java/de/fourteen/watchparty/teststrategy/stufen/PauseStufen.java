@@ -1,7 +1,7 @@
 package de.fourteen.watchparty.teststrategy.stufen;
 
 import de.fourteen.watchparty.application.message.Messages;
-import de.fourteen.watchparty.domain.model.Room;
+import de.fourteen.watchparty.domain.model.Params;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,7 +43,7 @@ public class PauseStufen extends RaumStufen<PauseStufen> {
 
     public PauseStufen hatInsgesamtPunkteVerlorenUndIstPausiert(String spieler, int verlorenePunkte, boolean pausiert) {
         Messages.PlayerView ansicht = spielerAnsicht(spieler);
-        assertThat(Room.STARTING_POINTS.value() - ansicht.points())
+        assertThat(Params.DEFAULT.startingPoints().value() - ansicht.points())
                 .as("verlorene Punkte von " + spieler)
                 .isEqualTo(verlorenePunkte);
         assertThat(ansicht.paused()).as("pausiert-Status von " + spieler).isEqualTo(pausiert);

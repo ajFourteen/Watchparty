@@ -61,4 +61,14 @@ class RundenwacheScenarioTest extends DeutschesSzenario<RundenwacheStufen, Runde
 
         dann().dieNeueRundeBleibtOffen();
     }
+
+    @Test
+    @Anforderung("1-b")
+    void esGibtImmerNurEineRundeGleichzeitig() {
+        angenommen()
+                .derHostIstImRaum()
+                .und().derHostOeffnetEineWette();
+
+        dann().derHostVersuchtEinZweitesMalZuOeffnen();
+    }
 }

@@ -57,4 +57,14 @@ class WettmechanikScenarioTest
 
         dann().bensZwangsweiserAllInEinsatzIst(0);
     }
+
+    @Test
+    @Anforderung("4-b")
+    void derHostWaehltEineWetteAusDemServereigenenKatalogAus() {
+        angenommen().einHostUndBenSindImRaum();
+
+        wenn().derHostWaehltAusDemKatalogDieWette("field-goal-attempt");
+
+        dann().dieOffeneRundeIstDieGewaehlteWette("field-goal-attempt");
+    }
 }

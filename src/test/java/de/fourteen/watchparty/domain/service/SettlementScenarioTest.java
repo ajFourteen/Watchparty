@@ -41,7 +41,7 @@ class SettlementScenarioTest extends DeutschesSzenario<AbrechnungStufen, Abrechn
      * Nichts.
      */
     @Test
-    @Anforderung({ "7.1", "7.1-a" })
+    @Anforderung({ "7.1", "7.1-a", "2-b" })
     void mindestanteilGreiftUndKommtVonDenVerlierernNichtAusDemNichts() {
         angenommen()
                 .einTippAufTouchdownMitEinsatz("a", 10)
@@ -64,7 +64,7 @@ class SettlementScenarioTest extends DeutschesSzenario<AbrechnungStufen, Abrechn
      * unter drei gleich grossen Anteilen.
      */
     @Test
-    @Anforderung("7.2")
+    @Anforderung({ "7.2", "2-a" })
     void restVerteilungNachGroesstenRestenTrifftExaktDenPool() {
         angenommen()
                 .einTippAufTouchdownMitEinsatz("a", 25)

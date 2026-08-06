@@ -1,7 +1,7 @@
 package de.fourteen.watchparty.teststrategy.stufen;
 
 import de.fourteen.watchparty.application.message.Messages;
-import de.fourteen.watchparty.domain.model.Room;
+import de.fourteen.watchparty.domain.model.Params;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ public class AnnullierenStufen extends RaumStufen<AnnullierenStufen> {
         for (Messages.PlayerView spieler : neuesterStatusFuer("Host").players()) {
             assertThat(spieler.points())
                     .as(spieler.name() + " nach Annullieren")
-                    .isEqualTo(Room.STARTING_POINTS.value());
+                    .isEqualTo(Params.DEFAULT.startingPoints().value());
         }
         return this;
     }

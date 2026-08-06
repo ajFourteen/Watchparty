@@ -6,7 +6,7 @@ import de.fourteen.watchparty.application.NoSnapshots;
 import de.fourteen.watchparty.application.RecordingClientGateway;
 import de.fourteen.watchparty.application.RoomActor;
 import de.fourteen.watchparty.application.message.Messages;
-import de.fourteen.watchparty.domain.model.Room;
+import de.fourteen.watchparty.domain.model.Params;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -88,7 +88,7 @@ abstract class RaumStufen<SELF extends RaumStufen<?>> extends DeutscheStufe<SELF
         int summe = status.players().stream().mapToInt(Messages.PlayerView::points).sum();
         assertThat(summe)
                 .as("Punktesumme aendert sich nur durch Beitritt oder Zuruecksetzen (Anforderung 2, Invariante 5)")
-                .isEqualTo(Room.STARTING_POINTS.value() * sessionByName.size());
+                .isEqualTo(Params.DEFAULT.startingPoints().value() * sessionByName.size());
         return (SELF) this;
     }
 }

@@ -22,6 +22,18 @@ public class WettmechanikStufen extends RaumStufen<WettmechanikStufen> {
         return this;
     }
 
+    /** 4-b: der Host waehlt aus dem servereigenen Katalog aus, statt eine Wette selbst zu erfinden. */
+    public WettmechanikStufen derHostWaehltAusDemKatalogDieWette(String betId) {
+        actor.openBet(sessionVon("Host"), betId);
+        actor.awaitIdle();
+        return this;
+    }
+
+    public WettmechanikStufen dieOffeneRundeIstDieGewaehlteWette(String erwarteteBetId) {
+        assertThat(neuesterStatusFuer("Host").bet().id()).isEqualTo(erwarteteBetId);
+        return this;
+    }
+
     public WettmechanikStufen derHostTipptOhneEinsatzanzugeben() {
         actor.placePick(sessionVon("Host"), "touchdown", null);
         actor.awaitIdle();

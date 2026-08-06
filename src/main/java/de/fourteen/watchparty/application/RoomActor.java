@@ -231,7 +231,8 @@ public class RoomActor implements RoomCommands {
             player = room.addPlayer(
                     PlayerId.of(UUID.randomUUID().toString()),
                     Token.of(UUID.randomUUID().toString()),
-                    name);
+                    name,
+                    PARAMS.startingPoints());
         }
 
         playerIdBySession.put(sessionId, player.getId());

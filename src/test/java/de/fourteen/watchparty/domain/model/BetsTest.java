@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.domain.model;
 
+import de.fourteen.watchparty.teststrategy.Anforderung;
 import de.fourteen.watchparty.teststrategy.UnitTest;
 
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BetsTest {
 
     @Test
+    @Anforderung("4.1")
     void driveOutcomeHatDieSiebenKanonischenAusgaengeAusAnforderung41() {
         assertThat(Bets.DRIVE_OUTCOME.outcomes())
                 .extracting(outcome -> outcome.id().value())
@@ -22,6 +24,7 @@ class BetsTest {
     }
 
     @Test
+    @Anforderung("4-e")
     void turnoverOnDownsTraegtDieAbgrenzungZumVerschossenenFieldGoal() {
         Outcome turnoverOnDowns = Bets.DRIVE_OUTCOME.outcomes().stream()
                 .filter(outcome -> outcome.id().equals(OutcomeId.of("turnover-on-downs")))
@@ -32,8 +35,20 @@ class BetsTest {
     }
 
     @Test
-    void bigPlayNenntDieDreiYardSchwellenDamitDerHostNichtSchaetzenMuss() {
+    @Anforderung({ "4.2", "4-e" })
+    void bigPlayHatJaNeinUndNenntDieDreiYardSchwellenDamitDerHostNichtSchaetzenMuss() {
+        assertThat(Bets.BIG_PLAY.outcomes())
+                .extracting(outcome -> outcome.id().value())
+                .containsExactly("yes", "no");
         assertThat(Bets.BIG_PLAY.note()).contains("20", "30", "50");
+    }
+
+    @Test
+    @Anforderung("4.3")
+    void fieldGoalHatGutUndKeinFieldGoal() {
+        assertThat(Bets.FIELD_GOAL.outcomes())
+                .extracting(outcome -> outcome.id().value())
+                .containsExactly("good", "no-good");
     }
 
     /**
@@ -41,6 +56,7 @@ class BetsTest {
      * {@link Bets#byId(BetId)} zu einer Zufallsauswahl machen.
      */
     @Test
+    @Anforderung("4-a")
     void jedeWetteImKatalogHatEineEigeneId() {
         Set<BetId> ids = new HashSet<>();
         for (Bet bet : Bets.CATALOG) {
@@ -54,6 +70,7 @@ class BetsTest {
      * trifft die Aufloesung den falschen Eimer.
      */
     @Test
+    @Anforderung("4-c")
     void jedeWetteHatMindestensZweiUnterscheidbareAusgaenge() {
         for (Bet bet : Bets.CATALOG) {
             assertThat(bet.outcomes()).as("Ausgaenge von %s", bet.id()).hasSizeGreaterThanOrEqualTo(2);
@@ -63,11 +80,12 @@ class BetsTest {
 
     /**
      * Der Versuch nach dem Touchdown deckt beide Varianten in einer Wette ab
-     * (Anforderung 4.3). Faellt eine davon weg, muesste der Host die
+     * (Anforderung 4.4-a). Faellt eine davon weg, muesste der Host die
      * Entscheidung des Teams vorwegnehmen und stuende ohne passenden Ausgang
      * da, wenn er falsch liegt.
      */
     @Test
+    @Anforderung({ "4.4", "4.4-a" })
     void derVersuchNachDemTouchdownKenntKickUndZweiPunkte() {
         assertThat(Bets.TRY_AFTER_TOUCHDOWN.outcomes())
                 .extracting(outcome -> outcome.id().value())

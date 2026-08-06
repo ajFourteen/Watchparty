@@ -39,9 +39,6 @@ import java.util.Set;
                 "9-a", "9-b", "9-c", "10-a", "10-b", "10.1", "10.1-a", "10.1-b", "10.1-c" })
 public class Room {
 
-    /** Startguthaben (Anforderung 3.1). Wert wird am Spielgefuehl kalibriert. */
-    public static final Points STARTING_POINTS = Points.of(1000);
-
     /** Einfuegereihenfolge zaehlt: der erste Joiner wird Host (ADR-016). */
     private final Map<PlayerId, Player> playersById = new LinkedHashMap<>();
     private final Map<Token, PlayerId> playerIdByToken = new LinkedHashMap<>();
@@ -55,8 +52,9 @@ public class Room {
 
     // --- Teilnehmer -----------------------------------------------------------
 
-    public Player addPlayer(PlayerId id, Token token, PlayerName name) {
-        Player player = new Player(id, token, name, STARTING_POINTS);
+    /** {@code startingPoints} kommt vom Aufrufer statt aus einer eigenen Konstante -- Anforderung 3.1 steht an einer Stelle: {@link Params}. */
+    public Player addPlayer(PlayerId id, Token token, PlayerName name, Points startingPoints) {
+        Player player = new Player(id, token, name, startingPoints);
         playersById.put(id, player);
         playerIdByToken.put(token, id);
         if (hostPlayerId == null) {

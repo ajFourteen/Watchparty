@@ -47,3 +47,8 @@ Damit diese Fragen nicht versehentlich wieder aufgemacht werden:
 - Der Begriff „Markt" (ADR-022). Es heißt Wette.
 - Was passiert, wenn die offene Wette nicht mehr zum Spiel passt: Der Host
   annulliert die Runde (Anforderung 8.6).
+- 3.1-a: Das Startguthaben stand getrennt von Mindesteinsatz und Strafe
+  (`Room.STARTING_POINTS` statt `Params`). Beim Nachrüsten der Szenarien für
+  Anhang A aufgefallen, entschieden am 2026-08-06: `Params` ist jetzt die
+  einzige Quelle für alle drei Werte, `Room.addPlayer` nimmt das
+  Startguthaben als Parameter statt einer eigenen Konstante.

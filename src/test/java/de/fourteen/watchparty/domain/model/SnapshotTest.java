@@ -28,7 +28,7 @@ class SnapshotTest {
     }
 
     private static Player addPlayer(Room room, String id, String token, String name) {
-        return room.addPlayer(PlayerId.of(id), Token.of(token), PlayerName.of(name));
+        return room.addPlayer(PlayerId.of(id), Token.of(token), PlayerName.of(name), Params.DEFAULT.startingPoints());
     }
 
     private static Pick pick(String playerId, String outcomeId, int stake) {
@@ -52,7 +52,7 @@ class SnapshotTest {
         Player anna = restored.byId(spieler("p1"));
         assertThat(anna.getName()).isEqualTo(PlayerName.of("Anna"));
         assertThat(anna.getToken()).isEqualTo(Token.of("t1"));
-        assertThat(anna.getPoints()).isEqualTo(Room.STARTING_POINTS);
+        assertThat(anna.getPoints()).isEqualTo(Params.DEFAULT.startingPoints());
         assertThat(anna.isConnected()).isFalse();
 
         assertThat(restored.byId(spieler("p2")).getMissedRounds()).isEqualTo(1);

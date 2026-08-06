@@ -68,6 +68,17 @@ public class RundenwacheStufen extends RaumStufen<RundenwacheStufen> {
         return this;
     }
 
+    /** 1-b: ein zweites Oeffnen waehrend einer laufenden Runde aendert nichts an der einen, bereits laufenden. */
+    public RundenwacheStufen derHostVersuchtEinZweitesMalZuOeffnen() {
+        Long ersteRoundId = neuesterStatusFuer("Host").roundId();
+        actor.openBet(sessionVon("Host"), null);
+        actor.awaitIdle();
+        assertThat(neuesterStatusFuer("Host").roundId())
+                .as("immer nur eine Runde gleichzeitig (1-b)")
+                .isEqualTo(ersteRoundId);
+        return this;
+    }
+
     private String phase() {
         return neuesterStatusFuer("Host").phase();
     }
