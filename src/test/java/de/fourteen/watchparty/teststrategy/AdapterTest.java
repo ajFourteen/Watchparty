@@ -16,6 +16,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Tag("adapter")
+@net.jqwik.api.Tag("adapter")
 @IsTag(name = "Adapter")
 public @interface AdapterTest {
 }

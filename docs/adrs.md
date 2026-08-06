@@ -1047,7 +1047,13 @@ Hook für die feste Oberfläche.
    Test-Tasks, die beim Anwenden des Plugins schon existieren — `test` tut
    das, `adapterTest`/`apiTest` als später im Skript definierte Tasks
    nicht; alle drei schreiben deshalb in denselben Ergebnisordner, statt
-   drei getrennte Reports zu erzeugen).
+   drei getrennte Reports zu erzeugen). **Nachtrag aus Phase 3.1:** jqwik
+   hat einen eigenen `net.jqwik.api.Tag`, unabhängig von JUnit Jupiters
+   `@Tag` — die Property-Tests aus Abschnitt 4 blieben mit nur dem
+   JUnit-Tag für den `--include-tag`-Filter unsichtbar (BUILD SUCCESSFUL,
+   aber 0 ausgeführte Tests, ohne jede Fehlermeldung). Alle vier
+   Meta-Annotationen tragen deshalb zusätzlich den passenden
+   `net.jqwik.api.Tag`.
 3. **Die Sprachausnahme ist strukturell eingehegt.** `DeutschesSzenario`
    (`teststrategy`) stellt `angenommen()`/`wenn()`/`dann()` bereit,
    `DeutscheStufe` (`teststrategy.stufen`) `und()` — beide nur dünne

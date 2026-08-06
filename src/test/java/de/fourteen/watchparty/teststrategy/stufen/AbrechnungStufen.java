@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AbrechnungStufen extends DeutscheStufe<AbrechnungStufen> {
 
     private static final OutcomeId TOUCHDOWN = OutcomeId.of("touchdown");
+    private static final OutcomeId PUNT = OutcomeId.of("punt");
 
     private final List<Pick> picks = new ArrayList<>();
     private final Set<PlayerId> nichtTipper = new LinkedHashSet<>();
@@ -37,6 +38,11 @@ public class AbrechnungStufen extends DeutscheStufe<AbrechnungStufen> {
         return this;
     }
 
+    public AbrechnungStufen einTippAufPuntMitEinsatz(String spieler, int einsatz) {
+        picks.add(new Pick(PlayerId.of(spieler), PUNT, Points.of(einsatz)));
+        return this;
+    }
+
     public AbrechnungStufen einNichtTipperMitKontostand(String spieler, int kontostand) {
         PlayerId playerId = PlayerId.of(spieler);
         nichtTipper.add(playerId);
@@ -45,13 +51,26 @@ public class AbrechnungStufen extends DeutscheStufe<AbrechnungStufen> {
     }
 
     public AbrechnungStufen dieRundeWirdMitAusgangTouchdownAbgerechnet() {
-        ergebnis = Settlement.settle(picks, nichtTipper, kontostaende, TOUCHDOWN, Params.DEFAULT);
+        return dieRundeWirdAbgerechnetGegen(TOUCHDOWN);
+    }
+
+    /** Sieger-Ausgang ist die Wette, auf die {@code touchdown} verliert und {@code punt} gewinnt. */
+    public AbrechnungStufen dieRundeWirdMitAusgangPuntAbgerechnet() {
+        return dieRundeWirdAbgerechnetGegen(PUNT);
+    }
+
+    private AbrechnungStufen dieRundeWirdAbgerechnetGegen(OutcomeId siegerAusgang) {
+        ergebnis = Settlement.settle(picks, nichtTipper, kontostaende, siegerAusgang, Params.DEFAULT);
         return this;
     }
 
     public AbrechnungStufen zahlt(String spieler, int deltaWert) {
         assertThat(deltaVon(spieler)).as("Delta fuer " + spieler).isEqualTo(PointsDelta.of(deltaWert));
         return this;
+    }
+
+    public AbrechnungStufen bekommtNettoNichtsWeilEinsatzGleichAuszahlungIst(String spieler) {
+        return zahlt(spieler, 0);
     }
 
     public AbrechnungStufen dieSummeAllerDeltasIstExaktNull() {

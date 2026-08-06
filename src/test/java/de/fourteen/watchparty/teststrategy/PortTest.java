@@ -17,6 +17,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Tag("port")
+@net.jqwik.api.Tag("port")
 @IsTag(name = "Port-to-Port")
 public @interface PortTest {
 }

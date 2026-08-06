@@ -10,12 +10,8 @@ import de.fourteen.watchparty.teststrategy.UnitTest;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -204,57 +200,9 @@ class SettlementTest {
         assertThat(result.annulled()).isFalse();
     }
 
-    /**
-     * Invariante 5: Punkte entstehen und verschwinden nie, nur Umverteilung.
-     * Statt sie nur zu beschreiben, wird sie hier ueber viele zufaellige
-     * Wettbilder direkt geprueft.
-     *
-     * Zusaetzlich: Kein Konto wird negativ. Das laesst sich seit der
-     * Umstellung auf {@code Points} gar nicht mehr per Zusicherung pruefen —
-     * {@code balance.apply(delta)} wuerde von selbst werfen. Genau das ist
-     * hier der Test.
-     */
-    @Test
-    void summeAllerDeltasIstImmerExaktNullUndKeinKontoWirdNegativ() {
-        Random random = new Random(42);
-        List<OutcomeId> outcomes = List.of(TD, PUNT, OutcomeId.of("turnover"));
-
-        for (int run = 0; run < 500; run++) {
-            int playerCount = 1 + random.nextInt(8);
-            List<Pick> picks = new ArrayList<>();
-            Map<PlayerId, Points> balances = new HashMap<>();
-            Set<PlayerId> nonPickers = new HashSet<>();
-
-            for (int i = 0; i < playerCount; i++) {
-                PlayerId playerId = spieler("p" + i);
-                int balance = random.nextInt(500);
-                balances.put(playerId, Points.of(balance));
-
-                if (random.nextBoolean()) {
-                    int minStake = PARAMS.minStake().value();
-                    int stake = balance < minStake
-                            ? balance
-                            : minStake + random.nextInt(Math.max(1, balance - minStake + 1));
-                    picks.add(new Pick(playerId, outcomes.get(random.nextInt(outcomes.size())), Points.of(stake)));
-                } else {
-                    nonPickers.add(playerId);
-                }
-            }
-
-            OutcomeId winningOutcome = outcomes.get(random.nextInt(outcomes.size()));
-            Settlement.Result result = Settlement.settle(picks, nonPickers, balances, winningOutcome, PARAMS);
-
-            assertThat(PointsDelta.sumIsZero(result.deltas().values()))
-                    .as("Lauf %d: picks=%s nonPickers=%s balances=%s winner=%s", run, picks, nonPickers, balances,
-                            winningOutcome)
-                    .isTrue();
-            assertThat(result.annulled())
-                    .as("Lauf %d ist genau dann annulliert, wenn niemand getippt hat", run)
-                    .isEqualTo(picks.isEmpty());
-
-            // Wuerde ein Konto negativ, wirft Points.apply hier.
-            result.deltas().forEach((playerId, delta) ->
-                    balances.getOrDefault(playerId, Points.ZERO).apply(delta));
-        }
-    }
+    // summeAllerDeltasIstImmerExaktNullUndKeinKontoWirdNegativ entfaellt hier:
+    // Der handgeschriebene Zufallstest (new Random(42)) ist durch echte
+    // Property-Tests in SettlementPropertyTest abgeloest (docs/teststrategie.md,
+    // Abschnitt 4) -- generiert ueber den ganzen Eingaberaum statt eines festen
+    // Seeds, mit automatischem Shrinking bei einem Fehlschlag.
 }

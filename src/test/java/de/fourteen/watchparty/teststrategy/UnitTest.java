@@ -13,11 +13,16 @@ import java.lang.annotation.Target;
  * Zustand eines Objekts oder aus einer reinen Funktion entscheidbar sind.
  *
  * Traegt den JUnit-Tag und den JGiven-Report-Tag zusammen, damit beides nicht
- * auseinanderlaufen kann (Abschnitt 1).
+ * auseinanderlaufen kann (Abschnitt 1). Dazu den jqwik-eigenen
+ * {@code net.jqwik.api.Tag}: jqwiks Engine kennt nur ihren eigenen
+ * Tag-Typ, nicht den von JUnit Jupiter -- ohne ihn wuerden Property-Tests
+ * (Abschnitt 4) vom Tag-Filter des `test`-Tasks unsichtbar aussortiert, ohne
+ * dass das irgendwo auffiele.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Tag("unit")
+@net.jqwik.api.Tag("unit")
 @IsTag(name = "Domaene")
 public @interface UnitTest {
 }
