@@ -1,3 +1,18 @@
+# [3.3.0](https://github.com/ajFourteen/Watchparty/compare/v3.2.0...v3.3.0) (2026-08-06)
+
+
+### Bug Fixes
+
+* ArchUnit-Tests liefen nie mit + PIT-Guard-Test fuer HIGH-Klassen ([e3b76cd](https://github.com/ajFourteen/Watchparty/commit/e3b76cd1a4a2c2ec9a7adb6205aeeeb67b38126a))
+* toten Nullcheck in RoomView.deltas() entfernt ([503d019](https://github.com/ajFourteen/Watchparty/commit/503d019a57504e380cc8cafcd859544ab42ac559))
+
+
+### Features
+
+* Ausnahmenregister fuer Mutationstests (docs/test-ausnahmen.md) ([30ca726](https://github.com/ajFourteen/Watchparty/commit/30ca726a864b1b2c2dd4adc26ffdd4e8a89fc44e))
+* Ebenen-Disjunktheit als automatisiertes Gate ([48a7e5d](https://github.com/ajFourteen/Watchparty/commit/48a7e5da065e8386e17ce7bdc81aa332e3d333b0))
+* JGiven-Bericht auf GitHub Pages veroeffentlichen ([7610ef7](https://github.com/ajFourteen/Watchparty/commit/7610ef710bb1ca2add7c6d7038f381e8427dd570))
+
 # [3.2.0](https://github.com/ajFourteen/Watchparty/compare/v3.1.0...v3.2.0) (2026-08-05)
 
 
