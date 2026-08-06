@@ -1,0 +1,48 @@
+name: JGiven-Bericht auf GitHub Pages
+
+# Der JGiven-HTML-Report (docs/teststrategie.md, Abschnitt 8) als lebendige
+# Dokumentation: Zielleser ist eine Fachabteilung, die anforderungen.md
+# kennt, aber keinen Code liest -- ein Link statt eines Downloads aus einem
+# CI-Artefakt. Nur auf main, nur wenn build.yml (derselbe `check`-Lauf, der
+# main sonst auch absichert) tatsaechlich gruen war; ein Fehlschlag dort
+# verhindert automatisch den Rest hier.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: JGiven-Bericht herunterladen
+        uses: actions/download-artifact@v4
+        with:
+          name: jgiven-report
+          path: jgiven-report
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: jgiven-report
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

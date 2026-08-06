@@ -1,9 +1,9 @@
 name: Build & Test
 
 # Laeuft auf jedem Push und jeder Pull Request, damit ein roter Test sichtbar
-# wird, bevor er ueberhaupt die Chance hat, auf main zu landen (Phase 0 der
-# Teststrategie-Umsetzung, docs/teststrategie-umsetzung.md). Das Frontend
-# bleibt aussen vor -- es wird im Docker-Build ohnehin getrennt gebaut.
+# wird, bevor er ueberhaupt die Chance hat, auf main zu landen
+# (docs/teststrategie.md, Abschnitt 10). Das Frontend bleibt aussen vor -- es
+# wird im Docker-Build ohnehin getrennt gebaut.
 
 on:
   push:
@@ -33,3 +33,13 @@ jobs:
         with:
           name: test-report
           path: build/reports/tests/test
+
+      # Grundlage fuer pages.yml (GitHub Pages, docs/teststrategie.md
+      # Abschnitt 8): nur bei gruenem `check` vorhanden, also nie ein Bericht
+      # ueber einen roten Lauf.
+      - name: JGiven-Bericht
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jgiven-report
+          path: build/reports/jgiven/test/html
