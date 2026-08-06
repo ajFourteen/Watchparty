@@ -9,3 +9,7 @@ frontend/dist/
 # jqwik legt hier Zufalls-Seeds fehlgeschlagener Property-Tests ab (Abschnitt 4
 # der Teststrategie) -- lokaler Laufzustand, kein Quelltext.
 .jqwik-database
+
+# JGiven-Rohdaten ausserhalb von build/ (Default-Ablage des Plugins fuer
+# Laeufe, die nicht ueber die konfigurierten Test-Tasks gehen) -- Bauartefakt.
+jgiven-reports/
