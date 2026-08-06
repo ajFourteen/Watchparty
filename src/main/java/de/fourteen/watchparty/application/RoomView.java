@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Die Projektion vom Raumzustand auf die Nachrichten an den Client. Rein
@@ -100,7 +101,14 @@ public final class RoomView {
                     pool = round.getPool().value();
                     annulled = round.isAnnulled();
                     annulReason = annulled ? (round.isAnnulledByHost() ? "HOST" : "NO_PICKS") : null;
-                    deltas = deltas(round.getDeltas());
+                    // In RESOLVED ist setDeltas() laengst gelaufen (per
+                    // resolveCurrentRound/annulCurrentRound) -- ein null-Stand
+                    // ist hier strukturell ausgeschlossen, NullAway kann das
+                    // aber nicht selbst herleiten (gefunden per Mutationstest,
+                    // Abschnitt 7.2: der frueher hier stehende Nullcheck war
+                    // toter Code, kein Test konnte ihn je erreichen).
+                    deltas = deltas(Objects.requireNonNull(round.getDeltas(),
+                            "RESOLVED setzt die Deltas immer, siehe Room.resolveCurrentRound/annulCurrentRound"));
                 }
             }
         }
@@ -115,10 +123,7 @@ public final class RoomView {
         return hostPlayerId == null ? null : hostPlayerId.value();
     }
 
-    private static @Nullable Map<String, Integer> deltas(@Nullable Map<PlayerId, PointsDelta> deltas) {
-        if (deltas == null) {
-            return null;
-        }
+    private static Map<String, Integer> deltas(Map<PlayerId, PointsDelta> deltas) {
         Map<String, Integer> flach = new LinkedHashMap<>();
         for (Map.Entry<PlayerId, PointsDelta> entry : deltas.entrySet()) {
             flach.put(entry.getKey().value(), entry.getValue().value());
