@@ -2,6 +2,7 @@ package de.fourteen.watchparty;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -21,11 +22,14 @@ import org.jmolecules.ddd.annotation.ValueObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.onionArchitecture;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Haelt zwei zusammengehoerige Regelwerke nach: die Ringstruktur aus ADR-024
@@ -242,6 +246,34 @@ class ArchitectureTest {
             .that().areAnnotatedWith(Criticality.class)
             .should(nurAnforderungsIdsAusAnhangATragen())
             .because("eine @Criticality-Anforderungs-ID ohne Beleg in Anhang A ist eine Begruendung ins Leere (Abschnitt 6.2)");
+
+    /**
+     * Der PIT-Mutationstest (build.gradle.kts, {@code pitest.targetClasses})
+     * zielt auf eine feste Klassenliste -- Gradle-Konfiguration und
+     * {@code @Criticality}-Annotationen koennen einander nicht automatisch
+     * nachziehen, deshalb haelt dieser Test beide von Hand synchron
+     * (docs/teststrategie.md, Abschnitt 7.2: "Test, der die Menge der
+     * HIGH-annotierten Klassen gegen die PIT-Konfiguration abgleicht"). Wer
+     * eine neue HIGH-Klasse einfuehrt oder eine bestehende umbenennt, muss
+     * beide Stellen pflegen -- ein roter Test statt eines stillschweigend zu
+     * klein gewordenen Mutationstests.
+     */
+    @ArchTest
+    static void highKritikalitaetsKlassenStimmenMitDerPitKonfigurationUeberein(JavaClasses classes) {
+        Set<String> ausBuildGradleKts = Set.of(
+                "de.fourteen.watchparty.domain.service.Settlement",
+                "de.fourteen.watchparty.application.RoomView");
+
+        Set<String> tatsaechlicheHighKlassen = classes.stream()
+                .filter(javaClass -> javaClass.isAnnotatedWith(Criticality.class))
+                .filter(javaClass -> javaClass.reflect().getAnnotation(Criticality.class).level() == Criticality.Level.HIGH)
+                .map(JavaClass::getName)
+                .collect(Collectors.toSet());
+
+        assertThat(tatsaechlicheHighKlassen)
+                .as("@Criticality(HIGH)-Klassen muessen mit pitest.targetClasses in build.gradle.kts uebereinstimmen")
+                .isEqualTo(ausBuildGradleKts);
+    }
 
     /**
      * Fuer jede {@code package-info}-Klasse: welche der vier Ring-Annotationen

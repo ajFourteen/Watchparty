@@ -124,12 +124,22 @@ tasks.withType<Test> {
 // Getrennt wird ueber JUnit-Tags, nicht ueber eigene Source Sets: Die
 // handgeschriebenen Test Doubles bleiben in einem gemeinsamen Quellbaum
 // (src/test/java), erreichbar von jeder Ebene. `test` ist bewusst der
-// schnelle Lauf (unit, port, arch); `adapterTest` und `apiTest` kommen extra
-// dazu, weil sie Spring bzw. einen echten Socket brauchen (Phase 1 der
-// Teststrategie-Umsetzung).
+// schnelle Lauf (unit, port); `adapterTest` und `apiTest` kommen extra dazu,
+// weil sie Spring bzw. einen echten Socket brauchen (Phase 1 der
+// Teststrategie-Umsetzung). `arch` laeuft NICHT hier mit, sondern in einem
+// eigenen Task (`archTest`, unten) -- der Grund ist kein Stilentscheid,
+// sondern ein Fund: archunit-junit5-engine:1.4.1 implementiert getTags() auf
+// keinem seiner TestDescriptor-Knoten. Jeder JUnit-Platform-TagFilter,
+// gleich welcher Tags, sortiert deshalb ALLE ArchUnit-Tests aus -- egal ob
+// per Paket- oder per Klassenauswahl entdeckt (nachgestellt mit einem
+// eigenstaendigen JUnit-Platform-Launcher-Aufruf, siehe
+// docs/teststrategie-umsetzung.md). `ArchitectureTest` lief dadurch bislang
+// bei keinem `test`/`check`-Lauf tatsaechlich mit, obwohl Build und Report
+// unauffaellig gruen blieben -- ein durch Tag-Filterung stillschweigend
+// leeres Ergebnis sieht identisch aus wie ein bestandener Lauf.
 tasks.named<Test>("test") {
     useJUnitPlatform {
-        includeTags("unit", "port", "arch")
+        includeTags("unit", "port")
     }
 }
 
@@ -155,8 +165,26 @@ val apiTest = tasks.register<Test>("apiTest") {
     shouldRunAfter(adapterTest)
 }
 
+// Struktur (`arch`, Abschnitt 2.5): ueber die JUnit-Platform-Engine
+// ausgewaehlt (`includeEngines("archunit")`), nicht ueber einen Tag -- siehe
+// Begruendung oben. Ohne Tag-Filter funktioniert die Engine wie dokumentiert
+// (mit einem eigenstaendigen Launcher-Aufruf verifiziert); die Auswahl nach
+// Engine statt nach Layer ist inhaltlich sogar treffender, weil
+// Architekturregeln nicht zu einer einzelnen Ebene gehoeren, sondern fuer
+// alle gelten.
+val archTest = tasks.register<Test>("archTest") {
+    description = "Struktur: haelt der Bau die Invarianten? (Abschnitt 2.5)"
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeEngines("archunit")
+    }
+    shouldRunAfter(tasks.test)
+}
+
 tasks.named("check") {
-    dependsOn(adapterTest, apiTest)
+    dependsOn(adapterTest, apiTest, archTest)
 }
 
 // --- Ein JGiven-Report ueber alle Ebenen hinweg -----------------------------
@@ -169,11 +197,18 @@ tasks.named("check") {
 // Testklasse eindeutig, Kollisionen also ausgeschlossen), und der
 // vorhandene `jgivenTestReport`-Task liest von dort -- ein einziger Report
 // mit allen Szenarien aus allen Ebenen (docs/teststrategie.md, Abschnitt 8).
+//
+// `archTest` bewusst aussen vor: ArchUnit-Regeln sind keine JGiven-Szenarien
+// und schreiben nie in diesen Ordner -- eine Abhaengigkeit von `archTest`
+// waere hier ein Validierungsfehler ohne Gegenwert (Gradle bemaengelt sonst
+// eine "implicit dependency" auf ein Verzeichnis, das der Task nie befuellt).
 val jgivenResultsDir = layout.buildDirectory.dir("jgiven-results/alle-ebenen")
 
-tasks.withType<Test>().configureEach {
-    extensions.configure<JGivenTaskExtension> {
-        resultsDir.set(jgivenResultsDir)
+listOf(tasks.test, adapterTest, apiTest).forEach { test ->
+    test.configure {
+        extensions.configure<JGivenTaskExtension> {
+            resultsDir.set(jgivenResultsDir)
+        }
     }
 }
 

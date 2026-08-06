@@ -1040,20 +1040,34 @@ Hook für die feste Oberfläche.
    `@ApiTest` in `de.fourteen.watchparty.teststrategy`) tragen den
    JUnit-Tag und den JGiven-`@IsTag`-Report-Tag zusammen, damit beides nicht
    auseinanderläuft — Wortlaut wie im Beispiel aus `teststrategie.md`
-   Abschnitt 1. Drei Gradle-Tasks werten sie aus: `test` (unit, port, arch —
-   der schnelle Lauf), `adapterTest`, `apiTest`; `check` hängt alle drei
-   ein, dazu einen einzigen `jgivenTestReport`, der alle drei
-   Ergebnisordner zusammenführt (das Gradle-Plugin hängt Report-Tasks nur an
-   Test-Tasks, die beim Anwenden des Plugins schon existieren — `test` tut
-   das, `adapterTest`/`apiTest` als später im Skript definierte Tasks
-   nicht; alle drei schreiben deshalb in denselben Ergebnisordner, statt
-   drei getrennte Reports zu erzeugen). **Nachtrag aus Phase 3.1:** jqwik
-   hat einen eigenen `net.jqwik.api.Tag`, unabhängig von JUnit Jupiters
-   `@Tag` — die Property-Tests aus Abschnitt 4 blieben mit nur dem
-   JUnit-Tag für den `--include-tag`-Filter unsichtbar (BUILD SUCCESSFUL,
-   aber 0 ausgeführte Tests, ohne jede Fehlermeldung). Alle vier
-   Meta-Annotationen tragen deshalb zusätzlich den passenden
-   `net.jqwik.api.Tag`.
+   Abschnitt 1. Vier Gradle-Tasks werten sie aus: `test` (unit, port — der
+   schnelle Lauf), `adapterTest`, `apiTest`, `archTest`; `check` hängt alle
+   vier ein, dazu einen einzigen `jgivenTestReport`, der die JGiven-Ergebnisse
+   von `test`/`adapterTest`/`apiTest` zusammenführt (das Gradle-Plugin hängt
+   Report-Tasks nur an Test-Tasks, die beim Anwenden des Plugins schon
+   existieren — `test` tut das, die anderen als später im Skript definierte
+   Tasks nicht; sie schreiben deshalb in denselben Ergebnisordner, statt
+   getrennte Reports zu erzeugen). **Nachtrag aus Phase 3.1:** jqwik hat
+   einen eigenen `net.jqwik.api.Tag`, unabhängig von JUnit Jupiters `@Tag`
+   — die Property-Tests aus Abschnitt 4 blieben mit nur dem JUnit-Tag für
+   den `--include-tag`-Filter unsichtbar (BUILD SUCCESSFUL, aber 0
+   ausgeführte Tests, ohne jede Fehlermeldung). Alle vier Meta-Annotationen
+   tragen deshalb zusätzlich den passenden `net.jqwik.api.Tag`. **Nachtrag
+   aus Phase 4:** `archunit-junit5-engine:1.4.1` implementiert `getTags()`
+   auf keinem seiner `TestDescriptor`-Knoten (durch Bytecode-Inspektion und
+   einen eigenständigen `LauncherDiscoveryRequest` gegen dieselbe
+   Test-Klasse verifiziert, unabhängig von Gradle). Jeder
+   JUnit-Platform-`TagFilter` — gleich welche Tags, gleich ob Paket- oder
+   Klassenauswahl — sortiert dadurch ausnahmslos alle ArchUnit-Tests aus.
+   `ArchitectureTest` trug zwar `@Tag("arch")` und lief scheinbar unauffällig
+   mit (`BUILD SUCCESSFUL`, kein Hinweis auf 0 Tests wie beim jqwik-Fund),
+   wurde aber nie tatsächlich ausgeführt, seit `arch` erstmals in den
+   Tag-Filter der Phase-1-Umsetzung aufgenommen wurde — ein durch
+   Tag-Filterung leeres Ergebnis sieht identisch aus wie ein bestandener
+   Lauf. Struktur läuft seither in einem eigenen Task `archTest`, ausgewählt
+   über `includeEngines("archunit")` statt über einen Tag; `@Tag("arch")`
+   bleibt auf `ArchitectureTest`/`TeststrategyArchitectureTest` als
+   Dokumentation stehen, ist für die Task-Auswahl aber wirkungslos.
 3. **Die Sprachausnahme ist strukturell eingehegt.** `DeutschesSzenario`
    (`teststrategy`) stellt `angenommen()`/`wenn()`/`dann()` bereit,
    `DeutscheStufe` (`teststrategy.stufen`) `und()` — beide nur dünne

@@ -238,14 +238,49 @@ Wertvollste.
 ## Phase 4 — Metriken scharf stellen
 
 1. **JaCoCo** je Ebene erheben und als Artefakt ablegen — ohne
-   Prozentschranke.
+   Prozentschranke. **Erledigt** in `build.gradle.kts` (Commit
+   `d1ac56d`): drei `JacocoReport`-Tasks (`jacocoTestReport`,
+   `jacocoAdapterTestReport`, `jacocoApiTestReport`), je eigene
+   Ausführungsdaten, XML+HTML, in `check` verdrahtet.
 2. **Die Ebenen-Disjunktheit** aus 7.4: Differenz der abgedeckten
    Domänenzeilen zwischen den Ebenen. Deckt ein Adapter- oder API-Test eine
    Domänenzeile ab, die keine innere Ebene abdeckt, ist das eine Lücke
-   weiter innen.
+   weiter innen. **Erledigt** — Task `ebenenDisjunktheit`, liest die drei
+   JaCoCo-XML-Berichte, bildet die Differenz nur über `domain/`-Zeilen, ist
+   ein Gate (Abschnitt 7.4 verlangt "von Anfang an automatisiert", nicht nur
+   erhoben). Aktueller Bestand: 0 Lücken. Durch eine Gegenprobe verifiziert
+   (unit/port testweise auf nur `arch` verengt: 324 nur-äußerlich gedeckte
+   Zeilen gemeldet, danach zurückgesetzt) — die Prüfung erkennt eine echte
+   Verletzung, nicht nur den Idealfall.
 3. **PIT** auf die `HIGH`-Klassen, Schranke 99 %, als Testmenge nur die
    Tags `unit` und `port`. Dazu der Test, der die Menge der
    `HIGH`-annotierten Klassen gegen die PIT-Konfiguration abgleicht.
+   **Erledigt.** Score nach mehreren Runden: 41 von 41 Mutanten getötet
+   (100 %). Der ArchUnit-Test dafür (`ArchitectureTest`,
+   `highKritikalitaetsKlassenStimmenMitDerPitKonfigurationUeberein`) auch
+   durch eine Gegenprobe verifiziert (Erwartungsmenge testweise verfälscht,
+   Test schlug fehl, danach zurückgesetzt).
+
+   **Ein echter, gravierender Fund dabei:** `archunit-junit5-engine:1.4.1`
+   implementiert `getTags()` auf keinem seiner `TestDescriptor`-Knoten.
+   Jeder JUnit-Platform-`TagFilter` — unabhängig von den konkreten Tags,
+   unabhängig davon, ob per Paket oder per Klasse ausgewählt wird — sortiert
+   dadurch ausnahmslos alle ArchUnit-Tests aus, ohne jede Fehlermeldung
+   (verifiziert per Bytecode-Inspektion der Engine-Jar und einem
+   eigenständigen `LauncherDiscoveryRequest` außerhalb von Gradle). Der
+   `test`-Task filterte seit Phase 1 auf `includeTags("unit", "port",
+   "arch")` — `ArchitectureTest` trug `@Tag("arch")` und lief dadurch bei
+   **keinem einzigen** `test`/`check`-Lauf dieser gesamten Umsetzung
+   tatsächlich mit, obwohl jede Verifikation seither `BUILD SUCCESSFUL`
+   zeigte. Ein durch Tag-Filterung leeres Ergebnis sieht identisch aus wie
+   ein bestandener Lauf — nur der neue PIT-Guard-Test (der bewusst mit einer
+   Gegenprobe verifiziert wurde) deckte das auf, weil dieselbe Gegenprobe für
+   ihn ergebnislos blieb, bis der Grund klar war. Fix: Struktur (`arch`)
+   läuft seither in einem eigenen Task `archTest`, ausgewählt über
+   `includeEngines("archunit")` statt über einen Tag; `check` hängt ihn
+   jetzt zusätzlich ein. `@Tag("arch")` bleibt als Dokumentation auf
+   `ArchitectureTest`/`TeststrategyArchitectureTest` stehen (ADR-030,
+   Nachtrag Phase 4), ist für die Task-Auswahl aber wirkungslos.
 4. **Ausnahmenregister** anlegen (`docs/test-ausnahmen.md`): äquivalente
    Mutanten und bewusst nicht abgedeckte Fälle, jeweils mit Begründung und
    Datum. Ausschluss über `excludedAnnotations`, damit die Unterdrückung im
