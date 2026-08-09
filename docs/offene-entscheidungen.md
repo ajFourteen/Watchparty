@@ -27,7 +27,8 @@ umgesetzt.
 
 ## Nicht offen — bewusst ausgeschlossen
 
-Damit diese Fragen nicht versehentlich wieder aufgemacht werden:
+Damit diese Fragen nicht versehentlich wieder aufgemacht werden: aktiv aus
+dem Scope genommen, nicht (mehr) gebaut, und das soll so bleiben.
 
 - Kein Remote-Play über mehrere Orte.
 - Keine mehreren parallelen Räume.
@@ -43,6 +44,13 @@ Damit diese Fragen nicht versehentlich wieder aufgemacht werden:
 - Der Begriff „Markt" (ADR-022). Es heißt Wette.
 - Was passiert, wenn die offene Wette nicht mehr zum Spiel passt: Der Host
   annulliert die Runde (Anforderung 8.6).
+
+## Nicht offen — entschieden und umgesetzt
+
+Anders als oben: Diese Fragen waren offen und sind jetzt geklärt, weil das
+Feature bzw. der Fix umgesetzt wurde — kein Ausschluss, sondern eine
+gefallene Entscheidung.
+
 - 3.1-a: Das Startguthaben stand getrennt von Mindesteinsatz und Strafe
   (`Room.STARTING_POINTS` statt `Params`). Beim Nachrüsten der Szenarien für
   Anhang A aufgefallen, entschieden am 2026-08-06: `Params` ist jetzt die
