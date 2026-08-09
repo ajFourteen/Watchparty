@@ -186,7 +186,7 @@ Die Übergabe ist asymmetrisch:
 - **Verlieren wirkt sofort, in jeder Phase.** Sonst wäre der Raum mitten im offenen Fenster ohne Steuerung — genau dann, wenn jemand schließen können muss.
 - **Zurückholen wirkt erst im Leerlauf oder nach dem Auflösen.** Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst danach ausgeführt. Sonst rutschen dem Vertreter die Steuerknöpfe mitten in einer laufenden Runde weg.
 
-Die Rolle kann über den Abend zwischen den Runden mehrfach wandern, wenn Handys ein- und aufwachen. Sie landet dabei immer bei dem, der am längsten dabei ist — in der Praxis der, der die Fernbedienung hat.
+Die Rolle kann über den Abend zwischen den Runden mehrfach wandern, wenn Handys ein- und aufwachen. Sie landet dabei immer bei dem, der am längsten dabei ist — in der Praxis der, der die Fernbedienung hat. Solange ein Spieler beigetreten ist, hält die Oberfläche den Bildschirm über einen Screen Wake Lock wach, um genau dieses unbemerkte Wandern seltener zu machen (ADR-032) — best effort, ohne Fehlermeldung, falls der Browser das nicht unterstützt.
 
 ## 11. Bewusst nicht enthalten (out of scope)
 
@@ -354,6 +354,7 @@ die Marke.
 | 10.1-a | Verliert der Host die Verbindung, wandert die Rolle sofort weiter — in jeder Phase. | backend |
 | 10.1-b | Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst im Leerlauf bzw. nach dem Auflösen ausgeführt. | backend |
 | 10.1-c | Die Host-Rolle verlangt keinen zusätzlichen Einstiegsschritt: keine eigene URL, kein Kennwort. | backend |
+| 10.1-d | Solange ein Spieler beigetreten ist, hält die Oberfläche den Bildschirm wach (Screen Wake Lock), best effort. | frontend |
 
 ### 11. Betrieb
 

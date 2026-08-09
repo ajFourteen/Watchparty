@@ -25,10 +25,6 @@ akzeptiert; falls es zu wild wird, wären eine Mindestteilnehmerzahl pro
 Ausgang oder ein kleiner Grundpool denkbare Stellschrauben. Aktuell nicht
 umgesetzt.
 
-**Wake Lock.**
-Als Idee notiert (Screen wach halten während einer Runde), noch nicht
-implementiert.
-
 ## Nicht offen — bewusst ausgeschlossen
 
 Damit diese Fragen nicht versehentlich wieder aufgemacht werden:
@@ -52,3 +48,9 @@ Damit diese Fragen nicht versehentlich wieder aufgemacht werden:
   Anhang A aufgefallen, entschieden am 2026-08-06: `Params` ist jetzt die
   einzige Quelle für alle drei Werte, `Room.addPlayer` nimmt das
   Startguthaben als Parameter statt einer eigenen Konstante.
+- Wake Lock: entschieden am 2026-08-09, umgesetzt am selben Tag (ADR-032,
+  `docs/features/001-wake-lock.md`). Best effort, ohne automatisierten Test
+  (`teststrategie.md` §11). Ob er die Beobachtung aus ADR-021 (Host-Rolle
+  wandert unbemerkt) tatsächlich entschärft, bleibt offen bis zum ersten
+  Probelauf — das ist keine neue offene Entscheidung, sondern dieselbe
+  Beobachtung, die schon in `probelauf.md` unter „Handys" steht.

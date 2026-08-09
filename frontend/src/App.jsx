@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoom } from "./useRoom.js";
+import { useWakeLock } from "./useWakeLock.js";
 import { Guide } from "./Guide.jsx";
 
 const STATUS_LABEL = {
@@ -300,6 +301,10 @@ export default function App() {
 
   const [guideOpen, setGuideOpen] = useState(false);
   const joined = Boolean(playerId) && Boolean(state);
+
+  // Screen Wake Lock, solange beigetreten (ADR-032) — beugt dem unbemerkten
+  // Wandern der Host-Rolle vor (ADR-021), best effort ohne Fehlermeldung.
+  useWakeLock(joined);
 
   // Beim ersten Abend geht die Anleitung von selbst auf; danach nur noch auf
   // Wunsch, damit sie niemandem jede Runde im Weg steht.

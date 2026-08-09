@@ -94,7 +94,8 @@ Stellschrauben.
   (Anforderung 8.1) — zahlt das eingeschlafene Handy, aber blutet der früh
   Gegangene nicht aus?
 - Wandert die Host-Rolle unbemerkt weg, wenn jemand sein Handy sperrt
-  (ADR-021)? Das ist der Fall, für den das Wake Lock notiert ist.
+  (ADR-021)? Das ist der Fall, für den der Screen Wake Lock (ADR-032)
+  gedacht ist — ob er in der Praxis hilft, zeigt sich erst hier.
 
 ## Danach
 

@@ -36,6 +36,7 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-029 | Java 25 durchgehend, mit den dafür nötigen Versionssprüngen | Akzeptiert |
 | ADR-030 | Teststrategie: Ebenen über JGiven-Tags, Sprachausnahme fürs Stufen-Paket | Akzeptiert |
 | ADR-031 | Teststrategie: Metriken scharf gestellt — JaCoCo, Ebenen-Disjunktheit, PIT, Ausnahmenregister | Akzeptiert |
+| ADR-032 | Screen Wake Lock als Best-Effort-Komfort, ohne automatisierten Test | Akzeptiert |
 
 ---
 
@@ -1195,3 +1196,42 @@ statt über einen Tag.
 - `docs/teststrategie-umsetzung.md` (temporärer Arbeitsplan) verzeichnet
   alle Einzelfunde dieser Phase im Detail; dieses ADR fasst nur die
   bleibenden Entscheidungen zusammen.
+
+## ADR-032: Screen Wake Lock als Best-Effort-Komfort, ohne automatisierten Test
+
+**Status:** Akzeptiert
+
+**Kontext:** ADR-021 notiert am Rand: Die Host-Rolle wandert asymmetrisch,
+weil verbundene Spieler ihr Handy sperren — „das notierte Wake-Lock würde
+das zusätzlich beruhigen". `offene-entscheidungen.md` führte es seitdem als
+offene Idee. Dieselbe Ursache trifft auch normale Spieler: ein gesperrtes
+Handy verpasst ein Wettfenster und läuft in die Nicht-Tipper-Strafe (8.1),
+ohne dass es jemand merkt (`probelauf.md`, Abschnitt „Handys").
+
+**Entscheidung:** Solange ein Spieler beigetreten ist, fordert das Frontend
+über die Screen-Wake-Lock-API (`navigator.wakeLock`) einen Lock an. Die
+Spezifikation gibt den Lock beim Verstecken des Tabs automatisch frei —
+`useWakeLock` fängt das über `visibilitychange` ab und fordert ihn beim
+Zurückkommen erneut an. Kennt der Browser die API nicht oder schlägt die
+Anfrage fehl (wenig Akku, ältere iOS-Version), bleibt die App unverändert
+nutzbar: **best effort, kein Fehlerzustand.**
+
+Bewusst **kein** automatisiertes Testszenario dafür — `teststrategie.md`
+§11 nennt Wake Lock ausdrücklich als etwas, das erst am Spielabend
+beobachtbar ist, nicht als Backend- oder Frontend-Testfall. Ein
+JGiven-Szenario würde eine Prüftiefe vortäuschen, die es nicht gibt: Eine
+echte Bildschirmsperre lässt sich im Test nicht herstellen, nur die
+Existenz des API-Aufrufs. Das Feature-Dokument (`docs/features/001-wake-lock.md`)
+hält die vier Akzeptanzkriterien stattdessen als von Hand nachvollzogene
+Prosa-Szenarien fest, wie es die Kritikalität `LOW` (reiner Client-Komfort,
+keine Punkteverrechnung betroffen) rechtfertigt.
+
+**Konsequenzen:**
+- `frontend/src/useWakeLock.js`, verdrahtet in `App.jsx` über `joined` —
+  aktiv vom Beitritt bis zum Verlassen des Raums (RESET oder Schließen der
+  App), nicht schon auf dem Beitrittsbildschirm.
+- Kein Effekt auf Backend, Snapshot oder eine der harten Invarianten aus
+  `CLAUDE.md` — rein clientseitig, keine neue Nachricht im Protokoll.
+- Ob der Lock die Beobachtung aus ADR-021 tatsächlich entschärft, zeigt
+  erst der erste Probelauf; bis dahin bleibt es eine unbestätigte Annahme,
+  keine Zusage.
