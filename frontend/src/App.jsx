@@ -237,10 +237,11 @@ function PickForm({ bet, ownPoints, params, onPlacePick }) {
  * Die Aufdeckung ab CLOSED: erst die abgegebenen Tipps, dann abgesetzt die
  * Teilnehmer ohne Tipp (Anforderung 8.1-f/8.1-g).
  *
- * Die Strafe steht hier bewusst als *drohend* und mit „bis": Sie wird auf
- * den Kontostand gekappt (8.1-c) und entfällt ganz, wenn der Host die Runde
- * abbricht (8.6-a). Verrechnet wird erst beim Auflösen (9-c) — eine Zahl,
- * die der Server so noch gar nicht zugesagt hat, gehört hier nicht hin.
+ * Die Strafe steht hier bewusst ohne Vorzeichen und mit dem Wort davor:
+ * Sie ist noch nicht gebucht. Verrechnet wird erst beim Auflösen (9-c),
+ * sie wird auf den Kontostand gekappt (8.1-c) und entfällt ganz, wenn der
+ * Host die Runde abbricht (8.6-a). Ein „−25" würde das Gegenteil behaupten
+ * — die Zahl mit dem Minus steht erst im Ergebnis, wo sie tatsächlich gilt.
  */
 function RevealedPicks({ picks, nonPickers, players, bet, playerId, penalty }) {
   const nameOf = (id) => players.find((player) => player.id === id)?.name ?? "?";
@@ -265,14 +266,15 @@ function RevealedPicks({ picks, nonPickers, players, bet, playerId, penalty }) {
               <span className="name">{nameOf(id)}</span>
               <span className="sub">Kein Tipp</span>
             </span>
-            <span className="points negative">bis −{penalty}</span>
+            <span className="points negative">Strafe {penalty}</span>
           </li>
         ))}
       </ul>
       {nonPickers.length > 0 && (
         <p className="hint">
-          Strafen fallen erst beim Auflösen an und höchstens in Höhe des
-          Kontostands. Bricht der Host die Runde ab, entfallen sie ganz.
+          Abgezogen wird die Strafe erst beim Auflösen — und höchstens so
+          viel, wie jemand noch hat. Bricht der Host die Runde ab, entfällt
+          sie ganz.
         </p>
       )}
     </>
@@ -493,6 +495,15 @@ export default function App() {
   const ownDelta = state.deltas?.[playerId] ?? 0;
   const tone = state.annulled ? "" : ownDelta > 0 ? " win" : ownDelta < 0 ? " loss" : "";
 
+  // 5-h: Der Server schickt keinen Grund fürs Schließen mit, weil es keinen
+  // zweiten braucht — er schließt von selbst genau dann, wenn kein
+  // Teilnehmer mehr ohne Tipp ist (5-g). Ist diese Liste in CLOSED leer,
+  // war das der Auslöser; bei Zeitablauf oder Host-Klick steht immer
+  // mindestens einer darin. Ohne einen einzigen Tipp ist es dagegen 8.4,
+  // nicht vollzählige Beteiligung.
+  const closedBecauseAllPicked =
+    state.phase === "CLOSED" && nonPickers.length === 0 && revealedPicks.length > 0;
+
   return (
     <main className="shell">
       {/* Der Host-Rahmen weicht dem Countdown, solange das Fenster offen
@@ -551,8 +562,17 @@ export default function App() {
         )}
 
         {state.phase === "CLOSED" && state.bet && (
-          <section className="stage">
-            <p className="eyebrow">Geschlossen</p>
+          <section className={`stage${closedBecauseAllPicked ? " complete" : ""}`}>
+            {closedBecauseAllPicked ? (
+              <p className="all-picked">
+                <span className="check" aria-hidden="true">
+                  ✓
+                </span>
+                Alle haben getippt — Fenster zu
+              </p>
+            ) : (
+              <p className="eyebrow">Geschlossen</p>
+            )}
             <h2 className="display">{state.bet.question}</h2>
             <RevealedPicks
               picks={revealedPicks}

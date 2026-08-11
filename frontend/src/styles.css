@@ -373,6 +373,77 @@ body {
   }
 }
 
+/*
+ * Geschlossen, weil alle getippt haben (5-h). Ohne dieses Signal ist der
+ * Sprung nicht zu deuten: Wer als Letzter tippt, bekommt die Aufdeckung
+ * zurück, bevor der Finger vom Knopf ist — der Countdown lief ja noch.
+ *
+ * Derselbe Bauplan wie win-glow und loss-glow, aber in der Akzentfarbe: Es
+ * ist weder gewonnen noch verloren, sondern der Grund des Schließens. Nur
+ * box-shadow, damit sich die Animation nicht mit dem transform aus stage-in
+ * überlagert.
+ */
+.stage.complete {
+  animation: stage-in 240ms ease-out both, complete-glow 900ms ease-out 120ms both;
+}
+
+@keyframes complete-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 197, 49, 0);
+  }
+  16% {
+    box-shadow: 0 0 0 4px rgba(255, 197, 49, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 197, 49, 0);
+  }
+}
+
+/* Steht an der Stelle des sonstigen „Geschlossen"-Eyebrows und trägt
+   dessen Satz, damit die Kachel nicht springt. */
+.all-picked {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/*
+ * Das Häkchen ist die eigentliche Bewegung: Es fährt einmal auf, während
+ * die Kachel dahinter nur einblendet. Ein Element, eine Aussage — auf einem
+ * Handy neben dem Fernseher bleibt für mehr keine Aufmerksamkeit übrig.
+ */
+.all-picked .check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  animation: check-pop 420ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes check-pop {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
 .countdown {
   margin: 0;
   font-size: 3.4rem;
@@ -690,6 +761,8 @@ body {
   .stage,
   .stage.win,
   .stage.loss,
+  .stage.complete,
+  .all-picked .check,
   .chevron {
     animation: none;
     transition: none;

@@ -33,8 +33,9 @@ export function Guide({ catalog, params, onClose }) {
             schon getippt haben.
           </li>
           <li>
-            <strong>Die Wette schließt</strong> und alle Tipps werden gleichzeitig aufgedeckt.
-            Jetzt läuft der Spielzug im Fernsehen.
+            <strong>Die Wette schließt</strong> — wenn die Uhr abläuft oder sobald alle
+            getippt haben — und alle Tipps werden gleichzeitig aufgedeckt. Jetzt läuft der
+            Spielzug im Fernsehen.
           </li>
           <li>
             <strong>Der Host löst auf</strong> und erst dann werden Punkte verrechnet.

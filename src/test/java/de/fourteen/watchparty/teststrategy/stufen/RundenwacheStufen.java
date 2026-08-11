@@ -45,6 +45,13 @@ public class RundenwacheStufen extends RaumStufen<RundenwacheStufen> {
         return this;
     }
 
+    /**
+     * Der Host ist hier allein im Raum, sein Tipp schliesst das Fenster
+     * deshalb schon selbst (5-g). Das {@code closeBet} bleibt trotzdem
+     * stehen: Es belegt, dass ein Schluss auf einer bereits geschlossenen
+     * Runde nichts kaputtmacht (ADR-020) -- genau die Verschraenkung, um die
+     * es in dieser Stufe geht.
+     */
     public RundenwacheStufen derHostTipptSchliesstUndLoestZugunstenVonTouchdownAuf() {
         actor.placePick(sessionVon("Host"), "touchdown", null);
         actor.closeBet(sessionVon("Host"));

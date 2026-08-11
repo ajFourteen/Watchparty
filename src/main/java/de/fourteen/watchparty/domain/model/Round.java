@@ -27,7 +27,7 @@ import java.util.Set;
  */
 @Entity
 @Criticality(level = Criticality.Level.MEDIUM,
-        requirements = { "5-a", "5-b", "5-c", "5-d", "8.6", "8.6-a", "8.6-b", "9-a", "9-b", "9-c" })
+        requirements = { "5-a", "5-b", "5-c", "5-d", "5-g", "8.6", "8.6-a", "8.6-b", "9-a", "9-b", "9-c" })
 public class Round {
 
     @Identity
@@ -115,6 +115,24 @@ public class Round {
         Set<PlayerId> ohneTipp = new LinkedHashSet<>(participants);
         ohneTipp.removeAll(picks.keySet());
         return ohneTipp;
+    }
+
+    /**
+     * Anforderung 5-g: Jeder Teilnehmer des eingefrorenen Kreises hat
+     * getippt — auf weitere Tipps ist nicht mehr zu warten, das Fenster kann
+     * sofort schliessen.
+     *
+     * Bewusst ueber den Kreis und nicht ueber die Zahl der Tipps: Wer erst
+     * nach dem Oeffnen beigetreten ist, darf tippen (8.1-b), gehoert aber
+     * nicht dazu. Ein Vergleich {@code picks.size() >= participants.size()}
+     * wuerde durch dessen Tipp einen echten Teilnehmer aussperren, der noch
+     * zielt — und ihm dafuer die Strafe nach 8.1 aufhalsen.
+     *
+     * Abfrage, kein Uebergang: <em>ob</em> geschlossen wird, entscheidet der
+     * Anwendungsring, genau wie beim Timer aus ADR-010.
+     */
+    public boolean allParticipantsPicked() {
+        return nonPickers().isEmpty();
     }
 
     void addPick(Pick pick) {

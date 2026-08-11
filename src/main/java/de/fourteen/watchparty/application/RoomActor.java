@@ -59,7 +59,7 @@ import java.util.concurrent.TimeoutException;
  * {@link ClientGateway}, geschrieben ueber das {@link SnapshotRepository}.
  */
 @Criticality(level = Criticality.Level.MEDIUM,
-        requirements = { "5-a", "5-b", "5-c", "5-d", "8.6", "8.6-a", "8.6-b", "8.7", "8.7-a",
+        requirements = { "5-a", "5-b", "5-c", "5-d", "5-g", "8.6", "8.6-a", "8.6-b", "8.7", "8.7-a",
                 "9-a", "9-b", "9-c", "10-a", "10-b", "10.1", "10.1-a", "10.1-b", "10.1-c" })
 public class RoomActor implements RoomCommands {
 
@@ -324,6 +324,22 @@ public class RoomActor implements RoomCommands {
         room.addPick(new Pick(playerId, outcomeId, stake));
 
         clients.send(sessionId, new Messages.YourPick(outcomeId.value(), stake.value()));
+
+        // Anforderung 5-g: der dritte Ausloeser fuers Schliessen neben
+        // Countdown und Host-Klick. Vor dem broadcastState, damit es keinen
+        // Zwischenzustand "alle haben getippt, Fenster noch offen" gibt --
+        // der letzte Tipper saehe sonst fuer einen Frame ein Fenster, in dem
+        // niemand mehr tippen kann.
+        //
+        // Das Cancel ist wie in ADR-010 nur eine Optimierung; die
+        // Absicherung gegen den trotzdem feuernden Timer ist der
+        // Runden-ID-Vergleich in handleAutoClose.
+        if (round.allParticipantsPicked()) {
+            if (autoCloseTask != null) {
+                autoCloseTask.cancel();
+            }
+            room.closeCurrentRound();
+        }
         broadcastState();
     }
 
