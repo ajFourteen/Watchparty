@@ -6,6 +6,7 @@ import de.fourteen.watchparty.domain.model.Bet;
 import de.fourteen.watchparty.domain.model.Bets;
 import de.fourteen.watchparty.domain.model.Outcome;
 import de.fourteen.watchparty.domain.model.OutcomeId;
+import de.fourteen.watchparty.domain.model.Params;
 import de.fourteen.watchparty.domain.model.Phase;
 import de.fourteen.watchparty.domain.model.Pick;
 import de.fourteen.watchparty.domain.model.Player;
@@ -40,7 +41,7 @@ import java.util.Objects;
  * Invariante 1 bleibt unberuehrt — aufgerufen wird ausschliesslich vom
  * Raum-Thread, wie jede andere Lesung des Raumzustands.
  */
-@Criticality(level = Criticality.Level.HIGH, requirements = { "6-b", "9-b" })
+@Criticality(level = Criticality.Level.HIGH, requirements = { "6-b", "9-b", "8.1-f", "3.1-c" })
 public final class RoomView {
 
     private RoomView() {
@@ -73,6 +74,7 @@ public final class RoomView {
         Integer pickCount = null;
         Integer participantCount = null;
         List<Messages.RevealedPick> revealedPicks = null;
+        List<String> nonPickers = null;
         String winningOutcomeId = null;
         Integer pool = null;
         Boolean annulled = null;
@@ -95,6 +97,15 @@ public final class RoomView {
                     revealedPicks.add(new Messages.RevealedPick(
                             pick.playerId().value(), pick.outcomeId().value(), pick.stake().value()));
                 }
+                // 8.1-f: erst hier, nie in OPEN. Die Menge ist die Umkehrung
+                // des Pick-Zaehlers -- waehrend des offenen Fensters waere
+                // schon die leere Liste eine Aussage ueber einzelne Tipps
+                // (Invariante 4). Ab CLOSED liegen die Tipps ohnehin offen,
+                // es kommt also nichts hinzu, was nicht schon sichtbar waere.
+                nonPickers = new ArrayList<>();
+                for (PlayerId playerId : round.nonPickers()) {
+                    nonPickers.add(playerId.value());
+                }
                 if (phase == Phase.RESOLVED) {
                     OutcomeId winner = round.getWinningOutcomeId();
                     winningOutcomeId = winner == null ? null : winner.value();
@@ -115,7 +126,17 @@ public final class RoomView {
 
         return new Messages.State(views, hostId(room), phase.name(), roundId, bet,
                 closesAt, serverNow, pickCount, participantCount, revealedPicks,
-                winningOutcomeId, pool, annulled, annulReason, deltas);
+                nonPickers, winningOutcomeId, pool, annulled, annulReason, deltas);
+    }
+
+    /**
+     * Die drei Parameter aus 3.1 fuers WELCOME (3.1-c). Der Client soll sie
+     * nennen koennen, ohne sie ein zweites Mal zu kennen — sie gelten bis
+     * zum Probelauf als vorlaeufig.
+     */
+    public static Messages.Params params(Params params) {
+        return new Messages.Params(
+                params.startingPoints().value(), params.minStake().value(), params.penalty().value());
     }
 
     private static @Nullable String hostId(Room room) {

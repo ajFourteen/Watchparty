@@ -239,7 +239,8 @@ public class RoomActor implements RoomCommands {
         reassignHost();
 
         clients.send(sessionId, new Messages.Welcome(
-                player.getId().value(), player.getToken().value(), RoomView.catalog()));
+                player.getId().value(), player.getToken().value(), RoomView.catalog(),
+                RoomView.params(PARAMS)));
         sendYourPickIfAny(sessionId, player.getId());
         broadcastState();
         log.info("{} ist dabei ({} Spieler im Raum)", player.getName(), room.players().size());

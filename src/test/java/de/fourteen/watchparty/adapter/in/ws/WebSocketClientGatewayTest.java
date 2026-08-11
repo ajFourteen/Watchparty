@@ -32,7 +32,8 @@ class WebSocketClientGatewayTest {
 
         gateway.send(session.getId(), new Messages.Welcome("p1", "t1", List.of(
                 new Messages.BetView("drive-outcome", "Frage", "Anmerkung",
-                        List.of(new Messages.OutcomeView("touchdown", "Touchdown", null))))));
+                        List.of(new Messages.OutcomeView("touchdown", "Touchdown", null)))),
+                new Messages.Params(1000, 25, 25)));
         gateway.send(session.getId(), vollStaendigerZustand());
         gateway.send(session.getId(), new Messages.YourPick("touchdown", 25));
         gateway.send(session.getId(), new Messages.Error("Bitte zuerst beitreten."));
@@ -44,12 +45,17 @@ class WebSocketClientGatewayTest {
         JsonNode welcome = mapper.readTree(frames.get(0));
         assertThat(welcome.path("type").asText()).isEqualTo("WELCOME");
         assertThat(welcome.path("catalog").get(0).path("outcomes").get(0).path("id").asText()).isEqualTo("touchdown");
+        // 3.1-c: der Client bekommt die Parameter genannt, statt sie zu kennen
+        assertThat(welcome.path("params").path("minStake").asInt()).isEqualTo(25);
+        assertThat(welcome.path("params").path("penalty").asInt()).isEqualTo(25);
+        assertThat(welcome.path("params").path("startingPoints").asInt()).isEqualTo(1000);
 
         JsonNode state = mapper.readTree(frames.get(1));
         assertThat(state.path("type").asText()).isEqualTo("STATE");
         assertThat(state.path("players").get(0).path("id").asText()).isEqualTo("p1");
         assertThat(state.path("revealedPicks").get(0).path("outcomeId").asText()).isEqualTo("touchdown");
         assertThat(state.path("deltas").path("p1").asInt()).isEqualTo(25);
+        assertThat(state.path("nonPickers").get(0).asText()).isEqualTo("p2");
 
         JsonNode yourPick = mapper.readTree(frames.get(2));
         assertThat(yourPick.path("type").asText()).isEqualTo("YOUR_PICK");
@@ -74,6 +80,7 @@ class WebSocketClientGatewayTest {
                 null,
                 null,
                 List.of(new Messages.RevealedPick("p1", "touchdown", 25)),
+                List.of("p2"),
                 "touchdown",
                 25,
                 false,

@@ -24,7 +24,7 @@ public final class Messages {
      * mitgeschickt werden. Beim Reconnect kommt WELCOME erneut, der Client
      * hat ihn also immer (Invariante 3).
      */
-    public record Welcome(String playerId, String token, List<BetView> catalog) {
+    public record Welcome(String playerId, String token, List<BetView> catalog, Params params) {
         @JsonProperty("type")
         public String type() {
             return "WELCOME";
@@ -32,12 +32,25 @@ public final class Messages {
     }
 
     /**
+     * Die drei Werte aus Anforderung 3.1. Sie haengen aus demselben Grund am
+     * WELCOME wie der Katalog: ueber den Abend unveraendert, beim Reconnect
+     * ohnehin wieder dabei.
+     *
+     * Der Client braucht sie, um Mindesteinsatz und Strafe zu benennen, ohne
+     * eine eigene Kopie zu halten (3.1-c). Die Werte gelten bis zum Probelauf
+     * als vorlaeufig (docs/offene-entscheidungen.md) — eine zweite Kopie im
+     * Frontend waere genau die Stelle, die beim Nachjustieren vergessen wird.
+     */
+    public record Params(int startingPoints, int minStake, int penalty) {
+    }
+
+    /**
      * Ein vollstaendiger Zustand statt vieler Deltas, weil bei
      * Reconnect ohnehin alles neu geschickt wird (Invariante 3). Der Inhalt
      * haengt an der Phase — in OPEN nur der Pick-Zaehler (Invariante 4,
-     * ADR-013), in CLOSED zusaetzlich alle Tipps offen, in RESOLVED
-     * zusaetzlich Ergebnis, Pool und Deltas. Ungenutzte Felder bleiben null
-     * und werden nicht serialisiert.
+     * ADR-013), in CLOSED zusaetzlich alle Tipps offen und die Teilnehmer
+     * ohne Tipp, in RESOLVED zusaetzlich Ergebnis, Pool und Deltas.
+     * Ungenutzte Felder bleiben null und werden nicht serialisiert.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record State(
@@ -51,6 +64,13 @@ public final class Messages {
             @Nullable Integer pickCount,
             @Nullable Integer participantCount,
             @Nullable List<RevealedPick> revealedPicks,
+            /**
+             * Die Teilnehmer des eingefrorenen Kreises ohne Tipp (8.1-f) —
+             * erst ab CLOSED gesetzt. Waehrend OPEN waere schon die leere
+             * Liste die Aussage "alle haben getippt" und damit die Umkehrung
+             * des Pick-Zaehlers (Invariante 4, ADR-013).
+             */
+            @Nullable List<String> nonPickers,
             @Nullable String winningOutcomeId,
             @Nullable Integer pool,
             @Nullable Boolean annulled,

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Beitritt (Anforderung 1/3) auf der Port-to-Port-Ebene
- * (docs/teststrategie.md, Abschnitt 2.2), belegt 1-e, 3-a und 3-c.
+ * (docs/teststrategie.md, Abschnitt 2.2), belegt 1-e, 3-a, 3-c und 3.1-c.
  */
 @PortTest
 class BeitrittScenarioTest extends DeutschesSzenario<BeitrittStufen, BeitrittStufen, BeitrittStufen> {
@@ -20,5 +20,18 @@ class BeitrittScenarioTest extends DeutschesSzenario<BeitrittStufen, BeitrittStu
         wenn().einSpielerTrittNurMitEinemNamenBei("Anna");
 
         dann().hatDasFestgelegteStartguthaben("Anna");
+    }
+
+    /**
+     * Die Parameter aus 3.1 gelten bis zum Probelauf als vorlaeufig
+     * (docs/offene-entscheidungen.md). Deshalb darf der Client sie nicht
+     * selbst kennen -- er bekommt sie beim Beitritt gesagt (Feature 002).
+     */
+    @Test
+    @Anforderung({ "3.1-c" })
+    void derBeitrittNenntDieDreiParameter() {
+        wenn().einSpielerTrittNurMitEinemNamenBei("Anna");
+
+        dann().kenntDieDreiParameterAusDemWelcome("Anna");
     }
 }

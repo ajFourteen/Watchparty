@@ -56,14 +56,18 @@ abstract class RaumStufen<SELF extends RaumStufen<?>> extends DeutscheStufe<SELF
         return gateway.lastStateFor(sessionVon(name));
     }
 
-    /** Fuer Reconnect (ADR-014): der Token aus dem WELCOME der zuletzt fuer diesen Namen verwendeten Sitzung. */
-    protected String tokenVon(String name) {
+    /** Das zuletzt an diesen Namen geschickte WELCOME -- der Weg, auf dem ein echter Client Token und Parameter erfaehrt. */
+    protected Messages.Welcome welcomeVon(String name) {
         return gateway.messagesFor(sessionVon(name)).stream()
                 .filter(Messages.Welcome.class::isInstance)
                 .map(Messages.Welcome.class::cast)
                 .reduce((first, second) -> second)
-                .orElseThrow()
-                .token();
+                .orElseThrow(() -> new AssertionError("Kein WELCOME fuer " + name));
+    }
+
+    /** Fuer Reconnect (ADR-014): der Token aus dem WELCOME der zuletzt fuer diesen Namen verwendeten Sitzung. */
+    protected String tokenVon(String name) {
+        return welcomeVon(name).token();
     }
 
     protected void trennen(String name) {
