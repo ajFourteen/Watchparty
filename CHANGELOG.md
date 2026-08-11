@@ -1,3 +1,10 @@
+# [3.6.0](https://github.com/ajFourteen/Watchparty/compare/v3.5.0...v3.6.0) (2026-08-11)
+
+
+### Features
+
+* Fenster schließt, sobald alle getippt haben (Feature 003) ([7a36608](https://github.com/ajFourteen/Watchparty/commit/7a3660894a970f8e08a6b1ac3ddb1eca0a79f073))
+
 # [3.5.0](https://github.com/ajFourteen/Watchparty/compare/v3.4.0...v3.5.0) (2026-08-11)
 
 
