@@ -26,6 +26,14 @@ export function useRoom() {
   /** Der Wettkatalog kommt mit WELCOME und ändert sich über den Abend nicht. */
   const [catalog, setCatalog] = useState([]);
 
+  /**
+   * Startguthaben, Mindesteinsatz und Strafe (Anforderung 3.1-c) — aus
+   * demselben Grund am WELCOME wie der Katalog. Bewusst ohne Vorbelegung:
+   * Der Client soll die Werte nicht kennen, sondern gesagt bekommen. Bis
+   * das WELCOME da ist, gilt niemand als beigetreten.
+   */
+  const [params, setParams] = useState(null);
+
   const socketRef = useRef(null);
   const retryRef = useRef(null);
   const closedByUs = useRef(false);
@@ -70,6 +78,7 @@ export function useRoom() {
           playerIdRef.current = message.playerId;
           setPlayerId(message.playerId);
           setCatalog(message.catalog ?? []);
+          setParams(message.params ?? null);
           setError(null);
         } else if (message.type === "STATE") {
           // RESET (Host-Kommando, ADR-023) raeumt auch die Spieler weg. Die
@@ -155,6 +164,7 @@ export function useRoom() {
     error,
     yourPick,
     catalog,
+    params,
     join,
     openBet,
     closeBet,

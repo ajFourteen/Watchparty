@@ -9,10 +9,15 @@ const STATUS_LABEL = {
   offline: "Getrennt",
 };
 
-const MIN_STAKE = 25;
-
 /** Merkt sich, dass die Anleitung schon einmal von selbst aufging. */
 const GUIDE_SEEN_KEY = "watchparty.guideSeen";
+
+/**
+ * Ob der Punktestand der anderen aufgeklappt ist. Pro Gerät gemerkt und
+ * standardmäßig zu: Aufgeklappt schiebt er die offene Wette nach unten,
+ * und die 15 Sekunden sind zu kurz zum Scrollen.
+ */
+const STANDINGS_OPEN_KEY = "watchparty.standingsOpen";
 
 function JoinScreen({ onJoin, status }) {
   const [name, setName] = useState(
@@ -73,6 +78,43 @@ function Leaderboard({ players, playerId }) {
   );
 }
 
+/**
+ * Die Punkte der anderen, direkt unter dem eigenen Stand und ausklappbar.
+ * Der zugeklappte Kopf trägt schon das Wichtigste — eigener Platz und wie
+ * viele dabei sind —, damit man fürs Nachsehen nicht aufklappen muss.
+ */
+function Standings({ players, playerId }) {
+  const [open, setOpen] = useState(
+    () => window.localStorage.getItem(STANDINGS_OPEN_KEY) === "1"
+  );
+  const sorted = [...players].sort((a, b) => b.points - a.points);
+  const rank = sorted.findIndex((player) => player.id === playerId) + 1;
+
+  return (
+    <details
+      className="standings"
+      open={open}
+      onToggle={(event) => {
+        const nowOpen = event.currentTarget.open;
+        setOpen(nowOpen);
+        window.localStorage.setItem(STANDINGS_OPEN_KEY, nowOpen ? "1" : "0");
+      }}
+    >
+      <summary className="standings-head">
+        <span className="eyebrow">Punktestand</span>
+        <span className="standings-note">
+          {rank > 0 && `Platz ${rank} von ${players.length}`}
+          {rank <= 0 && `${players.length} dabei`}
+        </span>
+        <span className="chevron" aria-hidden="true">
+          ▾
+        </span>
+      </summary>
+      <Leaderboard players={players} playerId={playerId} />
+    </details>
+  );
+}
+
 /** Countdown aus closesAt und dem einmal gebildeten Uhren-Offset (ADR-003). */
 function Countdown({ closesAt, serverNow }) {
   const [, tick] = useState(0);
@@ -89,13 +131,57 @@ function Countdown({ closesAt, serverNow }) {
   );
 }
 
+/**
+ * Derselbe Countdown als ablaufender Rahmen um die Anwendung — sichtbar
+ * auch für den, der gerade auf einen Ausgang zielt statt auf die Zahl.
+ *
+ * Die Dauer wird einmal beim Aufsetzen aus closesAt und dem Uhren-Offset
+ * gebildet (ADR-003) und danach nicht mehr angefasst. Das ist wichtig:
+ * STATE kommt bei *jedem* abgegebenen Tipp neu, eine an den Renderzyklus
+ * gehängte Dauer würde die Animation dann jedes Mal verstellen. Der Rahmen
+ * läuft dadurch immer genau bei closesAt aus, auch wenn die Seite mitten
+ * im offenen Fenster neu geladen wurde.
+ *
+ * Vier Balken statt eines echten Rahmens, weil sie sich per transform
+ * einziehen lassen — das bleibt auf dem Compositor und damit auch auf
+ * älteren Handys flüssig.
+ */
+function CountdownFrame({ closesAt, serverNow }) {
+  const [duration] = useState(() => Math.max(0, closesAt - serverNow()));
+  if (duration <= 0) return null;
+  const style = { animationDuration: `${duration}ms` };
+  return (
+    <div className="frame time-frame" aria-hidden="true">
+      <span className="edge top" style={style} />
+      <span className="edge right" style={style} />
+      <span className="edge bottom" style={style} />
+      <span className="edge left" style={style} />
+    </div>
+  );
+}
+
 function outcomeLabel(bet, outcomeId) {
   return bet?.outcomes.find((outcome) => outcome.id === outcomeId)?.label ?? outcomeId;
 }
 
-function PickForm({ bet, ownPoints, onPlacePick }) {
+function PickForm({ bet, ownPoints, params, onPlacePick }) {
   const [outcomeId, setOutcomeId] = useState(null);
-  const [stake, setStake] = useState(Math.min(MIN_STAKE, ownPoints));
+  // Als Text gehalten, damit sich das Feld auch mal ganz leeren lässt; der
+  // Server klemmt den Einsatz ohnehin auf Mindesteinsatz und Kontostand.
+  const [stake, setStake] = useState(() => String(Math.min(params.minStake, ownPoints)));
+  const stakeNumber = Number(stake);
+
+  /**
+   * Beim Antippen steht der Mindesteinsatz schon im Feld — er soll sich
+   * überschreiben lassen, ohne dass jemand erst löschen muss. Das
+   * setTimeout ist für iOS: Dort hebt das nachlaufende Touch-Ereignis die
+   * Selektion sonst gleich wieder auf.
+   */
+  const selectAll = (event) => {
+    const field = event.target;
+    field.select();
+    window.setTimeout(() => field.select(), 0);
+  };
 
   return (
     <div className="bet">
@@ -115,22 +201,23 @@ function PickForm({ bet, ownPoints, onPlacePick }) {
         ))}
       </ul>
 
-      {ownPoints < MIN_STAKE ? (
+      {ownPoints < params.minStake ? (
         <p className="hint">
-          Du hast weniger als den Mindesteinsatz ({MIN_STAKE}) — ein Tipp geht automatisch
-          All-in mit deinen {ownPoints} Punkten.
+          Du hast weniger als den Mindesteinsatz ({params.minStake}) — ein Tipp geht
+          automatisch All-in mit deinen {ownPoints} Punkten.
         </p>
       ) : (
         <label className="stake">
           Einsatz
           <input
-            className="field"
-            type="number"
-            min={MIN_STAKE}
-            max={ownPoints}
-            step={5}
+            className="field stake-field"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
             value={stake}
-            onChange={(event) => setStake(Number(event.target.value))}
+            onFocus={selectAll}
+            onChange={(event) => setStake(event.target.value.replace(/[^0-9]/g, ""))}
           />
         </label>
       )}
@@ -138,7 +225,7 @@ function PickForm({ bet, ownPoints, onPlacePick }) {
       <button
         className="button primary"
         disabled={!outcomeId}
-        onClick={() => onPlacePick(outcomeId, stake)}
+        onClick={() => onPlacePick(outcomeId, stakeNumber || params.minStake)}
       >
         Tipp abgeben
       </button>
@@ -146,19 +233,49 @@ function PickForm({ bet, ownPoints, onPlacePick }) {
   );
 }
 
-function RevealedPicks({ picks, players, bet }) {
+/**
+ * Die Aufdeckung ab CLOSED: erst die abgegebenen Tipps, dann abgesetzt die
+ * Teilnehmer ohne Tipp (Anforderung 8.1-f/8.1-g).
+ *
+ * Die Strafe steht hier bewusst als *drohend* und mit „bis": Sie wird auf
+ * den Kontostand gekappt (8.1-c) und entfällt ganz, wenn der Host die Runde
+ * abbricht (8.6-a). Verrechnet wird erst beim Auflösen (9-c) — eine Zahl,
+ * die der Server so noch gar nicht zugesagt hat, gehört hier nicht hin.
+ */
+function RevealedPicks({ picks, nonPickers, players, bet, playerId, penalty }) {
   const nameOf = (id) => players.find((player) => player.id === id)?.name ?? "?";
+  if (picks.length === 0 && nonPickers.length === 0) {
+    return <p className="hint">Niemand hat getippt.</p>;
+  }
   return (
-    <ul className="reveal">
-      {picks.length === 0 && <li className="hint">Niemand hat getippt.</li>}
-      {picks.map((pick) => (
-        <li key={pick.playerId}>
-          <span className="name">{nameOf(pick.playerId)}</span>
-          <span>{outcomeLabel(bet, pick.outcomeId)}</span>
-          <span className="points">{pick.stake}</span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="reveal">
+        {picks.map((pick) => (
+          <li key={pick.playerId} className={pick.playerId === playerId ? "self" : ""}>
+            <span className="who">
+              <span className="name">{nameOf(pick.playerId)}</span>
+              <span className="sub">{outcomeLabel(bet, pick.outcomeId)}</span>
+            </span>
+            <span className="points">{pick.stake}</span>
+          </li>
+        ))}
+        {nonPickers.map((id) => (
+          <li key={id} className={`miss${id === playerId ? " self" : ""}`}>
+            <span className="who">
+              <span className="name">{nameOf(id)}</span>
+              <span className="sub">Kein Tipp</span>
+            </span>
+            <span className="points negative">bis −{penalty}</span>
+          </li>
+        ))}
+      </ul>
+      {nonPickers.length > 0 && (
+        <p className="hint">
+          Strafen fallen erst beim Auflösen an und höchstens in Höhe des
+          Kontostands. Bricht der Host die Runde ab, entfallen sie ganz.
+        </p>
+      )}
+    </>
   );
 }
 
@@ -180,7 +297,27 @@ function ResolveForm({ bet, onResolve }) {
   );
 }
 
-function ResultView({ bet, winningOutcomeId, pool, annulled, annulReason, deltas, players }) {
+/**
+ * Das Ergebnis. Jede Zeile nennt den Einsatz (9-d) — das Delta ist netto,
+ * enthält ihn also schon; deshalb steht er untergeordnet neben dem Tipp und
+ * nicht als zweite Zahl daneben.
+ *
+ * Die Zeilen entstehen aus Tipps *und* Nicht-Tippern, nicht aus den Deltas:
+ * Wer bei 0 Punkten steht, zahlt nichts mehr (8.1-c) und taucht deshalb
+ * nicht in den Deltas auf — er soll aber trotzdem in der Liste stehen.
+ */
+function ResultView({
+  bet,
+  winningOutcomeId,
+  pool,
+  annulled,
+  annulReason,
+  deltas,
+  players,
+  picks,
+  nonPickers,
+  playerId,
+}) {
   const nameOf = (id) => players.find((player) => player.id === id)?.name ?? "?";
   if (annulled) {
     return (
@@ -191,21 +328,37 @@ function ResultView({ bet, winningOutcomeId, pool, annulled, annulReason, deltas
       </p>
     );
   }
-  const entries = Object.entries(deltas ?? {});
+  const deltaOf = (id) => deltas?.[id] ?? 0;
+  const rows = [
+    ...picks.map((pick) => ({
+      id: pick.playerId,
+      sub: `${outcomeLabel(bet, pick.outcomeId)} · Einsatz ${pick.stake}`,
+    })),
+    ...nonPickers.map((id) => ({ id, sub: "Kein Tipp", missed: true })),
+  ];
   return (
     <div className="result">
       <p className="eyebrow">Ergebnis</p>
       <p className="display">{outcomeLabel(bet, winningOutcomeId)}</p>
       <p className="hint">Pool: {pool} Punkte</p>
       <ul className="reveal">
-        {entries.map(([id, delta]) => (
-          <li key={id}>
-            <span className="name">{nameOf(id)}</span>
-            <span className={delta >= 0 ? "positive" : "negative"}>
-              {delta >= 0 ? `+${delta}` : delta}
-            </span>
-          </li>
-        ))}
+        {rows.map((row) => {
+          const delta = deltaOf(row.id);
+          return (
+            <li
+              key={row.id}
+              className={`${row.missed ? "miss" : ""}${row.id === playerId ? " self" : ""}`}
+            >
+              <span className="who">
+                <span className="name">{nameOf(row.id)}</span>
+                <span className="sub">{row.sub}</span>
+              </span>
+              <span className={delta >= 0 ? "positive" : "negative"}>
+                {delta >= 0 ? `+${delta}` : delta}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -289,6 +442,7 @@ export default function App() {
     error,
     yourPick,
     catalog,
+    params,
     join,
     openBet,
     closeBet,
@@ -300,7 +454,9 @@ export default function App() {
   } = useRoom();
 
   const [guideOpen, setGuideOpen] = useState(false);
-  const joined = Boolean(playerId) && Boolean(state);
+  // params gehört dazu: Ohne die Werte aus dem WELCOME (3.1-c) kann die
+  // Oberfläche weder Mindesteinsatz noch Strafe benennen.
+  const joined = Boolean(playerId) && Boolean(state) && Boolean(params);
 
   // Screen Wake Lock, solange beigetreten (ADR-032) — beugt dem unbemerkten
   // Wandern der Host-Rolle vor (ADR-021), best effort ohne Fehlermeldung.
@@ -327,71 +483,106 @@ export default function App() {
 
   const isHost = state.hostPlayerId === playerId;
   const ownPoints = state.players.find((player) => player.id === playerId)?.points ?? 0;
+  const revealedPicks = state.revealedPicks ?? [];
+  const nonPickers = state.nonPickers ?? [];
+
+  // Gewonnen oder verloren entscheidet über die Animation beim Aufdecken
+  // des Ergebnisses — aus dem eigenen Delta, nicht aus dem Ausgang: Wer
+  // beim Push seinen Einsatz zurückbekommt, hat weder das eine noch das
+  // andere getan.
+  const ownDelta = state.deltas?.[playerId] ?? 0;
+  const tone = state.annulled ? "" : ownDelta > 0 ? " win" : ownDelta < 0 ? " loss" : "";
 
   return (
     <main className="shell">
+      {/* Der Host-Rahmen weicht dem Countdown, solange das Fenster offen
+          ist: Die ablaufende Zeit ist das dringlichere Signal. */}
+      {isHost && state.phase !== "OPEN" && <div className="frame host-frame" aria-hidden="true" />}
+      {state.phase === "OPEN" && state.closesAt && (
+        <CountdownFrame
+          key={state.roundId}
+          closesAt={state.closesAt}
+          serverNow={serverNow}
+        />
+      )}
+
       <header className="scorebug">
         <span className="brand">Watchparty</span>
+        {isHost && <span className="tag">Host</span>}
         <span className="bug-stat">
           <span className="bug-label">Punkte</span>
           <span className="bug-value">{ownPoints}</span>
-        </span>
-        <span className="bug-stat">
-          <span className="bug-label">Dabei</span>
-          <span className="bug-value">{state.players.length}</span>
         </span>
         <button className="button ghost" onClick={() => setGuideOpen(true)} aria-label="Anleitung">
           ?
         </button>
       </header>
 
-      {state.phase === "IDLE" && !isHost && (
-        <p className="hint">Der Host öffnet die nächste Wette.</p>
-      )}
+      <Standings players={state.players} playerId={playerId} />
 
-      {state.phase === "OPEN" && state.bet && (
-        <section className="stage">
-          <Countdown closesAt={state.closesAt} serverNow={serverNow} />
-          <p className="counter">
-            {state.pickCount} von {state.participantCount} haben getippt
-          </p>
-          {yourPick ? (
-            <p className="locked">
-              Dein Tipp: <strong>{outcomeLabel(state.bet, yourPick.outcomeId)}</strong> mit{" "}
-              {yourPick.stake} Punkten.
+      {/* Alles ab hier ist die laufende Runde. Der key sorgt dafür, dass die
+          Übergangsanimation genau einmal je Runde und Phase läuft — STATE
+          kommt bei jedem abgegebenen Tipp neu. */}
+      <div className="board" key={`${state.roundId}-${state.phase}`}>
+        {state.phase === "IDLE" && !isHost && (
+          <p className="hint">Der Host öffnet die nächste Wette.</p>
+        )}
+
+        {state.phase === "OPEN" && state.bet && (
+          <section className="stage">
+            <Countdown closesAt={state.closesAt} serverNow={serverNow} />
+            <p className="counter">
+              {state.pickCount} von {state.participantCount} haben getippt
             </p>
-          ) : (
-            <PickForm bet={state.bet} ownPoints={ownPoints} onPlacePick={placePick} />
-          )}
-        </section>
-      )}
+            {yourPick ? (
+              <p className="locked">
+                Dein Tipp: <strong>{outcomeLabel(state.bet, yourPick.outcomeId)}</strong> mit{" "}
+                {yourPick.stake} Punkten.
+              </p>
+            ) : (
+              <PickForm
+                bet={state.bet}
+                ownPoints={ownPoints}
+                params={params}
+                onPlacePick={placePick}
+              />
+            )}
+          </section>
+        )}
 
-      {state.phase === "CLOSED" && state.bet && (
-        <section className="stage">
-          <p className="eyebrow">Geschlossen</p>
-          <h2 className="display">{state.bet.question}</h2>
-          <RevealedPicks
-            picks={state.revealedPicks ?? []}
-            players={state.players}
-            bet={state.bet}
-          />
-          {isHost && <ResolveForm bet={state.bet} onResolve={resolve} />}
-        </section>
-      )}
+        {state.phase === "CLOSED" && state.bet && (
+          <section className="stage">
+            <p className="eyebrow">Geschlossen</p>
+            <h2 className="display">{state.bet.question}</h2>
+            <RevealedPicks
+              picks={revealedPicks}
+              nonPickers={nonPickers}
+              players={state.players}
+              bet={state.bet}
+              playerId={playerId}
+              penalty={params.penalty}
+            />
+            {isHost && <ResolveForm bet={state.bet} onResolve={resolve} />}
+          </section>
+        )}
 
-      {state.phase === "RESOLVED" && state.bet && (
-        <section className="stage">
-          <ResultView
-            bet={state.bet}
-            winningOutcomeId={state.winningOutcomeId}
-            pool={state.pool}
-            annulled={state.annulled}
-            annulReason={state.annulReason}
-            deltas={state.deltas}
-            players={state.players}
-          />
-        </section>
-      )}
+        {state.phase === "RESOLVED" && state.bet && (
+          <section className={`stage${tone}`}>
+            <ResultView
+              bet={state.bet}
+              winningOutcomeId={state.winningOutcomeId}
+              pool={state.pool}
+              annulled={state.annulled}
+              annulReason={state.annulReason}
+              deltas={state.deltas}
+              players={state.players}
+              picks={revealedPicks}
+              nonPickers={nonPickers}
+              playerId={playerId}
+            />
+          </section>
+        )}
+      </div>
 
       {isHost && (
         <section className="host">
@@ -406,9 +597,9 @@ export default function App() {
         </section>
       )}
 
-      <Leaderboard players={state.players} playerId={playerId} />
-
-      {guideOpen && <Guide catalog={catalog} onClose={() => setGuideOpen(false)} />}
+      {guideOpen && (
+        <Guide catalog={catalog} params={params} onClose={() => setGuideOpen(false)} />
+      )}
 
       {error && <p className="error">{error}</p>}
       <footer className={`status ${status}`}>{STATUS_LABEL[status]}</footer>

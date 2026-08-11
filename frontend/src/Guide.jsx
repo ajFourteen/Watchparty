@@ -6,9 +6,12 @@
  * Der Wettkatalog wird nicht abgeschrieben, sondern aus dem gerenderten
  * Katalog aufgebaut: Die Ausgänge und ihre Abgrenzungen (Anforderung 4.1,
  * Big-Play-Schwellen) stehen einmal auf dem Server, damit hier nichts
- * veralten kann, wenn eine Wette dazukommt.
+ * veralten kann, wenn eine Wette dazukommt. Für die drei Zahlen aus 3.1
+ * gilt seit 3.1-c dasselbe — sie gelten bis zum Probelauf als vorläufig,
+ * und eine abgeschriebene Kopie wäre genau die Stelle, die beim
+ * Nachjustieren vergessen wird.
  */
-export function Guide({ catalog, onClose }) {
+export function Guide({ catalog, params, onClose }) {
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Kurzanleitung">
       <div className="sheet">
@@ -52,18 +55,23 @@ export function Guide({ catalog, onClose }) {
         <h2 className="display">Die Regeln in Zahlen</h2>
         <ul className="facts">
           <li>
-            <span className="fact-value">1000</span>
+            <span className="fact-value">{params.startingPoints}</span>
             <span className="fact-label">Punkte zum Start</span>
           </li>
           <li>
-            <span className="fact-value">25</span>
+            <span className="fact-value">{params.minStake}</span>
             <span className="fact-label">Mindesteinsatz — mehr geht, weniger nicht</span>
           </li>
           <li>
-            <span className="fact-value">25</span>
+            <span className="fact-value">{params.penalty}</span>
             <span className="fact-label">
-              Strafe, wenn du eine Runde gar nicht tippst. Aussitzen kostet also genauso viel
-              wie mitspielen, nur ohne Gewinnchance.
+              Strafe, wenn du eine Runde gar nicht tippst.
+              {/* Der Satz stimmt nur, solange Strafe und Mindesteinsatz
+                  gleich sind (Anforderung 3.1). Beides kann sich am
+                  Probelauf noch ändern — dann fällt die Begründung weg
+                  statt falsch zu werden. */}
+              {params.penalty === params.minStake &&
+                " Aussitzen kostet also genauso viel wie mitspielen, nur ohne Gewinnchance."}
             </span>
           </li>
           <li>
