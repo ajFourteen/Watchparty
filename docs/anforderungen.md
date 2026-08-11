@@ -265,6 +265,7 @@ die Marke.
 | 3.1 | Startguthaben 1000, Mindesteinsatz 25, Nicht-Tipper-Strafe 25. | backend |
 | 3.1-a | Die drei Werte stehen an einer Stelle im Code, nicht verstreut. | backend |
 | 3.1-b | Ob die drei Werte sich am realen Spielgefühl bewähren. | beobachtung |
+| 3.1-c | Der Server nennt dem Client die drei Werte beim Beitritt; der Client hält keine eigene Kopie. | backend |
 
 ### 4. Wetten
 
@@ -323,6 +324,8 @@ die Marke.
 | 8.1-c | Die Strafe wird auf den Kontostand gekappt; eingesammelt wird min(Strafe, Kontostand). | backend |
 | 8.1-d | Ein getrennter Spieler zahlt für die erste und zweite verpasste Runde und pausiert ab der dritten; bei Reconnect beginnt der Zähler von vorn. | backend |
 | 8.1-e | Die Pause greift nur bei getrennter Verbindung: Wer verbunden ist und nicht tippt, zahlt jede Runde. | backend |
+| 8.1-f | Ab dem Schließen nennt der Zustand die Teilnehmer ohne Tipp; solange das Fenster offen ist, nicht. | backend |
+| 8.1-g | Die Oberfläche zeigt ab dem Schließen hervorgehoben, wer nicht getippt hat, und nennt die Strafe. | frontend |
 | 8.2 | Tippt niemand den Gewinner-Ausgang, bekommen alle Wetter ihren Einsatz zurück. | backend |
 | 8.2-a | Beim Push werden die eingezahlten Strafen anteilig auf alle verteilt, die überhaupt getippt haben. | backend |
 | 8.3 | Auch mit 0 Punkten darf jeder mitwetten und kann über den Mindest-Anteil zurück ins Spiel kommen; die Null ist kein absorbierender Zustand. | backend |
@@ -342,6 +345,7 @@ die Marke.
 | 9-a | Der Ablauf durchläuft Leerlauf → Öffnen → Tippen → Schließen → Auflösen → Leerlauf. | backend |
 | 9-b | Ab dem Schließen werden alle abgegebenen Tipps offen angezeigt, und es kann nicht mehr getippt werden. | backend |
 | 9-c | Erst beim Auflösen werden Punkte verrechnet: Pool bilden, Strafen einsammeln, Gewinner nach Anteilen auszahlen, Kontostände aktualisieren. | backend |
+| 9-d | Das Ergebnis zeigt zu jedem Tipp den Einsatz und hebt die eigene Zeile hervor. | frontend |
 
 ### 10. Rollen
 
@@ -350,11 +354,13 @@ die Marke.
 | 10-a | Der Host hat zusätzlich die Steuerknöpfe: Wette öffnen, jetzt schließen, auflösen, annullieren, zurücksetzen. Ansonsten ist er normaler Spieler. | backend |
 | 10-b | Ein Spieler ohne Host-Rolle kann diese Kommandos nicht auslösen. | backend |
 | 10-c | Spieler sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard. | frontend |
+| 10-d | Der Countdown ist zusätzlich als ablaufender Rahmen sichtbar; Phasenwechsel sind animiert. | frontend |
 | 10.1 | Host ist immer der am frühesten beigetretene verbundene Spieler. | backend |
 | 10.1-a | Verliert der Host die Verbindung, wandert die Rolle sofort weiter — in jeder Phase. | backend |
 | 10.1-b | Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst im Leerlauf bzw. nach dem Auflösen ausgeführt. | backend |
 | 10.1-c | Die Host-Rolle verlangt keinen zusätzlichen Einstiegsschritt: keine eigene URL, kein Kennwort. | backend |
 | 10.1-d | Solange ein Spieler beigetreten ist, hält die Oberfläche den Bildschirm wach (Screen Wake Lock), best effort. | frontend |
+| 10.1-e | Die Host-Rolle ist an einer eigenen Farbe erkennbar: dünner Rahmen um die Anwendung und Chip. | frontend |
 
 ### 11. Betrieb
 

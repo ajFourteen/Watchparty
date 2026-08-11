@@ -97,6 +97,28 @@ Stellschrauben.
   (ADR-021)? Das ist der Fall, für den der Screen Wake Lock (ADR-032)
   gedacht ist — ob er in der Praxis hilft, zeigt sich erst hier.
 
+### Oberfläche (Feature 002)
+
+Die acht Punkte aus `docs/features/002-ui-ueberarbeitung.md` sind am
+Schreibtisch gebaut und im Browser durchgespielt. Was sich dort nicht
+prüfen lässt:
+
+- Läuft der Countdown-Rahmen auf den tatsächlich benutzten Handys flüssig,
+  oder ruckelt er? Er läuft bewusst nur über `transform`; wenn es trotzdem
+  hakt, ist der Rahmen die erste Stellschraube, nicht der Countdown.
+- Bleibt der Rahmen nach einem gesperrten und wieder entsperrten Handy
+  synchron? Browser drosseln Animationen im Hintergrund — die Zahl daneben
+  stimmt in jedem Fall, der Rahmen kann nachlaufen.
+- Selektiert das Einsatzfeld auf iOS beim Antippen wirklich den ganzen
+  Wert, oder hebt das nachlaufende Touch-Ereignis die Auswahl auf?
+- Bleibt der Punktestand zugeklappt, oder klappt ihn jeder sofort auf? Wenn
+  Letzteres, war die Voreinstellung falsch.
+- Ist die Host-Farbe am abgedunkelten Ort als eigenes Signal erkennbar, oder
+  verschwimmt sie mit dem Gold?
+- Verstehen alle die Zeile „Kein Tipp — bis −25", oder hält jemand die Zahl
+  für schon abgezogen? Sie ist eine Ankündigung; verrechnet wird erst beim
+  Auflösen.
+
 ## Danach
 
 - Ergebnisse in `offene-entscheidungen.md` eintragen und die dort geklärten
