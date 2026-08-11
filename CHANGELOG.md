@@ -1,3 +1,11 @@
+# [3.5.0](https://github.com/ajFourteen/Watchparty/compare/v3.4.0...v3.5.0) (2026-08-11)
+
+
+### Features
+
+* Oberfläche und Bedienung überarbeitet (Feature 002) ([4878005](https://github.com/ajFourteen/Watchparty/commit/487800595e41efb297cc0a3f6631f7f26a199aa4))
+* Parameter im WELCOME und Teilnehmer ohne Tipp im Zustand ([cc3275f](https://github.com/ajFourteen/Watchparty/commit/cc3275f7df24603f5cd05187ff9a24f6e366ab1f))
+
 # [3.4.0](https://github.com/ajFourteen/Watchparty/compare/v3.3.0...v3.4.0) (2026-08-09)
 
 
