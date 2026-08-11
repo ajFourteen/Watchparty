@@ -56,6 +56,12 @@ Mindesteinsatz macht Aussitzen strikt dominiert.
 - Braucht der Kick ein kürzeres und der Drive-Ausgang ein längeres Fenster?
   Steht als offene Frage in `offene-entscheidungen.md`.
 - Wie oft braucht der Host die Notbremse?
+- Seit Feature 003 schließt das Fenster sofort, sobald alle getippt haben:
+  Wirkt das erleichternd oder abrupt? Der Letzte sieht seinen eigenen Tipp
+  praktisch nicht mehr, weil die Aufdeckung ihn überholt. Falls es stört,
+  wäre eine kurze Verzögerung vor dem Schließen die Antwort.
+- Wie oft kommt der Fall überhaupt vor — oder hält fast immer jemand
+  Getrenntes die Runde bis zum Countdown auf?
 
 ### Der Wettkatalog (Anforderung 4)
 
@@ -115,9 +121,11 @@ prüfen lässt:
   Letzteres, war die Voreinstellung falsch.
 - Ist die Host-Farbe am abgedunkelten Ort als eigenes Signal erkennbar, oder
   verschwimmt sie mit dem Gold?
-- Verstehen alle die Zeile „Kein Tipp — bis −25", oder hält jemand die Zahl
-  für schon abgezogen? Sie ist eine Ankündigung; verrechnet wird erst beim
-  Auflösen.
+- Verstehen alle die Zeile „Kein Tipp — Strafe 25", oder hält jemand die
+  Zahl für schon abgezogen? Sie ist eine Ankündigung; verrechnet wird erst
+  beim Auflösen. Die erste Fassung hieß „bis −25" und war genau daran
+  missverständlich: eine Spanne und ein Minus für etwas, das noch gar nicht
+  gebucht ist.
 
 ## Danach
 

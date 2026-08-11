@@ -90,6 +90,7 @@ Gut / Kein Field Goal. Verschossen oder geblockt zählt als „Kein Field Goal".
 - Der **Host** entscheidet, welche Wette wann öffnet.
 - Nach dem Öffnen bleibt das Fenster **15 Sekunden** offen und schließt dann automatisch.
 - Zusätzlich hat der Host einen **„Jetzt schließen"-Knopf** als Notbremse. Das Fenster schließt bei Ablauf der 15 Sekunden **oder** beim Host-Klick — je nachdem, was zuerst eintritt.
+- Das Fenster schließt außerdem **sofort, sobald alle Teilnehmer der Runde getippt haben**: Es kommt kein Tipp mehr, und weiter zu warten verzögert nur die Aufdeckung. Maßgeblich ist der beim Öffnen eingefrorene Teilnehmerkreis (8.1) — wer erst danach beigetreten ist, hält die Runde nicht auf.
 - Verantwortung des Hosts: das Fenster so öffnen, dass die 15 Sekunden **vor dem Snap** ablaufen. Danach läuft der Spielzug, es wird nicht mehr getippt.
 
 ## 6. Wettmechanik
@@ -166,7 +167,7 @@ Wer weiterspielen will, tritt mit neuem Namen erneut bei; kein automatisches Wie
 1. **Leerlauf** — der Host kann eine Wette öffnen.
 2. **Öffnen** — Host wählt eine Wette aus dem Katalog und öffnet sie; die 15-Sekunden-Uhr läuft.
 3. **Tippen (verdeckt)** — Spieler tippen; sichtbar ist nur die Anzahl der abgegebenen Tipps.
-4. **Schließen** — nach 15 Sekunden oder per Host-Notbremse. **Ab jetzt werden alle abgegebenen Tipps offen angezeigt.** Es kann nicht mehr getippt werden. Der Spielzug läuft im Fernsehen.
+4. **Schließen** — nach 15 Sekunden, per Host-Notbremse oder sobald alle Teilnehmer getippt haben. **Ab jetzt werden alle abgegebenen Tipps offen angezeigt.** Es kann nicht mehr getippt werden. Der Spielzug läuft im Fernsehen.
 5. **Auflösen** — der Host wählt den tatsächlichen Ausgang. **Erst jetzt** werden Punkte verrechnet: Pool bilden, Strafen einsammeln, Gewinner nach Anteilen auszahlen, Leaderboard aktualisieren.
 6. Zurück zu Leerlauf.
 
@@ -294,6 +295,8 @@ die Marke.
 | 5-d | Das Fenster schließt bei Ablauf der 15 Sekunden oder beim Host-Klick — je nachdem, was zuerst eintritt. | backend |
 | 5-e | Verantwortung des Hosts: das Fenster so öffnen, dass die 15 Sekunden vor dem Snap ablaufen. | organisatorisch |
 | 5-f | Ob 15 Sekunden für alle Wetten die richtige Länge sind. | beobachtung |
+| 5-g | Das Fenster schließt sofort, sobald alle Teilnehmer des eingefrorenen Kreises getippt haben. | backend |
+| 5-h | Die Oberfläche benennt beim Schließen, dass alle getippt haben. | frontend |
 
 ### 6. Wettmechanik
 
