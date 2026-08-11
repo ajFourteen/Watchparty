@@ -1,5 +1,8 @@
 .gradle/
 build/
+# Klassen der VS-Code-Java-Extension (Eclipse-Compiler) -- dasselbe
+# Bauartefakt wie build/, nur von der IDE statt von Gradle erzeugt.
+bin/
 node_modules/
 frontend/dist/
 *.log
