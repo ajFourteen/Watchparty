@@ -1,3 +1,10 @@
+## [3.6.1](https://github.com/ajFourteen/Watchparty/compare/v3.6.0...v3.6.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* Strafenanzeige beim Aufdecken auf Kontostand kappen ([57cbb2a](https://github.com/ajFourteen/Watchparty/commit/57cbb2a9b0e318197dfab1db395a3b4f264180fa))
+
 # [3.6.0](https://github.com/ajFourteen/Watchparty/compare/v3.5.0...v3.6.0) (2026-08-11)
 
 
