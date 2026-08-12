@@ -238,13 +238,21 @@ function PickForm({ bet, ownPoints, params, onPlacePick }) {
  * Teilnehmer ohne Tipp (Anforderung 8.1-f/8.1-g).
  *
  * Die Strafe steht hier bewusst ohne Vorzeichen und mit dem Wort davor:
- * Sie ist noch nicht gebucht. Verrechnet wird erst beim Auflösen (9-c),
- * sie wird auf den Kontostand gekappt (8.1-c) und entfällt ganz, wenn der
- * Host die Runde abbricht (8.6-a). Ein „−25" würde das Gegenteil behaupten
- * — die Zahl mit dem Minus steht erst im Ergebnis, wo sie tatsächlich gilt.
+ * Sie ist noch nicht gebucht, verrechnet wird erst beim Auflösen (9-c) und
+ * entfällt ganz, wenn der Host die Runde abbricht (8.6-a). Ein „−25" würde
+ * das Gegenteil behaupten — die Zahl mit dem Minus steht erst im Ergebnis,
+ * wo sie tatsächlich gilt.
+ *
+ * Die Kappung auf den Kontostand (8.1-c) rechnen wir hier schon vor statt
+ * sie nur in Prosa anzukündigen: Der aktuelle Punktestand steht im STATE
+ * (players[].points) und kann sich vor dem Auflösen dieser Runde nicht mehr
+ * ändern — Punkte wandern ausschließlich beim Auflösen einer Runde, und es
+ * läuft nie mehr als eine gleichzeitig (Invariante 1). Die angezeigte Zahl
+ * ist also schon die, die beim Auflösen abgezogen wird.
  */
 function RevealedPicks({ picks, nonPickers, players, bet, playerId, penalty }) {
-  const nameOf = (id) => players.find((player) => player.id === id)?.name ?? "?";
+  const playerById = (id) => players.find((player) => player.id === id);
+  const nameOf = (id) => playerById(id)?.name ?? "?";
   if (picks.length === 0 && nonPickers.length === 0) {
     return <p className="hint">Niemand hat getippt.</p>;
   }
@@ -266,15 +274,16 @@ function RevealedPicks({ picks, nonPickers, players, bet, playerId, penalty }) {
               <span className="name">{nameOf(id)}</span>
               <span className="sub">Kein Tipp</span>
             </span>
-            <span className="points negative">Strafe {penalty}</span>
+            <span className="points negative">
+              Strafe {Math.min(penalty, playerById(id)?.points ?? penalty)}
+            </span>
           </li>
         ))}
       </ul>
       {nonPickers.length > 0 && (
         <p className="hint">
-          Abgezogen wird die Strafe erst beim Auflösen — und höchstens so
-          viel, wie jemand noch hat. Bricht der Host die Runde ab, entfällt
-          sie ganz.
+          Abgezogen wird die Strafe erst beim Auflösen. Bricht der Host die
+          Runde ab, entfällt sie ganz.
         </p>
       )}
     </>
