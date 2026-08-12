@@ -363,7 +363,7 @@ die Marke.
 | 10.1-b | Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst im Leerlauf bzw. nach dem Auflösen ausgeführt. | backend |
 | 10.1-c | Die Host-Rolle verlangt keinen zusätzlichen Einstiegsschritt: keine eigene URL, kein Kennwort. | backend |
 | 10.1-d | Solange ein Spieler beigetreten ist, hält die Oberfläche den Bildschirm wach (Screen Wake Lock), best effort. | frontend |
-| 10.1-e | Die Host-Rolle ist an einer eigenen Farbe erkennbar: dünner Rahmen um die Anwendung und Chip. | frontend |
+| 10.1-e | Die Host-Rolle ist an einer eigenen Farbe erkennbar: Chip neben dem Namen. | frontend |
 
 ### 11. Betrieb
 

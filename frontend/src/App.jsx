@@ -515,9 +515,6 @@ export default function App() {
 
   return (
     <main className="shell">
-      {/* Der Host-Rahmen weicht dem Countdown, solange das Fenster offen
-          ist: Die ablaufende Zeit ist das dringlichere Signal. */}
-      {isHost && state.phase !== "OPEN" && <div className="frame host-frame" aria-hidden="true" />}
       {state.phase === "OPEN" && state.closesAt && (
         <CountdownFrame
           key={state.roundId}

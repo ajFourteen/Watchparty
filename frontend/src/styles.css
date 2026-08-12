@@ -638,8 +638,8 @@ body {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* Der Host-Chip trägt dieselbe Farbe wie sein Rahmen (10.1-e) — im
-   Scorebug und im Leaderboard dasselbe Zeichen. */
+/* Der Host-Chip (10.1-e) ist der Grundfall von .tag — im Scorebug und im
+   Leaderboard dasselbe Zeichen; .pause und .away-tag setzen die Farbe um. */
 .tag {
   margin-left: 0.4rem;
   font-size: 0.6rem;
@@ -665,23 +665,11 @@ body {
 
 /* --- Rahmen um die Anwendung -------------------------------------------- */
 
-/*
- * Zwei Rahmen, die nie gleichzeitig zu sehen sind: Der Host-Rahmen (10.1-e)
- * sagt "du hast die Knöpfe", der Countdown-Rahmen (10-d) "die Zeit läuft".
- * Solange das Fenster offen ist, gewinnt der Countdown — er ist das
- * dringlichere Signal, und zwei Rahmen ineinander wären keins von beidem.
- * Entschieden wird das in App.jsx, hier steht nur das Aussehen.
- */
 .frame {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 4;
-}
-
-.host-frame {
-  border: 2px solid var(--host);
-  box-shadow: inset 0 0 20px rgba(69, 200, 224, 0.12);
 }
 
 /*
