@@ -9,21 +9,24 @@ Tendenz, Abstand und exaktem Ergebnis. Man kann mehreren Ligen angehören,
 tippt aber nur einmal — der Tipp gehört dem Tipper und dem Spiel, nicht der
 Liga.
 
-Beide Modi laufen parallel: Wer am Sonntagabend im Wohnzimmer live wettet, hat
-für dasselbe Spiel womöglich vor dem Anstoß seinen Ligatipp abgegeben. Sie
+Beide Spielmodi laufen parallel: Wer am Sonntagabend im Wohnzimmer live wettet,
+hat für dasselbe Spiel womöglich vor dem Anstoß seinen Ligatipp abgegeben. Sie
 teilen sich die Anwendung und sonst nichts — insbesondere keine Punkte, keine
 Konten und keinen Zustand.
 
 **Das ist der größte Umbau seit dem ersten Release.** Er nimmt drei bewusst
 getroffene Entscheidungen zurück (Persistenz über Abende hinweg, kein Account,
 kein Datenfeed) und bringt mit Datenbank, Benutzerkonten, E-Mail-Versand und
-einer Außenanbindung vier Bausteine ins Projekt, die es heute nicht gibt. Das
-Dokument beschreibt, was dafür nötig ist; es ist ein Antrag, kein geltender
-Stand (`teststrategie.md` 9.1).
+einer Außenanbindung vier Bausteine ins Projekt, die es heute nicht gibt.
 
-## Abgrenzung der beiden Modi
+**Der Bau ist beschlossen** (2026-08-17). Geltender Stand bleibt trotzdem
+`anforderungen.md`; dieses Dokument ist der Antrag und wird nach der Umsetzung
+nicht weiter gepflegt (`teststrategie.md` 9.1). Was am Geltungsbereich schon
+nachgezogen ist, steht unter „Nötige ADRs".
 
-| | Modus A: Live-Wetten (heute) | Modus B: Tippspiel-Liga (neu) |
+## Abgrenzung der beiden Spielmodi
+
+| | Live-Wetten (heute) | Tippspiel (neu) |
 |---|---|---|
 | Zeithorizont | ein Abend | eine Saison |
 | Wer tippt | anonymer Name im Raum | Benutzerkonto |
@@ -41,17 +44,17 @@ Invarianten aus CLAUDE.md in Gefahr, ohne einen Zeile Code zu sparen.
 
 ## Betroffene Anforderungen
 
-**Zurückgenommen, aber nur für Modus B** (Modus A bleibt in jedem Punkt wie er
-ist — das gehört ausdrücklich in die Formulierung, sonst liest sich jede dieser
-Streichungen wie eine Aufgabe des bisherigen Prinzips):
+**Zurückgenommen, aber nur für das Tippspiel** (die Live-Wetten bleiben in
+jedem Punkt, wie sie sind — das gehört ausdrücklich in die Formulierung, sonst
+liest sich jede dieser Streichungen wie eine Aufgabe des bisherigen Prinzips):
 
 | ID | heute | künftig |
 |---|---|---|
-| 1-c | keine Persistenz über Spielabende hinweg | gilt für Modus A; Modus B ist per Definition dauerhaft |
-| 1-e | Beitritt verlangt nur einen Namen, kein Account | gilt für Modus A; Modus B verlangt ein Konto |
-| 11 (out of scope) | keine Persistenz / keine Saison | fällt für Modus B |
-| 11 (out of scope) | keine automatische Ergebnis-Erkennung per Datenfeed | fällt für Modus B; die Begründung (Broadcast-Verzögerung, Synchronität zum Fernsehbild) trägt nur für die Live-Wetten und ist für ein Endergebnis gegenstandslos |
-| 11 (out of scope) | kein Remote-Play über mehrere Orte | fällt für Modus B; eine Liga ist ortsunabhängig |
+| 1-c | keine Persistenz über Spielabende hinweg | gilt für die Live-Wetten; das Tippspiel ist per Definition dauerhaft |
+| 1-e | Beitritt verlangt nur einen Namen, kein Account | gilt für die Live-Wetten; das Tippspiel verlangt ein Konto |
+| 11 (out of scope) | keine Persistenz / keine Saison | fällt für das Tippspiel |
+| 11 (out of scope) | keine automatische Ergebnis-Erkennung per Datenfeed | fällt für das Tippspiel; die Begründung (Broadcast-Verzögerung, Synchronität zum Fernsehbild) trägt nur für die Live-Wetten und ist für ein Endergebnis gegenstandslos |
+| 11 (out of scope) | kein Remote-Play über mehrere Orte | fällt für das Tippspiel; eine Liga ist ortsunabhängig |
 
 **Unberührt:** Die gesamte Wett-Ökonomie (2, 3, 6, 7, 8), der Wettkatalog (4),
 Fenster und Ablauf (5, 9), Rollen (10). Kein Zeichen davon ändert sich.
@@ -63,7 +66,7 @@ Nummerierung bleibt unangetastet (dieselbe Zusage wie in Feature 004), Kapitel
 
 | Abschnitt | Inhalt |
 |---|---|
-| 13.1 | Zweck, Abgrenzung zu Modus A, Parallelbetrieb |
+| 13.1 | Zweck, Abgrenzung zu den Live-Wetten, Parallelbetrieb |
 | 13.2 | Konto und Anmeldung |
 | 13.3 | Spielplan, Anstoßzeiten, Endergebnisse |
 | 13.4 | Tippen und Abgabeschluss |
@@ -113,10 +116,10 @@ in eine ungepflegte Liga. Der Handeintrag bleibt als *Notweg* für den Betreiber
 bestehen (13.7), weil ein Feed ausfallen und Unsinn liefern kann.
 
 **Wiedererkennung über ein Benutzerkonto mit E-Mail (Magic Link).** Ein
-Gerätetoken wie in Modus A (ADR-014) trägt einen Abend, aber keine Saison: Wer
-im November den Browser aufräumt, verliert vier Monate Tipps. Kein Kennwort,
-weil ein Kennwort einen Weg zurück braucht und der Weg zurück wieder die
-E-Mail wäre.
+Gerätetoken wie bei den Live-Wetten (ADR-014) trägt einen Abend, aber keine
+Saison: Wer im November den Browser aufräumt, verliert vier Monate Tipps. Kein
+Kennwort, weil ein Kennwort einen Weg zurück braucht und der Weg zurück wieder
+die E-Mail wäre.
 
 ## Akzeptanzkriterien
 
@@ -172,7 +175,7 @@ E-Mail wäre.
 17. Ein Tipp gilt für alle Ligen des Tippers gleichzeitig, auch für Ligen, denen
     er erst später beitritt.
 18. Wer ein Spiel nicht tippt, bekommt dafür 0 Punkte. Es gibt **keine Strafe**
-    — die Nicht-Tipper-Strafe (8.1) ist eine Regel des Modus A und wandert
+    — die Nicht-Tipper-Strafe (8.1) ist eine Regel der Live-Wetten und wandert
     nicht mit.
 19. Fremde Tipps zu einem Spiel sind erst ab dessen Anstoß sichtbar. Vorher
     liefert der Server sie nicht aus — dieselbe Zusage wie Invariante 4, je
@@ -212,14 +215,15 @@ E-Mail wäre.
 
 ### Parallelbetrieb (13.1)
 
-36. Kein Kommando und kein Zustand des Modus A wirkt in Modus B und umgekehrt.
+36. Kein Kommando und kein Zustand der Live-Wetten wirkt im Tippspiel und
+    umgekehrt.
     Insbesondere ändert `RESET` (8.7) keinen Ligatipp und keine Rangliste, und
     eine Ligawertung bewegt keinen Punktestand einer Watchparty.
 37. Der Ausfall des Feeds, der Datenbank oder des Mailversands hält keine
-    laufende Watchparty an. Modus A bleibt in seinen Invarianten
-    funktionsfähig, auch wenn Modus B steht.
-38. Beide Modi sind aus derselben Anwendung erreichbar, mit einem sichtbaren
-    Wechsel dazwischen.
+    laufende Watchparty an. Die Live-Wetten bleiben in ihren Invarianten
+    funktionsfähig, auch wenn das Tippspiel steht.
+38. Beide Spielmodi sind aus derselben Anwendung erreichbar, mit einem
+    sichtbaren Wechsel dazwischen.
 
 ## Szenarien
 
@@ -302,14 +306,14 @@ Wenn für beide Adressen ein Link angefordert wird.
 Dann sind beide Antworten nicht unterscheidbar, und nur an die erste Adresse
 geht eine Nachricht.
 
-**Die Modi rühren einander nicht an.**
+**Die Spielmodi rühren einander nicht an.**
 Angenommen Anna ist Host einer Watchparty mit abgerechneten Runden und
 zugleich Mitglied einer Liga mit gewerteten Tipps.
 Wenn sie `RESET` auslöst.
 Dann ist die Watchparty zurückgesetzt, und ihre Ligapunkte, Tipps und
 Mitgliedschaften sind unverändert.
 
-**Modus A überlebt den Ausfall von Modus B.**
+**Die Live-Wetten überleben den Ausfall des Tippspiels.**
 Angenommen die Datenbank ist nicht erreichbar.
 Wenn eine Watchparty eine Runde öffnet, tippt, schließt und auflöst.
 Dann läuft die Runde vollständig durch.
@@ -339,7 +343,7 @@ Pauschaleinstufung wäre hier irreführend.
 | Wertung (`Scoring`, `GameScore`, Eimer) | **HIGH** | Derselbe Fall wie `Settlement`: Eine falsche Punktzahl fällt niemandem auf, und sie wirkt nicht eine Runde lang, sondern über eine ganze Saison. Off-by-one an einer Eimergrenze ist die wahrscheinlichste Einzelursache. Mutation Score ≥ 99 % nach 6.3. |
 | Verdeckte Tipps vor Anstoß | **HIGH** | Ein Leck macht das Tippen sinnlos und ist in der Oberfläche unsichtbar — die Begründung aus 6.4 gilt wörtlich weiter. Zusätzlich hoch, weil hier erstmals ein HTTP-Adapter beteiligt ist, bei dem ein zu großzügiges Antwortobjekt reicht. |
 | Konto und Anmeldung | **HIGH** | Wer fremde Links errät oder eine fremde Sitzung bekommt, tippt unter fremdem Namen; und hier liegen erstmals personenbezogene Daten. Schaden nicht am Spielabend messbar, sondern rechtlich. |
-| Trennung der Modi | **HIGH** | Ein Fehler zerstört den jeweils anderen Modus (36, 37). Eintrittswahrscheinlichkeit nicht niedrig, weil beide Modi sich Prozess und Anwendung teilen und Modus A ohne Synchronisierung geschrieben ist — ein Ligazugriff auf `Room` aus einem Request-Thread wäre ein Datenrennen, das kein Test *zufällig* findet. Deshalb als eigene Zusage und mit einer ArchUnit-Regel, nicht nur als Sorgfalt. |
+| Trennung der Spielmodi | **HIGH** | Ein Fehler zerstört den jeweils anderen Spielmodus (36, 37). Eintrittswahrscheinlichkeit nicht niedrig, weil beide sich Prozess und Anwendung teilen und die Live-Wetten ohne Synchronisierung geschrieben sind — ein Ligazugriff auf `Room` aus einem Request-Thread wäre ein Datenrennen, das kein Test *zufällig* findet. Deshalb als eigene Zusage und mit einer ArchUnit-Regel, nicht nur als Sorgfalt. |
 | Ligen und Rangliste | MEDIUM | Fehler sind sichtbar und nachrechenbar; korrigierbar, ohne dass ein Abend verloren geht. |
 | Spieldaten und Feed | MEDIUM | Ein Ausfall ist laut und nachtragbar (14). Schaden begrenzt, Eintrittswahrscheinlichkeit dagegen hoch — eine unbeauftragte Fremdquelle ändert ihr Format, wann sie will. |
 | Anzeige der Spieltage | LOW | Frontend, außerhalb der Teststrategie (§11). |
@@ -408,10 +412,10 @@ bleiben unberührt.**
 
 ## Was mit den harten Invarianten passiert
 
-Die sechs Invarianten aus CLAUDE.md sind für Modus A formuliert. Sie bleiben
-wörtlich gültig; Modus B stellt ihnen eigene zur Seite. Diese Abgrenzung ist
-kein Formalismus — sie ist der Grund, warum das Feature den bestehenden Code
-nicht gefährdet.
+Die sechs Invarianten aus CLAUDE.md sind für die Live-Wetten formuliert. Sie
+bleiben wörtlich gültig; das Tippspiel stellt ihnen eigene zur Seite. Diese
+Abgrenzung ist kein Formalismus — sie ist der Grund, warum das Feature den
+bestehenden Code nicht gefährdet.
 
 1. **Aller Raumzustand auf dem Raum-Thread** — unverändert. Neu: *Kein
    Ligacode fasst `Room` oder `Player` an, und kein Raumcode fasst ein
@@ -422,18 +426,18 @@ nicht gefährdet.
    erst recht nicht auf eine Datenbank, einen Mailversand oder einen Feed
    warten. Der Ligaweg läuft komplett auf Request-Threads, wie jede
    gewöhnliche Spring-Anwendung.
-3. **Server ist die einzige Quelle der Wahrheit** — gilt für beide Modi.
+3. **Server ist die einzige Quelle der Wahrheit** — gilt für beide Spielmodi.
    Insbesondere rechnet kein Client Wertungspunkte aus.
 4. **Verdeckte Tipps sind eine Anforderung an die Leitung** — gilt sinngemäß
-   für Modus B: bis zum Anstoß geht kein fremder Ergebnistipp über die
+   für das Tippspiel: bis zum Anstoß geht kein fremder Ergebnistipp über die
    Leitung (19).
-5. **Punkte ganzzahlig und nullsumme** — die Nullsumme gilt weiter für Modus A.
-   Modus B hat keine Nullsumme, weil es keinen Einsatz gibt; ganzzahlig sind
-   beide. Der eigene Typ `LeaguePoints` hält die beiden Rechenwelten
-   auseinander.
+5. **Punkte ganzzahlig und nullsumme** — die Nullsumme gilt weiter für die
+   Live-Wetten. Das Tippspiel hat keine Nullsumme, weil es keinen Einsatz gibt;
+   ganzzahlig sind beide. Der eigene Typ `LeaguePoints` hält die beiden
+   Rechenwelten auseinander.
 6. **Genau eine Server-Instanz** — unverändert (ADR-005). Mit einer Datenbank
    *wäre* eine zweite Instanz technisch denkbar; sie bleibt trotzdem
-   ausgeschlossen, solange Modus A den Zustand im Arbeitsspeicher hält.
+   ausgeschlossen, solange die Live-Wetten den Zustand im Arbeitsspeicher halten.
 
 ## Nötige ADRs
 
@@ -442,16 +446,21 @@ Feature 004 hat ADR-033 belegt. Neu zu schreiben:
 | ADR | Entscheidung |
 |---|---|
 | ADR-034 | Zwei Spielmodi in einer Anwendung, getrennte Modelle statt Wiederverwendung; Trennung per ArchUnit erzwungen |
-| ADR-035 | Datenbank für Modus B — welche, wo, mit welchen Migrationen; Verhältnis zu ADR-004 (der für Modus A unverändert gilt) |
+| ADR-035 | Datenbank für das Tippspiel — welche, wo, mit welchen Migrationen; Verhältnis zu ADR-004 (der für die Live-Wetten unverändert gilt) |
 | ADR-036 | Konten mit Magic Link statt Kennwort; Sitzungsdauer, Einmaligkeit, Rate Limit |
 | ADR-037 | Externer Feed als Quelle für Spielplan und Ergebnisse; Wahl der Quelle, Nachführ-Takt, Verhalten bei Ausfall, Handeintrag als Notweg |
 | ADR-038 | Wertung als reine Funktion mit „höchste Stufe zählt"; Fachbegriffe der Liga (Ergebnistipp, Wertungspunkte, Abstand, Rangliste) analog ADR-022 |
-| ADR-039 | HTTP statt WebSocket für Modus B — Anfrage/Antwort reicht, wo nichts in Sekunden geschieht |
+| ADR-039 | HTTP statt WebSocket für das Tippspiel — Anfrage/Antwort reicht, wo nichts in Sekunden geschieht |
 
-Dazu Nachträge: CLAUDE.md (Invarianten je Modus, Aufbau),
-`anforderungen.md` (Kapitel 13 samt Anhang A), `offene-entscheidungen.md`
-(Streichung der drei Ausschlüsse für Modus B), `teststrategie.md` (die neuen
+Dazu Nachträge: CLAUDE.md (Invarianten je Spielmodus, Aufbau),
+`anforderungen.md` (Kapitel 13 samt Anhang A), `teststrategie.md` (die neuen
 Bereiche in der Einstufungstabelle 6.4).
+
+Bereits erledigt: der Geltungsbereich in `anforderungen.md` (Präambel „Zwei
+Spielmodi", Kapitel 11 und 12, Geltungs-Spalte in Anhang A) und in
+`offene-entscheidungen.md` (Geltung je Eintrag). Kapitel 13 selbst kommt
+stufenweise mit dem Bau — eine `backend`-Regel ohne grünes Szenario bricht
+die Feature-Abdeckung (`teststrategie.md` 7.1).
 
 ## Reihenfolge des Baus
 
@@ -488,7 +497,8 @@ keiner davon aus dem bisherigen Betrieb bekannt ist:
 - **Eine Außenabhängigkeit ohne Zusage.** Der Feed kann sich ändern oder
   wegfallen; das ist kein Restrisiko, sondern eine Wartungsaufgabe über die
   Saison.
-- **Ein zweiter Zeitbegriff.** Modus A kennt 15 Sekunden, Modus B kennt
+- **Ein zweiter Zeitbegriff.** Die Live-Wetten kennen 15 Sekunden, das Tippspiel
+  kennt
   Anstoßzeiten in Zeitzonen mit Sommerzeitwechsel mitten in der Saison.
 - **Längere Testläufe.** Datenbanktests und Feed-Attrappen gegen das
   10-Minuten-Budget aus `teststrategie.md` 10 — das ist beim Aufbau von
@@ -496,8 +506,9 @@ keiner davon aus dem bisherigen Betrieb bekannt ist:
 
 ## Offene Fragen
 
-Bleiben sie offen, wandern sie nach `offene-entscheidungen.md`. Zu jeder steht
-eine Empfehlung, keine Festlegung.
+Zu jeder steht eine Empfehlung, keine Festlegung. Die fünf, die den Bau
+blockieren, stehen seit dem Beschluss auch in `offene-entscheidungen.md` —
+dort sind sie zu beantworten, hier bleiben sie als Teil des Antrags stehen.
 
 **Welche Datenbank?** Empfehlung: verwaltetes Postgres statt SQLite auf dem
 vorhandenen Volume. Nicht wegen der Last — die ist lächerlich klein —, sondern
@@ -524,6 +535,6 @@ Empfehlung: Liga je Saison, das ist die einfachere Zeitachse.
 anderen Regeln als die Regular Season. Empfehlung: erste Saison ohne Playoffs,
 danach entscheiden, ob es sich gelohnt hat.
 
-**Wie sichtbar ist Modus A für Ligamitglieder?** Ob jemand, der nur tippt, die
-Watchparty überhaupt angeboten bekommt — eine Frage an die Oberfläche, die sich
-am ersten Spieltag schneller beantwortet als vorher.
+**Wie sichtbar sind die Live-Wetten für Ligamitglieder?** Ob jemand, der nur
+tippt, die Watchparty überhaupt angeboten bekommt — eine Frage an die
+Oberfläche, die sich am ersten Spieltag schneller beantwortet als vorher.

@@ -1,4 +1,26 @@
-# Fachliche Anforderungen — Live-Wett-App für Football-Watchpartys
+# Fachliche Anforderungen — Live-Wetten zur Watchparty und Tippspiel über die Saison
+
+## Zwei Spielmodi
+
+Die Anwendung trägt zwei getrennte Spielmodi:
+
+- **Live-Wetten** — der Abend vor dem Fernseher: Kapitel 1 bis 12. Das ist
+  alles, was heute gebaut ist.
+- **Tippspiel** — die Liga über eine ganze Saison: Kapitel 13. Beschlossen am
+  2026-08-17 (`docs/features/005-tippspiel-liga.md`), noch nicht gebaut. Die
+  Abschnitte entstehen stufenweise mit der Umsetzung, nicht vorab — eine Regel
+  mit der Marke `backend` ohne grünes Szenario ist ein Fehlschlag im Build
+  (`teststrategie.md` 7.1).
+
+**Ohne ausdrücklichen Vermerk gilt jedes Kapitel für die Live-Wetten.** Diese
+Voreinstellung hat einen Grund: Die Nummerierung bleibt, wie sie ist. Die IDs
+aus Anhang A sind aus dem Code, den ADRs und `probelauf.md` verlinkt und werden
+nicht umgeschrieben, nur weil ein zweiter Spielmodus dazukommt.
+
+Was für beide Spielmodi gilt, gilt nicht durch Verallgemeinerung, sondern weil
+es dasteht. In Anhang A trägt jede Regel ihre Geltung deshalb in einer eigenen
+Spalte, und zwar je Regel statt je Kapitel: Einzelne Regeln — etwa der Betrieb
+— gelten für beide, obwohl ihr Kapitel es nicht tut.
 
 ## 1. Zweck und Kontext
 
@@ -191,15 +213,21 @@ Die Rolle kann über den Abend zwischen den Runden mehrfach wandern, wenn Handys
 
 ## 11. Bewusst nicht enthalten (out of scope)
 
-- Kein Remote-/Online-Play über mehrere Orte hinweg — jede Watchparty bleibt an einen Ort gebunden (1-a), auch wenn mehrere Watchpartys gleichzeitig laufen können (Feature 004).
-- Keine Persistenz / keine Saison über mehrere Abende (ADR-023 überbrückt nur einen Neustart innerhalb desselben Abends, mit Verfallszeit).
-- Keine automatische Ergebnis-Erkennung per Datenfeed; der Host löst manuell auf (bewusst, um die Broadcast-Verzögerung zu umgehen und synchron zum Fernsehbild im Raum zu bleiben).
-- Kein echtes Geld.
+Diese Ausschlüsse gelten für die Live-Wetten. Wo das Tippspiel es anders hält,
+steht es dabei — der Ausschluss ist dann kein aufgegebenes Prinzip, sondern
+einer mit Geltungsbereich.
+
+- Kein Remote-/Online-Play über mehrere Orte hinweg — jede Watchparty bleibt an einen Ort gebunden (1-a), auch wenn mehrere Watchpartys gleichzeitig laufen können (Feature 004). Das Tippspiel ist dagegen ortsunabhängig; es gibt dort keinen gemeinsamen Fernseher, an dem man sitzen müsste.
+- Keine Persistenz / keine Saison über mehrere Abende (ADR-023 überbrückt nur einen Neustart innerhalb desselben Abends, mit Verfallszeit). Das Tippspiel ist per Definition dauerhaft und hält seinen Zustand in einer eigenen Datenbank; der Arbeitsspeicher der Live-Wetten bleibt davon unberührt.
+- Keine automatische Ergebnis-Erkennung per Datenfeed; der Host löst manuell auf (bewusst, um die Broadcast-Verzögerung zu umgehen und synchron zum Fernsehbild im Raum zu bleiben). Für das Tippspiel trägt diese Begründung nicht: Ein Endergebnis steht nach Spielschluss fest und wartet auf niemanden im Wohnzimmer, es kommt deshalb aus dem Feed.
+- Kein echtes Geld. **Das gilt für beide Spielmodi.**
 
 ## 12. Offene Punkte / spätere Erweiterungen
 
 - Weitere Wetten über die vier aus Abschnitt 4 hinaus.
 - Nachjustierung der Parameter aus 3.1 am realen Spielgefühl.
+- Das Tippspiel über die Saison ist beschlossen und entsteht als Kapitel 13;
+  was dafür nötig ist, steht in `docs/features/005-tippspiel-liga.md`.
 
 ---
 
@@ -217,7 +245,15 @@ unverändert — sie sind aus CLAUDE.md, den ADRs und `probelauf.md` verlinkt.
 Regeln, die im Fließtext als Aufzählungspunkt ohne eigene Nummer stehen,
 bekommen einen Buchstaben-Suffix (`6-a`, `8.1-c`). Beide Formen sind
 gleichwertige IDs; die Buchstabenform sagt nur, dass die Regel im Text
-keine eigene Überschrift hat.
+keine eigene Überschrift hat. Die Regeln des Tippspiels tragen die Nummern
+aus Kapitel 13 (`13.5-a` …) und kommen mit dem Bau dazu.
+
+**Zur Geltung.** Jede Regel nennt ihren Spielmodus: `Live-Wetten`, `Tippspiel`
+oder `beide`. Eine Regel gilt nie stillschweigend für den jeweils anderen
+Modus — das ist der Zweck der Spalte. Sie steht **vor** der Marke, weil beide
+Auswerter die Marke als letzte Spalte lesen (`AnhangA` im Testcode und der
+Gradle-Task `abdeckung`); eine Spalte dahinter würde die Feature-Abdeckung
+stillschweigend leer laufen lassen.
 
 **Zu den Marken.**
 
@@ -235,143 +271,143 @@ die Marke.
 
 ### 1. Zweck und Kontext
 
-| ID | Regel | Marke |
-|---|---|---|
-| 1-a | Alle Teilnehmer sitzen vor demselben Fernseher; nur Vor-Ort-Nutzung. | organisatorisch |
-| 1-b | Innerhalb einer Watchparty läuft immer nur eine Runde gleichzeitig. | backend |
-| 1-c | Keine Persistenz über Spielabende hinweg; jeder Abend beginnt frisch. | backend |
-| 1-d | Ein Snapshot übersteht einen Neustart innerhalb desselben Abends und verfällt spätestens nach sechs Stunden. | backend |
-| 1-e | Der Beitritt verlangt einen Namen und, wer einer bestehenden Watchparty beitritt, deren Code — kein Account, keine Anmeldung. | backend |
-| 1-f | Teilnahme ohne Installation: Link im Handy-Browser öffnen genügt. | frontend |
-| 1-g | Ein Beitritt ohne Code erzeugt eine neue Watchparty; wer sie erzeugt, ist ihr Host. | backend |
-| 1-h | Der Code einer Watchparty ist vierstellig alphanumerisch und wird unabhängig von Groß-/Kleinschreibung angenommen. | backend |
-| 1-i | Watchpartys sind vollständig getrennt: Keine Nachricht und kein Kommando einer Watchparty wirkt auf eine andere. | backend |
-| 1-j | Eine Watchparty ohne Aktivität wird nach sechs Stunden verworfen, samt ihrem Snapshot. | backend |
-| 1-k | Der Code der eigenen Watchparty ist ständig sichtbar. | frontend |
-| 1-l | `/join/CODE` füllt das Code-Feld vor. | frontend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 1-a | Alle Teilnehmer sitzen vor demselben Fernseher; nur Vor-Ort-Nutzung. | Live-Wetten | organisatorisch |
+| 1-b | Innerhalb einer Watchparty läuft immer nur eine Runde gleichzeitig. | Live-Wetten | backend |
+| 1-c | Keine Persistenz über Spielabende hinweg; jeder Abend beginnt frisch. | Live-Wetten | backend |
+| 1-d | Ein Snapshot übersteht einen Neustart innerhalb desselben Abends und verfällt spätestens nach sechs Stunden. | Live-Wetten | backend |
+| 1-e | Der Beitritt verlangt einen Namen und, wer einer bestehenden Watchparty beitritt, deren Code — kein Account, keine Anmeldung. | Live-Wetten | backend |
+| 1-f | Teilnahme ohne Installation: Link im Handy-Browser öffnen genügt. | Live-Wetten | frontend |
+| 1-g | Ein Beitritt ohne Code erzeugt eine neue Watchparty; wer sie erzeugt, ist ihr Host. | Live-Wetten | backend |
+| 1-h | Der Code einer Watchparty ist vierstellig alphanumerisch und wird unabhängig von Groß-/Kleinschreibung angenommen. | Live-Wetten | backend |
+| 1-i | Watchpartys sind vollständig getrennt: Keine Nachricht und kein Kommando einer Watchparty wirkt auf eine andere. | Live-Wetten | backend |
+| 1-j | Eine Watchparty ohne Aktivität wird nach sechs Stunden verworfen, samt ihrem Snapshot. | Live-Wetten | backend |
+| 1-k | Der Code der eigenen Watchparty ist ständig sichtbar. | Live-Wetten | frontend |
+| 1-l | `/join/CODE` füllt das Code-Feld vor. | Live-Wetten | frontend |
 
 ### 2. Wett-Grundprinzip
 
-| ID | Regel | Marke |
-|---|---|---|
-| 2-a | Alle Einsätze einer Runde wandern in einen gemeinsamen Pool. | backend |
-| 2-b | Wer richtig liegt, teilt sich den Pool. | backend |
-| 2-c | Ein selten getippter Ausgang zahlt pro Gewinner mehr als ein häufig getippter. | backend |
-| 2-d | Nullsumme: Punkte entstehen und verschwinden nicht. Der Pool ist exakt die Summe aller Einsätze plus der tatsächlich eingesammelten Strafen. | backend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 2-a | Alle Einsätze einer Runde wandern in einen gemeinsamen Pool. | Live-Wetten | backend |
+| 2-b | Wer richtig liegt, teilt sich den Pool. | Live-Wetten | backend |
+| 2-c | Ein selten getippter Ausgang zahlt pro Gewinner mehr als ein häufig getippter. | Live-Wetten | backend |
+| 2-d | Nullsumme: Punkte entstehen und verschwinden nicht. Der Pool ist exakt die Summe aller Einsätze plus der tatsächlich eingesammelten Strafen. | Live-Wetten | backend |
 
 ### 3. Spieler und Punktekonten
 
-| ID | Regel | Marke |
-|---|---|---|
-| 3-a | Jeder Spieler startet mit einem festen Punkte-Startguthaben. | backend |
-| 3-b | Punkte sind ganzzahlig; es gibt keine Bruchteile. | backend |
-| 3-c | Der Server liefert die aktuellen Kontostände aller Spieler. | backend |
-| 3-d | Ein Leaderboard zeigt die Kontostände an. | frontend |
-| 3-e | Ein Konto wird nie negativ. | backend |
-| 3.1 | Startguthaben 1000, Mindesteinsatz 25, Nicht-Tipper-Strafe 25. | backend |
-| 3.1-a | Die drei Werte stehen an einer Stelle im Code, nicht verstreut. | backend |
-| 3.1-b | Ob die drei Werte sich am realen Spielgefühl bewähren. | beobachtung |
-| 3.1-c | Der Server nennt dem Client die drei Werte beim Beitritt; der Client hält keine eigene Kopie. | backend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 3-a | Jeder Spieler startet mit einem festen Punkte-Startguthaben. | Live-Wetten | backend |
+| 3-b | Punkte sind ganzzahlig; es gibt keine Bruchteile. | Live-Wetten | backend |
+| 3-c | Der Server liefert die aktuellen Kontostände aller Spieler. | Live-Wetten | backend |
+| 3-d | Ein Leaderboard zeigt die Kontostände an. | Live-Wetten | frontend |
+| 3-e | Ein Konto wird nie negativ. | Live-Wetten | backend |
+| 3.1 | Startguthaben 1000, Mindesteinsatz 25, Nicht-Tipper-Strafe 25. | Live-Wetten | backend |
+| 3.1-a | Die drei Werte stehen an einer Stelle im Code, nicht verstreut. | Live-Wetten | backend |
+| 3.1-b | Ob die drei Werte sich am realen Spielgefühl bewähren. | Live-Wetten | beobachtung |
+| 3.1-c | Der Server nennt dem Client die drei Werte beim Beitritt; der Client hält keine eigene Kopie. | Live-Wetten | backend |
 
 ### 4. Wetten
 
-| ID | Regel | Marke |
-|---|---|---|
-| 4-a | Eine Wette ist eine Frage mit fester Liste möglicher Ausgänge und späterer Auflösung, als eigenständige Struktur — weitere Wetten sind ohne Umbau ergänzbar. | backend |
-| 4-b | Der Wettkatalog steht auf dem Server; der Host wählt beim Öffnen aus. | backend |
-| 4-c | Jede Wette hat mindestens zwei Ausgänge mit eindeutigen Kennungen. | backend |
-| 4-d | Die Ausgänge sind lückenlos und überschneidungsfrei: Jeder reale Verlauf fällt in genau einen Eimer. | organisatorisch |
-| 4-e | Wo die Abgrenzung nicht offensichtlich ist, liefert der Server die Anmerkung mit. | backend |
-| 4-f | Die Anmerkungen sind in der Oberfläche sichtbar. | frontend |
-| 4.1 | Der Katalog enthält „Ausgang des nächsten Drives" mit den sieben genannten Ausgängen und ihren Anmerkungen. | backend |
-| 4.2 | Der Katalog enthält „Big Play im nächsten Drive?" mit Ja/Nein und der Schwellen-Anmerkung. | backend |
-| 4.3 | Der Katalog enthält „Field Goal: gut?" mit Gut / Kein Field Goal. | backend |
-| 4.4 | Der Katalog enthält „Versuch nach dem Touchdown?" mit den vier genannten Ausgängen. | backend |
-| 4.4-a | Kick und Two-Point sind eine Wette, nicht zwei. | backend |
-| 4.4-b | Verantwortung des Hosts: Die Field-Goal-Wette gehört auf den Field-Goal-Versuch, nicht auf gut Glück. | organisatorisch |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 4-a | Eine Wette ist eine Frage mit fester Liste möglicher Ausgänge und späterer Auflösung, als eigenständige Struktur — weitere Wetten sind ohne Umbau ergänzbar. | Live-Wetten | backend |
+| 4-b | Der Wettkatalog steht auf dem Server; der Host wählt beim Öffnen aus. | Live-Wetten | backend |
+| 4-c | Jede Wette hat mindestens zwei Ausgänge mit eindeutigen Kennungen. | Live-Wetten | backend |
+| 4-d | Die Ausgänge sind lückenlos und überschneidungsfrei: Jeder reale Verlauf fällt in genau einen Eimer. | Live-Wetten | organisatorisch |
+| 4-e | Wo die Abgrenzung nicht offensichtlich ist, liefert der Server die Anmerkung mit. | Live-Wetten | backend |
+| 4-f | Die Anmerkungen sind in der Oberfläche sichtbar. | Live-Wetten | frontend |
+| 4.1 | Der Katalog enthält „Ausgang des nächsten Drives" mit den sieben genannten Ausgängen und ihren Anmerkungen. | Live-Wetten | backend |
+| 4.2 | Der Katalog enthält „Big Play im nächsten Drive?" mit Ja/Nein und der Schwellen-Anmerkung. | Live-Wetten | backend |
+| 4.3 | Der Katalog enthält „Field Goal: gut?" mit Gut / Kein Field Goal. | Live-Wetten | backend |
+| 4.4 | Der Katalog enthält „Versuch nach dem Touchdown?" mit den vier genannten Ausgängen. | Live-Wetten | backend |
+| 4.4-a | Kick und Two-Point sind eine Wette, nicht zwei. | Live-Wetten | backend |
+| 4.4-b | Verantwortung des Hosts: Die Field-Goal-Wette gehört auf den Field-Goal-Versuch, nicht auf gut Glück. | Live-Wetten | organisatorisch |
 
 ### 5. Wettfenster und Timing
 
-| ID | Regel | Marke |
-|---|---|---|
-| 5-a | Der Host entscheidet, welche Wette wann öffnet. | backend |
-| 5-b | Nach dem Öffnen bleibt das Fenster 15 Sekunden offen und schließt dann automatisch. | backend |
-| 5-c | Der Host hat einen „Jetzt schließen"-Knopf als Notbremse. | backend |
-| 5-d | Das Fenster schließt bei Ablauf der 15 Sekunden oder beim Host-Klick — je nachdem, was zuerst eintritt. | backend |
-| 5-e | Verantwortung des Hosts: das Fenster so öffnen, dass die 15 Sekunden vor dem Snap ablaufen. | organisatorisch |
-| 5-f | Ob 15 Sekunden für alle Wetten die richtige Länge sind. | beobachtung |
-| 5-g | Das Fenster schließt sofort, sobald alle Teilnehmer des eingefrorenen Kreises getippt haben. | backend |
-| 5-h | Die Oberfläche benennt beim Schließen, dass alle getippt haben. | frontend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 5-a | Der Host entscheidet, welche Wette wann öffnet. | Live-Wetten | backend |
+| 5-b | Nach dem Öffnen bleibt das Fenster 15 Sekunden offen und schließt dann automatisch. | Live-Wetten | backend |
+| 5-c | Der Host hat einen „Jetzt schließen"-Knopf als Notbremse. | Live-Wetten | backend |
+| 5-d | Das Fenster schließt bei Ablauf der 15 Sekunden oder beim Host-Klick — je nachdem, was zuerst eintritt. | Live-Wetten | backend |
+| 5-e | Verantwortung des Hosts: das Fenster so öffnen, dass die 15 Sekunden vor dem Snap ablaufen. | Live-Wetten | organisatorisch |
+| 5-f | Ob 15 Sekunden für alle Wetten die richtige Länge sind. | Live-Wetten | beobachtung |
+| 5-g | Das Fenster schließt sofort, sobald alle Teilnehmer des eingefrorenen Kreises getippt haben. | Live-Wetten | backend |
+| 5-h | Die Oberfläche benennt beim Schließen, dass alle getippt haben. | Live-Wetten | frontend |
 
 ### 6. Wettmechanik
 
-| ID | Regel | Marke |
-|---|---|---|
-| 6-a | Ein Tipp pro Spieler pro Runde: kein Aufteilen des Einsatzes, kein Nachbessern. | backend |
-| 6-b | Solange das Fenster offen ist, ist nur sichtbar, *wie viele* getippt haben, nicht *was*. | backend |
-| 6-c | Ein Tipp ohne ausdrücklichen Einsatz setzt den Mindesteinsatz. | backend |
-| 6-d | Die Oberfläche erlaubt, den Einsatz vor dem Bestätigen zu erhöhen. | frontend |
-| 6-e | Einsätze sind ganze Zahlen ab dem Mindesteinsatz bis zum eigenen Kontostand. | backend |
-| 6-f | Wer weniger Punkte hat als den Mindesteinsatz, darf mitwetten und geht zwangsweise All-in — auch mit 0 Punkten. | backend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 6-a | Ein Tipp pro Spieler pro Runde: kein Aufteilen des Einsatzes, kein Nachbessern. | Live-Wetten | backend |
+| 6-b | Solange das Fenster offen ist, ist nur sichtbar, *wie viele* getippt haben, nicht *was*. | Live-Wetten | backend |
+| 6-c | Ein Tipp ohne ausdrücklichen Einsatz setzt den Mindesteinsatz. | Live-Wetten | backend |
+| 6-d | Die Oberfläche erlaubt, den Einsatz vor dem Bestätigen zu erhöhen. | Live-Wetten | frontend |
+| 6-e | Einsätze sind ganze Zahlen ab dem Mindesteinsatz bis zum eigenen Kontostand. | Live-Wetten | backend |
+| 6-f | Wer weniger Punkte hat als den Mindesteinsatz, darf mitwetten und geht zwangsweise All-in — auch mit 0 Punkten. | Live-Wetten | backend |
 
 ### 7. Auszahlung
 
-| ID | Regel | Marke |
-|---|---|---|
-| 7.1 | Anteil = max(Einsatz, Mindesteinsatz). Jeder Gewinner zählt mindestens mit dem Mindest-Anteil, auch bei weniger oder 0 gesetzten Punkten. | backend |
-| 7.1-a | Gesetzte Punkte und Anteile am Gewinn sind entkoppelt; größere Scheiben Einzelner gehen zulasten der anderen Gewinner, nicht aus dem Nichts. | backend |
-| 7.2 | Auszahlungen sind ganzzahlig; der Rest wird nach dem Größte-Reste-Verfahren vergeben, und die Summe entspricht exakt dem Pool. | backend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 7.1 | Anteil = max(Einsatz, Mindesteinsatz). Jeder Gewinner zählt mindestens mit dem Mindest-Anteil, auch bei weniger oder 0 gesetzten Punkten. | Live-Wetten | backend |
+| 7.1-a | Gesetzte Punkte und Anteile am Gewinn sind entkoppelt; größere Scheiben Einzelner gehen zulasten der anderen Gewinner, nicht aus dem Nichts. | Live-Wetten | backend |
+| 7.2 | Auszahlungen sind ganzzahlig; der Rest wird nach dem Größte-Reste-Verfahren vergeben, und die Summe entspricht exakt dem Pool. | Live-Wetten | backend |
 
 ### 8. Strafen, Sonder- und Randfälle
 
-| ID | Regel | Marke |
-|---|---|---|
-| 8.1 | Wer in einer Runde gar nicht tippt, zahlt eine Strafe, die in den Pool fließt. | backend |
-| 8.1-a | Die Strafe trifft jeden im Teilnehmerkreis, der nicht getippt hat — unabhängig vom Grund. | backend |
-| 8.1-b | Der Teilnehmerkreis wird beim Öffnen eingefroren: Wer während des offenen Fensters dazukommt, darf tippen und gewinnen, wird aber nicht bestraft. | backend |
-| 8.1-c | Die Strafe wird auf den Kontostand gekappt; eingesammelt wird min(Strafe, Kontostand). | backend |
-| 8.1-d | Ein getrennter Spieler zahlt für die erste und zweite verpasste Runde und pausiert ab der dritten; bei Reconnect beginnt der Zähler von vorn. | backend |
-| 8.1-e | Die Pause greift nur bei getrennter Verbindung: Wer verbunden ist und nicht tippt, zahlt jede Runde. | backend |
-| 8.1-f | Ab dem Schließen nennt der Zustand die Teilnehmer ohne Tipp; solange das Fenster offen ist, nicht. | backend |
-| 8.1-g | Die Oberfläche zeigt ab dem Schließen hervorgehoben, wer nicht getippt hat, und nennt die Strafe. | frontend |
-| 8.2 | Tippt niemand den Gewinner-Ausgang, bekommen alle Wetter ihren Einsatz zurück. | backend |
-| 8.2-a | Beim Push werden die eingezahlten Strafen anteilig auf alle verteilt, die überhaupt getippt haben. | backend |
-| 8.3 | Auch mit 0 Punkten darf jeder mitwetten und kann über den Mindest-Anteil zurück ins Spiel kommen; die Null ist kein absorbierender Zustand. | backend |
-| 8.4 | Tippt überhaupt niemand, wird die Runde annulliert: keine Strafen, keine Auszahlung. | backend |
-| 8.5 | Tippen alle denselben, richtigen Ausgang, bekommt jeder näherungsweise seinen Einsatz zurück. | backend |
-| 8.6 | Der Host kann eine laufende Runde annullieren, solange sie offen oder geschlossen ist. | backend |
-| 8.6-a | Beim Annullieren passiert nichts: keine Einsätze, keine Strafen, keine Auszahlung, kein Eintrag auf dem Verpasste-Runden-Zähler. | backend |
-| 8.6-b | Nach dem Auflösen ist Annullieren nicht mehr möglich. | backend |
-| 8.7 | Der Host kann den Raum zurücksetzen — Spieler, Punktestände und laufende Runde in einem Schritt, in jeder Phase. | backend |
-| 8.7-a | Nach dem Zurücksetzen gibt es kein automatisches Wiederbeitreten. | backend |
-| 8.7-b | Der Zurücksetzen-Knopf ist bewusst unscheinbar. | frontend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 8.1 | Wer in einer Runde gar nicht tippt, zahlt eine Strafe, die in den Pool fließt. | Live-Wetten | backend |
+| 8.1-a | Die Strafe trifft jeden im Teilnehmerkreis, der nicht getippt hat — unabhängig vom Grund. | Live-Wetten | backend |
+| 8.1-b | Der Teilnehmerkreis wird beim Öffnen eingefroren: Wer während des offenen Fensters dazukommt, darf tippen und gewinnen, wird aber nicht bestraft. | Live-Wetten | backend |
+| 8.1-c | Die Strafe wird auf den Kontostand gekappt; eingesammelt wird min(Strafe, Kontostand). | Live-Wetten | backend |
+| 8.1-d | Ein getrennter Spieler zahlt für die erste und zweite verpasste Runde und pausiert ab der dritten; bei Reconnect beginnt der Zähler von vorn. | Live-Wetten | backend |
+| 8.1-e | Die Pause greift nur bei getrennter Verbindung: Wer verbunden ist und nicht tippt, zahlt jede Runde. | Live-Wetten | backend |
+| 8.1-f | Ab dem Schließen nennt der Zustand die Teilnehmer ohne Tipp; solange das Fenster offen ist, nicht. | Live-Wetten | backend |
+| 8.1-g | Die Oberfläche zeigt ab dem Schließen hervorgehoben, wer nicht getippt hat, und nennt die Strafe. | Live-Wetten | frontend |
+| 8.2 | Tippt niemand den Gewinner-Ausgang, bekommen alle Wetter ihren Einsatz zurück. | Live-Wetten | backend |
+| 8.2-a | Beim Push werden die eingezahlten Strafen anteilig auf alle verteilt, die überhaupt getippt haben. | Live-Wetten | backend |
+| 8.3 | Auch mit 0 Punkten darf jeder mitwetten und kann über den Mindest-Anteil zurück ins Spiel kommen; die Null ist kein absorbierender Zustand. | Live-Wetten | backend |
+| 8.4 | Tippt überhaupt niemand, wird die Runde annulliert: keine Strafen, keine Auszahlung. | Live-Wetten | backend |
+| 8.5 | Tippen alle denselben, richtigen Ausgang, bekommt jeder näherungsweise seinen Einsatz zurück. | Live-Wetten | backend |
+| 8.6 | Der Host kann eine laufende Runde annullieren, solange sie offen oder geschlossen ist. | Live-Wetten | backend |
+| 8.6-a | Beim Annullieren passiert nichts: keine Einsätze, keine Strafen, keine Auszahlung, kein Eintrag auf dem Verpasste-Runden-Zähler. | Live-Wetten | backend |
+| 8.6-b | Nach dem Auflösen ist Annullieren nicht mehr möglich. | Live-Wetten | backend |
+| 8.7 | Der Host kann den Raum zurücksetzen — Spieler, Punktestände und laufende Runde in einem Schritt, in jeder Phase. | Live-Wetten | backend |
+| 8.7-a | Nach dem Zurücksetzen gibt es kein automatisches Wiederbeitreten. | Live-Wetten | backend |
+| 8.7-b | Der Zurücksetzen-Knopf ist bewusst unscheinbar. | Live-Wetten | frontend |
 
 ### 9. Ablauf einer Runde
 
-| ID | Regel | Marke |
-|---|---|---|
-| 9-a | Der Ablauf durchläuft Leerlauf → Öffnen → Tippen → Schließen → Auflösen → Leerlauf. | backend |
-| 9-b | Ab dem Schließen werden alle abgegebenen Tipps offen angezeigt, und es kann nicht mehr getippt werden. | backend |
-| 9-c | Erst beim Auflösen werden Punkte verrechnet: Pool bilden, Strafen einsammeln, Gewinner nach Anteilen auszahlen, Kontostände aktualisieren. | backend |
-| 9-d | Das Ergebnis zeigt zu jedem Tipp den Einsatz und hebt die eigene Zeile hervor. | frontend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 9-a | Der Ablauf durchläuft Leerlauf → Öffnen → Tippen → Schließen → Auflösen → Leerlauf. | Live-Wetten | backend |
+| 9-b | Ab dem Schließen werden alle abgegebenen Tipps offen angezeigt, und es kann nicht mehr getippt werden. | Live-Wetten | backend |
+| 9-c | Erst beim Auflösen werden Punkte verrechnet: Pool bilden, Strafen einsammeln, Gewinner nach Anteilen auszahlen, Kontostände aktualisieren. | Live-Wetten | backend |
+| 9-d | Das Ergebnis zeigt zu jedem Tipp den Einsatz und hebt die eigene Zeile hervor. | Live-Wetten | frontend |
 
 ### 10. Rollen
 
-| ID | Regel | Marke |
-|---|---|---|
-| 10-a | Der Host hat zusätzlich die Steuerknöpfe: Wette öffnen, jetzt schließen, auflösen, annullieren, zurücksetzen. Ansonsten ist er normaler Spieler. | backend |
-| 10-b | Ein Spieler ohne Host-Rolle kann diese Kommandos nicht auslösen. | backend |
-| 10-c | Spieler sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard. | frontend |
-| 10-d | Der Countdown ist zusätzlich als ablaufender Rahmen sichtbar; Phasenwechsel sind animiert. | frontend |
-| 10.1 | Host ist immer der am frühesten beigetretene verbundene Spieler. | backend |
-| 10.1-a | Verliert der Host die Verbindung, wandert die Rolle sofort weiter — in jeder Phase. | backend |
-| 10.1-b | Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst im Leerlauf bzw. nach dem Auflösen ausgeführt. | backend |
-| 10.1-c | Die Host-Rolle verlangt keinen zusätzlichen Einstiegsschritt: keine eigene URL, kein Kennwort. | backend |
-| 10.1-d | Solange ein Spieler beigetreten ist, hält die Oberfläche den Bildschirm wach (Screen Wake Lock), best effort. | frontend |
-| 10.1-e | Die Host-Rolle ist an einer eigenen Farbe erkennbar: Chip neben dem Namen. | frontend |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 10-a | Der Host hat zusätzlich die Steuerknöpfe: Wette öffnen, jetzt schließen, auflösen, annullieren, zurücksetzen. Ansonsten ist er normaler Spieler. | Live-Wetten | backend |
+| 10-b | Ein Spieler ohne Host-Rolle kann diese Kommandos nicht auslösen. | Live-Wetten | backend |
+| 10-c | Spieler sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard. | Live-Wetten | frontend |
+| 10-d | Der Countdown ist zusätzlich als ablaufender Rahmen sichtbar; Phasenwechsel sind animiert. | Live-Wetten | frontend |
+| 10.1 | Host ist immer der am frühesten beigetretene verbundene Spieler. | Live-Wetten | backend |
+| 10.1-a | Verliert der Host die Verbindung, wandert die Rolle sofort weiter — in jeder Phase. | Live-Wetten | backend |
+| 10.1-b | Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst im Leerlauf bzw. nach dem Auflösen ausgeführt. | Live-Wetten | backend |
+| 10.1-c | Die Host-Rolle verlangt keinen zusätzlichen Einstiegsschritt: keine eigene URL, kein Kennwort. | Live-Wetten | backend |
+| 10.1-d | Solange ein Spieler beigetreten ist, hält die Oberfläche den Bildschirm wach (Screen Wake Lock), best effort. | Live-Wetten | frontend |
+| 10.1-e | Die Host-Rolle ist an einer eigenen Farbe erkennbar: Chip neben dem Namen. | Live-Wetten | frontend |
 
 ### 11. Betrieb
 
-| ID | Regel | Marke |
-|---|---|---|
-| 11-a | Genau eine Server-Instanz; kein Autoscaling, kein Sharding. | organisatorisch |
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 11-a | Genau eine Server-Instanz; kein Autoscaling, kein Sharding. | beide | organisatorisch |
