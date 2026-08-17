@@ -1299,3 +1299,285 @@ Bewusst **nicht** angetastet:
   (vorher nur ein Filter beim Laden).
 - `/join/CODE` ist eine neue, dauerhafte URL-Form und verlangt eine
   Weiterleitung auf `index.html` im Backend, die es bisher nur für `/` gibt.
+
+## ADR-034: Zwei Spielmodi in einer Anwendung, getrennte Modelle statt Wiederverwendung
+
+**Status:** Akzeptiert
+
+**Kontext:** Mit dem Tippspiel über die Saison (`docs/features/005-tippspiel-liga.md`)
+bekommt die Anwendung einen zweiten Spielmodus. Beide teilen sich Prozess und
+Deployment, sonst fast nichts: Die Live-Wetten laufen einen Abend, anonym, im
+Arbeitsspeicher, über WebSocket, mit einem Pool aus echten Punkten; das
+Tippspiel läuft eine Saison, mit Konto, in einer Datenbank, über HTTP, mit
+Wertungspunkten ohne Einsatz. Die naheliegende Versuchung ist, `Player` für
+den Tipper, `Points` für die Wertungspunkte oder `Room` für die Liga
+mitzubenutzen — dieselbe Fachlichkeit sieht auf den ersten Blick ähnlich aus,
+ein Spieler, ein Punktestand, eine Gruppe.
+
+**Entscheidung:** Kein gemeinsames Modell. Das Tippspiel bekommt ein eigenes
+Domänenmodell in `domain/model/league` und `domain/service/league`, eine
+eigene Anwendungsschicht in `application/league`, eigene Adapter
+(`adapter/in/http`, `adapter/out/db`, `adapter/out/feed`, `adapter/out/mail`)
+und eine eigene Frontend-Sektion (`frontend/src/league`). `Room`, `Player`,
+`Round`, `Settlement`, `RoomActor`, `RoomView` und der WebSocket-Weg bleiben
+unverändert und werden von keiner Ligaklasse referenziert.
+
+Zwei Regeln erzwingen die Trennung, statt sie einer Absprache zu überlassen:
+
+1. **ArchUnit-Regel:** `league` und der bestehende Raumcode importieren
+   einander nicht — in keine Richtung. Ein Fund hier ist ein Programmfehler,
+   kein Stilhinweis.
+2. **Kein Zugriff auf `Room`/`Player` von einem Request-Thread.** Der
+   Ligaweg läuft auf gewöhnlichen Spring-Request-Threads (ADR-039); ein
+   Zugriff auf den Raumzustand von dort wäre exakt das Datenrennen, gegen
+   das Invariante 1 gebaut ist — der Raum-Thread ist die einzige erlaubte
+   Synchronisierung, und ein zweiter Zugriffspfad würde sie unterlaufen,
+   ohne dass es beim Kompilieren auffiele.
+
+**Konsequenzen:**
+- Mehr Code für ähnlich klingende Konzepte — ein `Tendency`-Wert ist kein
+  `Outcome`, ein `LeaguePoints` ist kein `Points`, ein `Membership` ist kein
+  `Player`. Das ist der Preis, den ADR-025 schon für `Points`/`PointsDelta`/
+  `Share` bezahlt hat, hier nur zwischen zwei Modi statt zwei Bedeutungen
+  eines Kontostands.
+- Ein Fehler im Tippspiel kann die Live-Wetten nicht mehr beschädigen und
+  umgekehrt, allein durch die Abwesenheit eines Importpfads — geprüft, nicht
+  behauptet (`docs/features/005-tippspiel-liga.md`, Kritikalität „Trennung
+  der Spielmodi", `HIGH`).
+- Die Onion-Ringe aus ADR-024 gelten für beide Modelle gleich, aber getrennt:
+  `domain/model/league` kennt `domain/service/league`, nicht umgekehrt, und
+  keines der beiden kennt Spring — dieselbe Regel wie im bestehenden Ring,
+  nur ein zweites Mal angewandt statt einmal erweitert.
+- Kritikalität, Feature-Abdeckung und Mutation Score (`teststrategie.md`)
+  laufen für `league` getrennt von der Einstufung des Bestands (6.4) — die
+  Tabelle dort bekommt eigene Zeilen, nicht Fußnoten an bestehenden.
+
+## ADR-035: Verwaltetes Postgres für das Tippspiel
+
+**Status:** Akzeptiert
+
+**Kontext:** Das Tippspiel braucht Persistenz über eine ganze Saison —
+Konten, Spielpläne, Ergebnisse, Ergebnistipps, Ligen. ADR-004 (State im
+Arbeitsspeicher, keine Persistenz/DB) gilt für die Live-Wetten unverändert
+und stand nie für das Tippspiel zur Debatte; er sagt nur nichts darüber, wie
+der zweite Spielmodus seinen eigenen Zustand hält. Zwei Optionen standen
+offen: eine Datei auf dem vorhandenen Fly-Volume (SQLite, neben den
+Snapshots aus ADR-023) oder ein verwalteter Datenbankdienst.
+
+Der Unterschied zu ADR-023 ist die Tragweite eines Verlusts. Ein Snapshot ist
+ein Abzug für einen Neustart *innerhalb* desselben Abends und verfällt
+bewusst nach sechs Stunden — sein Verlust kostet einen Abend. Der Verlust
+einer Saison-Datenbank kostet vier Monate Tipps von allen Mitgliedern aller
+Ligen; das ist kein Fall, für den ein Volume ohne eigene Sicherung
+akzeptabel ist. Die Last selbst ist dabei irrelevant klein — eine Handvoll
+Freunde, ein paar hundert Tipps pro Spieltag.
+
+**Entscheidung:** Ein verwalteter Postgres-Dienst (Fly Postgres oder
+gleichwertig), erreicht über den Standard-JDBC-Weg von Spring Boot, mit
+Flyway für Migrationen. Der Zugang steht ausschließlich als Fly-Secret, nie
+im Repository (das öffentlich ist, ADR-028). Migrationen liegen versioniert
+im Repository, `adapter/out/db` — dieselbe Idee wie ADR-018 für den
+Server selbst: Fly für das, was Fly gut kann, nicht selbst gebaut.
+
+**Konsequenzen:**
+- Ein neuer Betriebsbaustein, den es bisher nicht gab: eine Datenbank mit
+  eigener Sicherung, eigenem Zugangsdatensatz, eigener Verfügbarkeit. Sie
+  ist getrennt von den Fly-Volumes aus ADR-023 — ein Ausfall der Datenbank
+  darf keine laufende Watchparty berühren (ADR-034, Invariante 2 unter
+  neuen Vorzeichen).
+- Eine Rückspielprobe der Sicherung gehört zum Betrieb dazu (Stufe 8,
+  `docs/features/005-tippspiel-liga.md`) — eine Sicherung, die nie
+  zurückgespielt wurde, ist eine Vermutung, keine Sicherung.
+- SQLite auf dem Volume ist damit verworfen, nicht nur aufgeschoben: Ein
+  Wechsel später wäre eine Datenwanderung mit echten Nutzerdaten, kein
+  Konfigurationsschalter. Die Entscheidung fällt deshalb vor dem ersten
+  Konto, nicht danach.
+- `fly.toml` bekommt einen neuen Abschnitt für die Datenbankanbindung; die
+  Kapazitätsgrenzen aus ADR-018/ADR-033 (512 MB, 200 Verbindungen) bleiben
+  unverändert und beziehen sich weiterhin auf den Anwendungsprozess, nicht
+  auf die Datenbank, die ein eigener Dienst ist.
+
+## ADR-036: Konten mit Magic Link statt Kennwort
+
+**Status:** Akzeptiert
+
+**Kontext:** Die Live-Wetten kommen ohne Account aus (1-e, ADR-014): ein
+Gerätetoken trägt über einen Abend, das reicht. Für das Tippspiel reicht das
+nicht — wer im November den Browser aufräumt oder das Handy wechselt,
+verliert vier Monate Tipps, und eine Saison-Rangliste ohne verlässliche
+Wiedererkennung wäre witzlos. Ein Konto ist damit unausweichlich; offen war
+nur, wie es sich anmeldet. Ein Kennwort verlangt einen Weg zurück für den
+Fall, dass es vergessen wird, und dieser Weg wäre ohnehin wieder die
+E-Mail-Adresse — ein Kennwort fügt also einen Schritt hinzu, ohne einen
+zweiten Faktor zu gewinnen.
+
+**Entscheidung:** Anmeldung ausschließlich über einen Magic Link: Wer seine
+E-Mail-Adresse angibt, bekommt eine Nachricht mit einem Link, der ihn
+anmeldet; existiert noch kein Konto zu dieser Adresse, entsteht es beim
+ersten erfolgreichen Anmelden. Der Link ist genau einmal verwendbar und
+verfällt nach 15 Minuten (Kriterium 2). Die Antwort auf eine Anmeldeanfrage
+ist immer dieselbe, unabhängig davon, ob die Adresse bekannt ist (Kriterium
+3) — sonst wäre das Formular eine Auskunft darüber, wer mitspielt, und damit
+ein Leck über das Bestehen eines Kontos hinaus. Anfragen sind je Adresse und
+je Absender-IP begrenzt (Kriterium 4). Eine erfolgreiche Anmeldung hält 90
+Tage, damit niemand sich innerhalb einer Saison wöchentlich neu anmelden
+muss (Kriterium 5).
+
+**Konsequenzen:**
+- `LoginLink` ist eine Entity mit Verfall, kein Value Object — sie hat
+  Identität (der Link selbst) und einen Zustand, der sich genau einmal
+  ändert (verwendet/nicht verwendet).
+- Ein Mailversand-Dienst wird zur Außenabhängigkeit (`adapter/out/mail`,
+  Port `MailSender`); sein Ausfall darf niemanden am Anmelden hindern außer
+  durch eine ehrliche Fehlermeldung, und er darf, wie jede Außenabhängigkeit
+  des Tippspiels, keine laufende Watchparty berühren (ADR-034).
+- Personenbezogene Daten (E-Mail-Adressen) verlangen eine
+  Datenschutzerklärung und ein Löschkonzept (13.8, Stufe 8) — ein Novum für
+  dieses Projekt, das bisher mit anonymen Namen auskam.
+- Die einheitliche Antwort auf jede Anmeldeanfrage ist eine geprüfte Regel
+  (Szenario „Die Anmeldeantwort verrät nicht, wer ein Konto hat",
+  `docs/features/005-tippspiel-liga.md`), keine Empfehlung — Kritikalität
+  `HIGH` für „Konto und Anmeldung".
+
+## ADR-037: ESPN als Feed hinter dem Port `ScheduleFeed`
+
+**Status:** Akzeptiert
+
+**Kontext:** Anders als bei den Live-Wetten (11, aus demselben Grund wie
+ADR-001/ADR-003: der Host löst synchron zum Fernsehbild auf) gibt es beim
+Tippspiel keinen Grund, auf eine automatische Ergebnisquelle zu verzichten —
+ein Endergebnis nach Spielschluss wartet auf niemanden im Wohnzimmer. 272
+Spiele pro Saison von Hand einzutragen ist dagegen der sichere Weg in eine
+ungepflegte Liga. Zur Wahl standen die offen erreichbaren, aber
+unbeauftragten ESPN-Endpunkte (kostenlos, keine Zusage, keine
+Nutzungserlaubnis, jederzeit änderbar) und eine bezahlte Quelle
+(SportsDataIO, api-sports o. ä.: verlässlich, dokumentiert, mit Vertrag und
+laufenden Kosten für ein Freizeitprojekt unter Freunden).
+
+**Entscheidung:** ESPN als Startquelle, aber ausschließlich über den Port
+`ScheduleFeed` (`application/league/port/out`) angesprochen. Kein Aufrufer
+kennt ESPN direkt; ein Wechsel der Quelle ist ein neuer Adapter in
+`adapter/out/feed`, kein Umbau der Anwendungsschicht. Das Risiko der
+unbeauftragten Quelle ist damit angenommen, nicht übersehen, und auf drei
+Arten abgefedert:
+
+1. Tests laufen gegen aufgezeichnete Antworten, nie gegen das echte Netz
+   (`docs/teststrategie.md` 2.3) — ein Formatwechsel bei ESPN bricht die
+   Aufzeichnung, nicht die Produktion, unbemerkt.
+2. Fällt der Feed aus oder liefert unvollständig, bleibt der letzte bekannte
+   Stand stehen (Kriterium 11) — kein Spiel verschwindet, kein Ergebnis wird
+   stillschweigend auf 0:0 gesetzt.
+3. Der Betreiber kann ein Endergebnis von Hand setzen und überschreibt damit
+   den Feed (Kriterium 14) — der Notweg, nicht der Regelfall.
+
+**Konsequenzen:**
+- `ScheduleFeed` liefert Spielplan und Endergebnisse in den eigenen Typen
+  des Domänenmodells (`Game`, `GameScore`, `Team`); das Mapping von ESPNs
+  Antwortformat auf diese Typen steckt vollständig in `adapter/out/feed` und
+  nirgends sonst.
+- Ein Nachführ-Job über den bestehenden `Scheduler`-Port (ADR-011 bereits
+  genutzt für Auto-Close, hier für einen deutlich selteneren Takt) holt
+  Spielplan und Ergebnisse regelmäßig, ohne dass jemand etwas anstößt
+  (Kriterium 9).
+- Kritikalität „Spieldaten und Feed" ist `MEDIUM`, nicht `HIGH`: Ein Ausfall
+  ist laut und über den Handeintrag nachtragbar, der Schaden bleibt begrenzt
+  — aber die Eintrittswahrscheinlichkeit ist nicht niedrig, eine
+  unbeauftragte Quelle ändert ihr Format, wann sie will
+  (`docs/features/005-tippspiel-liga.md`).
+- Eine Verlegung der Anstoßzeit (Flex-Scheduling) entwertet keinen bereits
+  abgegebenen Tipp (Kriterium 10) — ein Tipp wird beim Abgeben gegen die
+  damals gültige Zeit geprüft, nie rückwirkend gegen eine später verschobene.
+
+## ADR-038: Wertung als reine Funktion, „höchste Stufe zählt", eigene Fachbegriffe
+
+**Status:** Akzeptiert
+
+**Kontext:** Die Wertung ist der Teil des Tippspiels, an dem eine ganze
+Saison hängt — eine falsche Punktzahl fällt niemandem auf und wirkt über
+Monate statt über eine Runde, derselbe Fall wie `Settlement` für die
+Live-Wetten (ADR-025). Zwei Fragen waren zu klären: wie sich Tendenz,
+Abstand und exaktes Ergebnis zu einer Punktzahl verbinden, und wie die
+Fachbegriffe des Tippspiels heißen, ohne die der Live-Wetten (ADR-022:
+„Wette" statt „Markt") ein zweites Mal mit anderer Bedeutung zu verwenden.
+
+**Entscheidung:**
+
+1. **Höchste erreichte Stufe zählt, nicht die Summe.** Exaktes Ergebnis 6
+   Punkte, sonst richtige Tendenz und richtiger Abstands-Eimer 5, sonst nur
+   richtige Tendenz 3, sonst 0. Ein Tipp bringt nie mehr als 6 Punkte.
+2. **Die Stufen bauen aufeinander auf.** Der Abstand wird nur bei richtiger
+   Tendenz gewertet — wer den Sieger verwechselt, hat nicht „das 1-Score-Game
+   erkannt", sondern 0 Punkte, unabhängig davon, wie nah die Zahlen liegen.
+   Ohne diese Regel wäre ein falsch getipptes knappes Spiel mehr wert als ein
+   richtig getipptes deutliches, und das ließe sich niemandem erklären.
+3. **Abstands-Eimer:** 0 = Unentschieden, 1–8 = 1-Score-Game, 9–16 =
+   2-Score-Game, ab 17 = 3+-Score-Game. Acht ist die größte Differenz, die
+   ein einzelner Drive noch ausgleicht (Touchdown plus Two-Point) — deshalb
+   diese Grenzen und keine glatten Zehner.
+4. **Die Wertung ist eine reine Funktion** `(Prediction, GameScore) ->
+   LeaguePoints`, zustandslos wie `Settlement` (ADR-025) — dieselbe Eingabe
+   ergibt immer dieselbe Punktzahl, ohne Seiteneffekt und ohne verstecktes
+   Datum.
+5. **Fachbegriffe:** *Ergebnistipp* (`Prediction`) statt „Tipp" (das bleibt
+   `Pick` bei den Live-Wetten), *Wertungspunkte* (`LeaguePoints`) statt
+   „Punkte" (`Points` bleibt der Kontostand der Live-Wetten), *Abstand*
+   (`ScoreBucket`) für die vier Eimer, *Rangliste* für die Ausgabe von
+   `Standings`. Keiner dieser Begriffe wird für die Live-Wetten
+   wiederverwendet und keiner ihrer Begriffe für das Tippspiel.
+
+**Konsequenzen:**
+- `Scoring` liegt in `domain/service/league`, nicht `domain/model` —
+  derselbe Grund wie bei `Settlement`: Sie gehört zu keiner einzelnen
+  Entity, sondern zur Kombination aus Ergebnistipp und Endergebnis.
+- Property-Tests sichern die Funktion über den gesamten Eingaberaum ab, nicht
+  nur über Beispiele: Ergebnis stets 0/3/5/6, exaktes Ergebnis stets 6,
+  Vertauschen von Tipp und Ergebnis ergibt dieselbe Punktzahl bei
+  gespiegelter Tendenz (`docs/features/005-tippspiel-liga.md`, Szenarien).
+- Mutation Score ≥ 99 % nach `teststrategie.md` 6.3 gilt für `Scoring`,
+  `GameScore`, `Tendency` und `ScoreBucket` — die Eimergrenzen sind die
+  wahrscheinlichste Stelle für Off-by-one und deshalb der naheliegendste
+  Fund eines Mutationstests.
+- Wo `anforderungen.md` Kapitel 13 einen dieser Begriffe braucht, der noch
+  keinen eigenen Domänentyp hat, ist das ein Anlass nachzufragen (ADR-025),
+  nicht ihn stillschweigend als `int`/`String` weiterzuschreiben — dieselbe
+  Konvention wie im Bestand.
+
+## ADR-039: HTTP statt WebSocket für das Tippspiel
+
+**Status:** Akzeptiert
+
+**Kontext:** Die Live-Wetten brauchen WebSocket (ADR-006/ADR-007), weil sie
+in Sekunden reagieren müssen: ein Wettfenster schließt automatisch nach 15
+Sekunden, der Pick-Zähler steigt live, das Ergebnis wird sofort verrechnet
+und an alle verteilt. Beim Tippspiel liegt nichts davon in Sekunden. Ein
+Tipp ist bis zum Anstoß eines Spiels änderbar, ein Anstoß liegt Stunden bis
+Tage in der Zukunft, eine Rangliste ändert sich mit dem Feed-Nachführ-Takt
+(ADR-037), nicht mit jedem Tipp eines Mitglieds. Kein Client des Tippspiels
+muss von einer Aktion eines anderen Clients in Echtzeit erfahren.
+
+**Entscheidung:** Das Tippspiel spricht ausschließlich HTTP, mit
+gewöhnlichen REST-Endpunkten in `adapter/in/http` — Anmeldung, Spieltag
+abrufen, tippen, Liga anlegen/beitreten/verlassen, Rangliste abrufen. Kein
+Push, kein offener Socket, keine eigene Nachrichten-Enumeration wie
+`Messages` bei den Live-Wetten. Jede Anfrage trägt eine Sitzung (Cookie,
+90 Tage nach ADR-036) und bekommt eine vollständige Antwort; ein Client, der
+eine aktuellere Rangliste sehen will, fragt erneut.
+
+**Konsequenzen:**
+- Der Ligaweg läuft auf gewöhnlichen Spring-Request-Threads, nicht auf dem
+  Raum-Thread und nicht auf einem eigenen Actor — er braucht keinen, weil
+  nichts Nebenläufiges zu orchestrieren ist, das WebSocket-Handler wie
+  `GameWebSocketHandler` sonst rechtfertigen würde. Das ist zugleich die
+  technische Grundlage für Invariante 1 unter ADR-034: Ein Request-Thread,
+  der HTTP spricht, hat keinen strukturellen Grund, je nach `Room` zu
+  greifen.
+- Verdeckte Tipps vor Anstoß (Kriterium 19, Invariante 4 sinngemäß) werden
+  hier nicht über eine Sendedisziplin erzwungen wie bei `RoomView`, sondern
+  über die Antwort selbst: Der Server liefert fremde Ergebnistipps vor dem
+  Anstoß eines Spiels gar nicht erst aus, unabhängig davon, wer fragt.
+- Kein neues Protokoll-Dokument im Sinne von `README.md`s WebSocket-Frames;
+  die HTTP-Endpunkte dokumentieren sich über ihre Anfrage-/Antwortformen,
+  wie in einer gewöhnlichen Spring-Boot-Anwendung üblich.
+- `WebSocketConfig` und `GameWebSocketHandler` bleiben unverändert und ohne
+  Wissen vom Tippspiel — der zweite Spielmodus fügt der Anwendung einen
+  zweiten Eingang hinzu, statt den bestehenden zu erweitern.

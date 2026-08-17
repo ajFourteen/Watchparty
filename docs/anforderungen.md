@@ -269,6 +269,41 @@ eine Frage, die für den anderen Spielmodus offen sein muss.
 
 ---
 
+## 13. Tippspiel — Liga über die Saison
+
+*Geltung: Tippspiel.*
+
+Der zweite Spielmodus, beschlossen am 2026-08-17
+(`docs/features/005-tippspiel-liga.md`, ADR-034 bis ADR-039). Anders als die
+Kapitel 1 bis 10 entsteht dieses Kapitel **nicht auf einmal**, sondern
+Abschnitt für Abschnitt mit der jeweiligen Baustufe: Eine Regel mit der Marke
+`backend` ohne grünes Szenario ist ein Fehlschlag im Build
+(`teststrategie.md` 7.1, seit dem `abdeckung` unter `check` hängt) — dieses
+Kapitel vorab vollständig zu füllen, würde den Build brechen, bevor eine
+einzige Zeile Produktivcode dafür existiert.
+
+Bis eine Baustufe abgeschlossen ist, steht ihr Abschnitt hier als Verweis auf
+die Akzeptanzkriterien in `docs/features/005-tippspiel-liga.md`, die den
+vorläufigen, aber noch nicht geltenden Stand tragen — geltender Stand ist
+grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
+
+| Abschnitt | Inhalt | Stand |
+|---|---|---|
+| 13.1 | Zweck, Abgrenzung zu den Live-Wetten, Parallelbetrieb | folgt mit Stufe 2 (erst mit einer zweiten Datenhaltung ist „Parallelbetrieb" prüfbar) |
+| 13.2 | Konto und Anmeldung | folgt mit Stufe 3 |
+| 13.3 | Spielplan, Anstoßzeiten, Endergebnisse | folgt mit Stufe 4 |
+| 13.4 | Tippen und Abgabeschluss | folgt mit Stufe 5 |
+| 13.5 | Wertung (Tendenz, Abstand, exaktes Ergebnis) | folgt mit Stufe 1 |
+| 13.6 | Ligen, Mitgliedschaft, Rangliste | folgt mit Stufe 6 |
+| 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | folgt mit Stufe 4 und 6 |
+| 13.8 | Datenschutz und Löschung | folgt mit Stufe 3 |
+
+Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
+nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
+Postgres, Liga je Saison, keine Playoffs in der ersten Saison, gleichwertiger
+Moduswechsel — gelten bereits als Entscheidung; sie werden hier erst
+normativ, sobald der zugehörige Code samt Szenarien steht.
+
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
 Der Fließtext oben ist die fachliche Wahrheit; dieser Anhang zerlegt ihn in
