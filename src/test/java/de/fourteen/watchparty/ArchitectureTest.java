@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -71,6 +72,7 @@ class ArchitectureTest {
             .adapter("time", "de.fourteen.watchparty.adapter.out.time..")
             .adapter("db", "de.fourteen.watchparty.adapter.out.db..")
             .adapter("mail", "de.fourteen.watchparty.adapter.out.mail..")
+            .adapter("feed", "de.fourteen.watchparty.adapter.out.feed..")
             .adapter("ratelimit", "de.fourteen.watchparty.adapter.out.ratelimit..")
             .ignoreDependency(
                     resideIn("de.fourteen.watchparty.config"),
@@ -149,16 +151,24 @@ class ArchitectureTest {
      * kein Test zufaellig findet (die Liga laeuft auf Request-Threads statt
      * auf dem Raum-Thread, CLAUDE.md, "Was mit den harten Invarianten
      * passiert").
+     *
+     * Eine bewusste, benannte Ausnahme (ADR-037): {@code Scheduler} ist eine
+     * reine Zeitplanungs-Abstraktion ohne jeden Live-Wetten-Begriff — der
+     * Nachfuehr-Job des Tippspiels nutzt denselben Port wie Auto-Close bei
+     * den Live-Wetten, statt einen zweiten, gleichwertigen Port nachzubauen.
+     * Alles andere aus {@code application}/{@code application.port.*} bleibt
+     * gesperrt.
      */
     @ArchTest
     static final ArchRule ligaUndAnwendungskernKennenEinanderNicht = noClasses()
             .that().resideInAnyPackage("de.fourteen.watchparty.application.league..")
-            .should().dependOnClassesThat().resideInAnyPackage(
+            .should().dependOnClassesThat(resideInAnyPackage(
                     "de.fourteen.watchparty.application",
                     "de.fourteen.watchparty.application.message..",
                     "de.fourteen.watchparty.application.port.in..",
                     "de.fourteen.watchparty.application.port.out..")
-            .because("die Liga kennt keinen Anwendungskern-Typ der Live-Wetten (CLAUDE.md, Trennung der Spielmodi)");
+                    .and(DescribedPredicate.not(istDerGeteilteSchedulerPort())))
+            .because("die Liga kennt keinen Anwendungskern-Typ der Live-Wetten (CLAUDE.md, Trennung der Spielmodi), ausser dem geteilten Scheduler-Port (ADR-037)");
 
     @ArchTest
     static final ArchRule anwendungskernKenntKeineLiga = noClasses()
@@ -404,6 +414,18 @@ class ArchitectureTest {
 
     private static DescribedPredicate<JavaClass> alwaysTrue() {
         return DescribedPredicate.describe("beliebig", javaClass -> true);
+    }
+
+    /**
+     * {@code Scheduler} selbst oder ein verschachtelter Typ darin (etwa
+     * {@code Scheduler.ScheduledTask}, im Bytecode {@code Scheduler$ScheduledTask})
+     * — die eine ADR-037-Ausnahme von der Anwendungsring-Trennung.
+     */
+    private static DescribedPredicate<JavaClass> istDerGeteilteSchedulerPort() {
+        String scheduler = "de.fourteen.watchparty.application.port.out.Scheduler";
+        return DescribedPredicate.describe(
+                "der geteilte Scheduler-Port oder ein verschachtelter Typ darin",
+                javaClass -> javaClass.getName().equals(scheduler) || javaClass.getName().startsWith(scheduler + "$"));
     }
 
     /**

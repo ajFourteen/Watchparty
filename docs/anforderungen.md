@@ -291,20 +291,20 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 |---|---|---|
 | 13.1 | Zweck, Abgrenzung zu den Live-Wetten, Parallelbetrieb | folgt mit Stufe 2 (erst mit einer zweiten Datenhaltung ist „Parallelbetrieb" prüfbar) |
 | 13.2 | Konto und Anmeldung | **normativ seit Stufe 3** (2026-08-17), siehe unten |
-| 13.3 | Spielplan, Anstoßzeiten, Endergebnisse | folgt mit Stufe 4 |
+| 13.3 | Spielplan, Anstoßzeiten, Endergebnisse | **normativ seit Stufe 4** (2026-08-17), siehe unten |
 | 13.4 | Tippen und Abgabeschluss | folgt mit Stufe 5 |
 | 13.5 | Wertung (Tendenz, Abstand, exaktes Ergebnis) | **normativ seit Stufe 1** (2026-08-17), siehe unten |
 | 13.6 | Ligen, Mitgliedschaft, Rangliste | folgt mit Stufe 6 |
-| 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | folgt mit Stufe 4 und 6 |
+| 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | die Regeln selbst sind mit 13.3 seit Stufe 4 abgedeckt (dieselben Tatsachen, keine zweite Nummerierung); was daraus für die Rangliste folgt, erst mit Stufe 6 |
 | 13.8 | Datenschutz und Löschung | Löschen selbst normativ seit Stufe 3 (13.2-h); die volle Datenschutzerklärung bleibt Stufe 8 |
 
 Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
 nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
 Postgres, Liga je Saison, keine Playoffs in der ersten Saison, gleichwertiger
 Moduswechsel — gelten bereits als Entscheidung; sie werden hier erst
-normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.2 und 13.5
-ist das seit Stufe 3 bzw. Stufe 1 der Fall, siehe unten; für die übrigen
-Abschnitte bleibt es bei den Verweisen oben.
+normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.2, 13.3 und
+13.5 ist das seit Stufe 3, Stufe 4 bzw. Stufe 1 der Fall, siehe unten; für
+die übrigen Abschnitte bleibt es bei den Verweisen oben.
 
 ### 13.2 Konto und Anmeldung
 
@@ -335,6 +335,36 @@ nicht mehr vorhanden, und alle seine Sitzungen sind ungültig — die
 vollständige Zusage aus 13.8 (auch das Verschwinden aus alle Ranglisten)
 greift erst, sobald es Tipps und Ligen gibt, deren Vorhandensein sie
 voraussetzt.
+
+### 13.3 Spielplan, Anstoßzeiten, Endergebnisse
+
+Der Server hält zu jedem Spiel eines Spieltags: Saison, Spieltagsnummer,
+Heim- und Gastmannschaft, Anstoßzeit und — nach dem Spiel — das
+Endergebnis. Spielplan und Ergebnisse werden regelmäßig aus dem Feed
+nachgeführt (ESPN hinter dem Port `ScheduleFeed`, ADR-037), ohne dass
+jemand etwas anstößt.
+
+Verschiebt der Feed eine Anstoßzeit (Flex-Scheduling), gilt ab dann die
+neue Zeit — unabhängig davon, ob für dieses Spiel schon Ergebnistipps
+abgegeben wurden. Ein Endergebnis kann sich nachträglich korrigieren,
+durch den Feed oder durch einen Handeintrag; der gespeicherte Stand wird
+dann entsprechend aktualisiert. Ein abgesagtes oder nicht gewertetes Spiel
+trägt einen eigenen Status statt eines Endergebnisses.
+
+Fällt der Feed aus oder liefert er einen Spieleintrag unvollständig, bleibt
+der zuletzt bekannte Stand unangetastet stehen — kein Spiel verschwindet,
+kein Ergebnis wird stillschweigend auf 0:0 gesetzt; ein unlesbarer
+einzelner Eintrag überspringt nur sich selbst, nicht den restlichen
+Spieltag. Der Betreiber kann ein Endergebnis von Hand setzen (der Notweg
+aus 13.7, nicht der Regelfall); dieser Handeintrag überschreibt den Feed
+und bleibt bestehen, bis ihn ein neuer Handeintrag ersetzt — ein späterer
+Feed-Abgleich nimmt ihn nicht stillschweigend zurück.
+
+Was das für Ergebnistipps und die Rangliste bedeutet — dass ein bereits
+abgegebener Tipp durch eine Verlegung nicht entwertet wird (13.4), und dass
+eine Korrektur die Rangliste neu bildet (13.6) — wird erst normativ, sobald
+Tippen bzw. Ligen gebaut sind (Stufe 5 bzw. 6); hier normativ ist die
+Datenhaltung und Nachführung des Spielplans selbst.
 
 ### 13.5 Wertung (Tendenz, Abstand, exaktes Ergebnis)
 
@@ -550,9 +580,10 @@ die Marke.
 
 ### 13. Tippspiel — Liga über die Saison
 
-*13.2 (Konto und Anmeldung) und 13.5 (Wertung) sind mit Stufe 3 bzw. Stufe 1
-gebaut; die übrigen Abschnitte kommen mit ihrer jeweiligen Baustufe dazu
-(siehe die Tabelle in Kapitel 13).*
+*13.2 (Konto und Anmeldung), 13.3 (Spielplan und Ergebnisse) und 13.5
+(Wertung) sind mit Stufe 3, Stufe 4 bzw. Stufe 1 gebaut; die übrigen
+Abschnitte kommen mit ihrer jeweiligen Baustufe dazu (siehe die Tabelle in
+Kapitel 13).*
 
 | ID | Regel | Geltung | Marke |
 |---|---|---|---|
@@ -564,6 +595,13 @@ gebaut; die übrigen Abschnitte kommen mit ihrer jeweiligen Baustufe dazu
 | 13.2-f | Eine erfolgreiche Anmeldung (Sitzung) hält 90 Tage. | Tippspiel | backend |
 | 13.2-g | Der Anzeigename eines Kontos umfasst 1 bis 20 Zeichen. | Tippspiel | backend |
 | 13.2-h | Ein Konto kann gelöscht werden; danach sind E-Mail-Adresse und Anzeigename fort, und seine Sitzungen sind ungültig. | Tippspiel | backend |
+| 13.3-a | Der Server hält zu jedem Spiel Saison, Spieltag, Heim- und Gastmannschaft, Anstoßzeit und — nach dem Spiel — das Endergebnis. | Tippspiel | backend |
+| 13.3-b | Spielplan und Ergebnisse werden regelmäßig aus dem Feed nachgeführt, ohne dass jemand etwas anstößt. | Tippspiel | backend |
+| 13.3-c | Verschiebt der Feed eine Anstoßzeit, gilt ab dann die neue Zeit. | Tippspiel | backend |
+| 13.3-d | Fällt der Feed aus, bleibt der zuletzt bekannte Stand unangetastet stehen — kein Spiel verschwindet, kein Ergebnis wird auf 0:0 gesetzt. | Tippspiel | backend |
+| 13.3-e | Ein Endergebnis kann sich nachträglich korrigieren (Feed oder Handeintrag); der gespeicherte Stand wird entsprechend aktualisiert. | Tippspiel | backend |
+| 13.3-f | Ein abgesagtes oder nicht gewertetes Spiel trägt einen eigenen Status statt eines Endergebnisses. | Tippspiel | backend |
+| 13.3-g | Der Betreiber kann ein Endergebnis von Hand setzen; dieser Handeintrag überschreibt den Feed und bleibt bestehen, bis ihn ein neuer Handeintrag ersetzt. | Tippspiel | backend |
 | 13.5-a | Höchste erreichte Stufe zählt, nicht die Summe: exaktes Ergebnis 6 Wertungspunkte, sonst richtige Tendenz und richtiger Abstands-Eimer 5, sonst nur richtige Tendenz 3. | Tippspiel | backend |
 | 13.5-b | Falsche Tendenz bringt 0 Wertungspunkte, unabhängig vom Abstand — der Abstand wird nur bei richtiger Tendenz gewertet. | Tippspiel | backend |
 | 13.5-c | Die Abstands-Eimer sind 0 (Unentschieden) / 1–8 / 9–16 / ab 17. | Tippspiel | backend |

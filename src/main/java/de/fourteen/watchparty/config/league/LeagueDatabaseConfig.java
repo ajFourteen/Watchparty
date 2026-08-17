@@ -4,7 +4,9 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import de.fourteen.watchparty.adapter.out.db.AccountRepositoryJdbc;
+import de.fourteen.watchparty.adapter.out.db.GameRepositoryJdbc;
 import de.fourteen.watchparty.application.league.port.out.AccountRepository;
+import de.fourteen.watchparty.application.league.port.out.GameRepository;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,5 +66,10 @@ public class LeagueDatabaseConfig {
     @Bean
     public AccountRepository accountRepository(NamedParameterJdbcTemplate leagueJdbcTemplate) {
         return new AccountRepositoryJdbc(leagueJdbcTemplate);
+    }
+
+    @Bean
+    public GameRepository gameRepository(NamedParameterJdbcTemplate leagueJdbcTemplate) {
+        return new GameRepositoryJdbc(leagueJdbcTemplate);
     }
 }

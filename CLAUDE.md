@@ -33,10 +33,12 @@ das Tippspiel über eine ganze Saison (`docs/features/005-tippspiel-liga.md`,
 ADR-034 bis ADR-039, Kapitel 13 in `anforderungen.md`). Gebaut wird
 stufenweise; Stufe 0 (Entscheidungen), Stufe 1 (Wertung, `domain/*/league`),
 Stufe 2 (Persistenz: Postgres/Flyway unter `adapter/out/db`, erster Baustein
-`Account`) und Stufe 3 (Konten: Magic Link, Sitzung, Rate Limit, Löschung —
-Mailversand vorerst als Log-Adapter, ein echter Anbieter ist Stufe 8) sind
-fertig, alles Weitere — Spieldaten, Tippen, Ligen, Oberfläche, Betrieb —
-steht noch aus (Tabelle im Feature-Dokument). Die
+`Account`), Stufe 3 (Konten: Magic Link, Sitzung, Rate Limit, Löschung —
+Mailversand vorerst als Log-Adapter, ein echter Anbieter ist Stufe 8) und
+Stufe 4 (Spieldaten: ESPN-Feed hinter `ScheduleFeed`, Nachführ-Job über den
+bestehenden `Scheduler`-Port, Handeintrag als Notweg) sind fertig, alles
+Weitere — Tippen, Ligen, Oberfläche, Betrieb — steht noch aus (Tabelle im
+Feature-Dokument). Die
 Live-Wetten sind davon nicht betroffen: Beide Modi teilen sich die Anwendung
 und sonst nichts.
 
@@ -226,6 +228,19 @@ src/main/java/de/fourteen/watchparty/
                            (Kriterium 5)
     ClientIp.java             Value Object: Absenderadresse fürs Rate Limit
                            je IP (Kriterium 4), eigener Typ statt String
+    SeasonId.java             Value Object: das Startjahr einer Saison
+    TeamId.java, Team.java    Value Objects: Kürzel und Anzeigename einer
+                           Mannschaft, am Spiel mitgeführt statt in einer
+                           eigenen Tabelle normalisiert
+    Matchday.java             Value Object: Saison + Spieltagsnummer,
+                           beschränkt auf die Regular Season (1..18)
+    GameId.java, GameStatus.java   Identität (die ID des Feeds selbst) und
+                           Stand (SCHEDULED/FINAL/CANCELLED) eines Spiels
+    Game.java                 Aggregate Root: ein Spiel eines Spieltags.
+                           Ändert sich über mergeFromFeed (Nachführ-Job,
+                           übernimmt Anstoß immer, Status/Ergebnis nur ohne
+                           Handeintrag) und applyManualResult (Kriterium 14,
+                           überschreibt den Feed dauerhaft)
   domain/service/league/
     Scoring.java            Domain Service: (Ergebnistipp, Endergebnis) ->
                            LeaguePoints, reine Funktion wie Settlement,
@@ -266,6 +281,17 @@ src/main/java/de/fourteen/watchparty/
                            Request-Threads, nicht auf dem Raum-Thread
     port/out/LoginLinkRepository, AccountSessionRepository, MailSender,
              RateLimiter    Weitere Ausgangs-Ports der Anmeldung
+    ScheduleSyncService.java   Setzt ScheduleCommands um: gleicht einen
+                           Spieltag oder eine ganze Saison mit dem Feed ab,
+                           ein ausgefallener Spieltag hält die übrigen
+                           nicht auf
+    ScheduleSyncJob.java       Stößt syncSeason regelmäßig an, über den
+                           geteilten Scheduler-Port (ADR-037) — die eine
+                           bewusste Ausnahme von der Anwendungsring-Trennung
+                           (ArchitectureTest), weil Scheduler ein reiner
+                           Zeitplanungs-Port ohne Live-Wetten-Begriff ist
+    port/in/ScheduleCommands   syncMatchday/syncSeason/setResultManually
+    port/out/GameRepository, ScheduleFeed   Ausgangs-Ports des Spielplans
   adapter/in/ws/
     GameWebSocketHandler   Frames -> Kommandos, ändert selbst nichts
     WebSocketClientGateway Hält die Verbindungen, serialisiert nach JSON
@@ -281,7 +307,13 @@ src/main/java/de/fourteen/watchparty/
                            src/main/resources/db/league/migration
     AccountRepositoryJdbc  AccountRepository über NamedParameterJdbcTemplate,
                            save() ein Upsert über die E-Mail-Adresse
-    LoginLinkRepositoryJdbc, AccountSessionRepositoryJdbc   Dieselbe Bauweise
+    LoginLinkRepositoryJdbc, AccountSessionRepositoryJdbc, GameRepositoryJdbc
+                           Dieselbe Bauweise
+  adapter/out/feed/
+    EspnScheduleFeed        ScheduleFeed über die offenen, unbeauftragten
+                           ESPN-Endpunkte (ADR-037); parse() paketsichtbar,
+                           damit Adapter-Tests eine aufgezeichnete Antwort
+                           einspeisen können statt echtes Netz zu brauchen
   adapter/out/mail/
     LoggingMailSender       MailSender, schreibt den Anmeldelink strukturiert
                            ins Log statt ihn zu versenden — ein echter
@@ -305,6 +337,9 @@ src/main/java/de/fourteen/watchparty/
     LeagueLoginConfig       Verdrahtet Repositories, Rate Limit, Mailversand
                            und LoginService; dieselbe Bedingung wie
                            LeagueDatabaseConfig
+    LeagueScheduleConfig     Verdrahtet EspnScheduleFeed, ScheduleSyncService
+                           und den ScheduleSyncJob; eigene Bedingung
+                           watchparty.league.schedule.season-year
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token je Watchparty-Code
                            (ADR-033), Uhren-Offset

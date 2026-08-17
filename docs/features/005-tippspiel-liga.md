@@ -411,12 +411,21 @@ domain/model/league/
   EmailAddress       @ValueObject — Format, Normalisierung (Kleinschreibung)
   DisplayName        @ValueObject — 1..20 Zeichen (Regel wie PlayerName,
                      eigener Typ: ein Anzeigename ist kein Spielername)
-  LoginLink          @Entity — einmalig, mit Verfall (Kriterium 2)
-  Season/SeasonId    @ValueObject — die Saison als Ganzes
-  Matchday           @ValueObject — Saison + Spieltagsnummer
+  LoginLinkToken, LoginLink   @ValueObject bzw. @Entity — Anmeldelink,
+                     einmalig, verfällt nach 15 Minuten (Kriterium 2)
+  SessionToken, AccountSession   @ValueObject bzw. @Entity — angemeldete
+                     Sitzung, hält 90 Tage (Kriterium 5)
+  ClientIp           @ValueObject — Absenderadresse fürs Rate Limit je IP
+  SeasonId           @ValueObject — das Startjahr einer Saison
+  Matchday           @ValueObject — Saison + Spieltagsnummer, auf die
+                     Regular Season beschränkt (1..18)
+  GameId, GameStatus   @ValueObject — Identität (die ID des Feeds selbst)
+                     und Stand (SCHEDULED/FINAL/CANCELLED) eines Spiels
   Game               @AggregateRoot, @Identity GameId — Spiel mit Anstoß,
-                     Mannschaften, Status, optionalem Endergebnis
-  Team/TeamId        @ValueObject
+                     Mannschaften, Status, optionalem Endergebnis;
+                     mergeFromFeed/applyManualResult als benannte Übergänge
+  Team/TeamId        @ValueObject — am Spiel mitgeführt statt in einer
+                     eigenen Tabelle normalisiert
   GameScore          @ValueObject — zwei nicht-negative Ganzzahlen; trägt
                      tendency() und margin()
   Tendency           @ValueObject — HEIM / GAST / UNENTSCHIEDEN
@@ -524,7 +533,7 @@ voraus, dass die folgende je gebaut wird.
 | 1 | Wertung | `Scoring`, `GameScore`, `ScoreBucket`, `LeaguePoints` samt Szenarien und Property-Tests. **Ohne jede Infrastruktur** — der HIGH-Teil zuerst, solange nichts drumherum ablenkt | S | **erledigt** (2026-08-17): `domain/model/league`, `domain/service/league`, Kapitel 13.5 in `anforderungen.md`, Anhang A 13.5-a bis 13.5-e, Mutation Score 100 % |
 | 2 | Persistenz | Datenbank, Migrationen, Repository-Ports und -Adapter, Testaufbau. Die Stufe, die ADR-004 einordnet | M | **erledigt** (2026-08-17): Postgres-Anbindung (ADR-035) mit Flyway unter `adapter/out/db`, Testaufbau mit Testcontainers, erster Baustein `Account` (nur Datenhaltung — Anmeldefluss folgt in Stufe 3) samt `AccountRepository`/`AccountRepositoryJdbc`, ArchUnit-Trennung jetzt auch auf dem Anwendungsring |
 | 3 | Konten | Magic Link, Mailversand, Sitzung, Rate Limit, Löschung | M | **erledigt** (2026-08-17): `LoginLink`/`LoginLinkToken`, `AccountSession`/`SessionToken`, `ClientIp`, `LoginService` (`LoginCommands`), Rate Limit im Arbeitsspeicher, Mailversand vorerst als Log-Adapter (echter Anbieter ist Stufe 8), Kapitel 13.2 in `anforderungen.md`, Anhang A 13.2-a bis 13.2-h |
-| 4 | Spieldaten | Feed-Anbindung, Nachführ-Job, Handeintrag, Umgang mit Verlegung, Absage, Korrektur | M | offen |
+| 4 | Spieldaten | Feed-Anbindung, Nachführ-Job, Handeintrag, Umgang mit Verlegung, Absage, Korrektur | M | **erledigt** (2026-08-17): `Game`/`GameId`/`GameStatus`, `Matchday`, `Team`/`TeamId`, `SeasonId`, `EspnScheduleFeed` gegen aufgezeichnete Antworten, `ScheduleSyncService`/`ScheduleSyncJob` über den geteilten `Scheduler`-Port, Kapitel 13.3 in `anforderungen.md`, Anhang A 13.3-a bis 13.3-g |
 | 5 | Tippen | Spieltag abrufen, tippen, Abgabeschluss, Verdeckung bis Anstoß | M | offen |
 | 6 | Ligen | Anlegen, Beitreten, Verlassen, Rangliste je Saison und je Spieltag | M | offen |
 | 7 | Oberfläche | Moduswechsel, Anmeldung, Spieltagsansicht, Ranglisten | L | offen |

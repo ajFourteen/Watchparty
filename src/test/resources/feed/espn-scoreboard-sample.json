@@ -1,0 +1,159 @@
+{
+  "leagues": [
+    { "id": "28", "name": "National Football League", "abbreviation": "NFL" }
+  ],
+  "season": { "type": 2, "year": 2026 },
+  "week": { "number": 1 },
+  "events": [
+    {
+      "id": "401872656",
+      "date": "2026-09-10T00:20Z",
+      "name": "Denver Broncos at Kansas City Chiefs",
+      "shortName": "DEN @ KC",
+      "competitions": [
+        {
+          "id": "401872656",
+          "date": "2026-09-10T00:20Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 0,
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled"
+            }
+          },
+          "competitors": [
+            {
+              "id": "12",
+              "homeAway": "home",
+              "team": {
+                "id": "12",
+                "abbreviation": "KC",
+                "displayName": "Kansas City Chiefs"
+              }
+            },
+            {
+              "id": "7",
+              "homeAway": "away",
+              "team": {
+                "id": "7",
+                "abbreviation": "DEN",
+                "displayName": "Denver Broncos"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401872657",
+      "date": "2026-09-11T00:35Z",
+      "name": "Los Angeles Rams at San Francisco 49ers",
+      "shortName": "LAR @ SF",
+      "competitions": [
+        {
+          "id": "401872657",
+          "date": "2026-09-11T00:35Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 4,
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true,
+              "description": "Final"
+            }
+          },
+          "competitors": [
+            {
+              "id": "25",
+              "homeAway": "home",
+              "score": "24",
+              "team": {
+                "id": "25",
+                "abbreviation": "SF",
+                "displayName": "San Francisco 49ers"
+              }
+            },
+            {
+              "id": "14",
+              "homeAway": "away",
+              "score": "17",
+              "team": {
+                "id": "14",
+                "abbreviation": "LAR",
+                "displayName": "Los Angeles Rams"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401872658",
+      "date": "2026-09-13T17:00Z",
+      "name": "Seattle Seahawks at New England Patriots",
+      "shortName": "SEA @ NE",
+      "competitions": [
+        {
+          "id": "401872658",
+          "date": "2026-09-13T17:00Z",
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 0,
+            "type": {
+              "id": "6",
+              "name": "STATUS_POSTPONED",
+              "state": "post",
+              "completed": false,
+              "description": "Postponed"
+            }
+          },
+          "competitors": [
+            {
+              "id": "17",
+              "homeAway": "home",
+              "team": {
+                "id": "17",
+                "abbreviation": "NE",
+                "displayName": "New England Patriots"
+              }
+            },
+            {
+              "id": "26",
+              "homeAway": "away",
+              "team": {
+                "id": "26",
+                "abbreviation": "SEA",
+                "displayName": "Seattle Seahawks"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401872659",
+      "name": "Unvollstaendiger Testeintrag ohne Anstosszeit",
+      "competitions": [
+        {
+          "id": "401872659",
+          "status": {
+            "type": { "name": "STATUS_SCHEDULED", "state": "pre", "completed": false }
+          },
+          "competitors": [
+            { "id": "1", "homeAway": "home", "team": { "id": "1", "abbreviation": "AAA", "displayName": "Team A" } },
+            { "id": "2", "homeAway": "away", "team": { "id": "2", "abbreviation": "BBB", "displayName": "Team B" } }
+          ]
+        }
+      ]
+    }
+  ]
+}
