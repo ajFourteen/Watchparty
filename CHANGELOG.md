@@ -1,3 +1,11 @@
+## [3.7.1](https://github.com/ajFourteen/Watchparty/compare/v3.7.0...v3.7.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* Code-Feld-Beschreibung kürzen ([b13146a](https://github.com/ajFourteen/Watchparty/commit/b13146ac4bd65c68ec1c728c4a400aa5a7775a91))
+* Mitspielen-Knopf erst bei vollstaendigem vierstelligen Code aktiv ([0bc0fda](https://github.com/ajFourteen/Watchparty/commit/0bc0fdaf00e69dfc5f951439ba829f0dcaf3aa19))
+
 # [3.7.0](https://github.com/ajFourteen/Watchparty/compare/v3.6.1...v3.7.0) (2026-08-17)
 
 
