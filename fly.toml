@@ -32,11 +32,12 @@ primary_region = "fra"
   destination = "/data"
 
 [env]
-  # Pfad fuer RoomActor/SnapshotStore (watchparty.snapshot.path). Leer oder
-  # ungesetzt bedeutet Persistenz aus -- das ist zugleich der Notausschalter,
-  # falls der Snapshot am Spielabend Aerger macht: Zeile hier auskommentieren
-  # und neu deployen.
-  WATCHPARTY_SNAPSHOT_PATH = "/data/room.json"
+  # Verzeichnis fuer RoomActor/SnapshotStore (watchparty.snapshot.path),
+  # eine Datei je Watchparty (ADR-033). Leer oder ungesetzt bedeutet
+  # Persistenz aus -- das ist zugleich der Notausschalter, falls der
+  # Snapshot am Spielabend Aerger macht: Zeile hier auskommentieren und neu
+  # deployen.
+  WATCHPARTY_SNAPSHOT_PATH = "/data/rooms"
 
 [http_service]
   internal_port = 8080

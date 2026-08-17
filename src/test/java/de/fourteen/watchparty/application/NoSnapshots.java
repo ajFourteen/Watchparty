@@ -5,7 +5,7 @@ import de.fourteen.watchparty.domain.model.RoomSnapshot;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.List;
 
 /**
  * Das {@link SnapshotRepository} fuer Tests, die mit Persistenz nichts zu tun
@@ -21,7 +21,11 @@ public class NoSnapshots implements SnapshotRepository {
     }
 
     @Override
-    public Optional<RoomSnapshot> load(Instant now, Duration ttl) {
-        return Optional.empty();
+    public List<RoomSnapshot> loadAll(Instant now, Duration ttl) {
+        return List.of();
+    }
+
+    @Override
+    public void delete(String code) {
     }
 }

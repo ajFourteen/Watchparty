@@ -3,6 +3,7 @@ package de.fourteen.watchparty.domain.model;
 import de.fourteen.watchparty.criticality.Criticality;
 
 import org.jmolecules.ddd.annotation.AggregateRoot;
+import org.jmolecules.ddd.annotation.Identity;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
@@ -29,15 +30,17 @@ import java.util.Set;
  * laufen auf dem Raum-Thread und sind deshalb ohne Synchronisierung
  * geschrieben (ADR-009, Invariante 1).
  *
- * Traegt bewusst keine {@code @Identity}: Nach ADR-005 gibt es genau eine
- * Instanz, nie mehr, kein Sharding. Eine Identitaet wuerde eine Unterscheidung
- * vortaeuschen, die es in diesem System nicht gibt.
+ * {@code @Identity} seit ADR-033: Ein Prozess haelt seither mehrere
+ * Watchpartys, jede mit ihrem eigenen {@link RoomCode}.
  */
 @AggregateRoot
 @Criticality(level = Criticality.Level.MEDIUM,
         requirements = { "5-a", "5-b", "5-c", "5-d", "8.6", "8.6-a", "8.6-b", "8.7", "8.7-a",
                 "9-a", "9-b", "9-c", "10-a", "10-b", "10.1", "10.1-a", "10.1-b", "10.1-c" })
 public class Room {
+
+    @Identity
+    private final RoomCode code;
 
     /** Einfuegereihenfolge zaehlt: der erste Joiner wird Host (ADR-016). */
     private final Map<PlayerId, Player> playersById = new LinkedHashMap<>();
@@ -49,6 +52,14 @@ public class Room {
     /** {@code null} in Phase IDLE -- noch keine Runde eroeffnet. */
     private @Nullable Round currentRound;
     private RoundId nextRoundId = RoundId.of(1);
+
+    public Room(RoomCode code) {
+        this.code = code;
+    }
+
+    public RoomCode getCode() {
+        return code;
+    }
 
     // --- Teilnehmer -----------------------------------------------------------
 
@@ -267,7 +278,7 @@ public class Room {
 
         RoomSnapshot.RoundSnapshot roundSnapshot = currentRound == null ? null : toSnapshot(currentRound);
 
-        return new RoomSnapshot(RoomSnapshot.SCHEMA_VERSION, savedAt,
+        return new RoomSnapshot(RoomSnapshot.SCHEMA_VERSION, code.value(), savedAt,
                 hostPlayerId == null ? null : hostPlayerId.value(),
                 nextRoundId.value(), playerSnapshots, roundSnapshot);
     }
@@ -312,7 +323,7 @@ public class Room {
      * Spieler und Punkte bleiben davon unberuehrt.
      */
     public static Room fromSnapshot(RoomSnapshot snapshot) {
-        Room room = new Room();
+        Room room = new Room(RoomCode.of(snapshot.code()));
         for (RoomSnapshot.PlayerSnapshot ps : snapshot.players()) {
             PlayerId id = PlayerId.of(ps.id());
             Token token = Token.of(ps.token());

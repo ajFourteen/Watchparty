@@ -41,7 +41,7 @@ Anhang A ergänzt um:
 
 | ID | Marke | Warum neu |
 |---|---|---|
-| 1-g | backend | Ein Raum entsteht durch einen Beitritt ohne Code; wer ihn erzeugt, ist sein Host. Ohne diese Regel gäbe es keinen Weg zum ersten Raum. |
+| 1-g | backend | Ein eigenes Kommando erzeugt einen Raum; wer ihn erzeugt, ist sein Host. Ohne diese Regel gäbe es keinen Weg zum ersten Raum. |
 | 1-h | backend | Der Code ist vierstellig alphanumerisch und wird unabhängig von Groß-/Kleinschreibung angenommen. Er wird vorgelesen — die Toleranz ist Fachlichkeit, keine Bequemlichkeit. |
 | 1-i | backend | Räume sind vollständig getrennt: Keine Nachricht und kein Kommando eines Raums wirkt auf einen anderen. Die zentrale neue Zusicherung. |
 | 1-j | backend | Ein Raum ohne Aktivität wird nach sechs Stunden verworfen, samt seinem Snapshot. Vorher erledigte das der Neustart. |
@@ -52,15 +52,17 @@ Anhang A ergänzt um:
 
 **Beitritt und Erzeugung (1-g, 1-h)**
 
-1. Ein `JOIN` ohne Code erzeugt einen neuen Raum, ordnet die Sitzung ihm zu
-   und macht den Beitretenden zu seinem Host (ADR-016, unverändert — er ist
-   der erste Teilnehmer).
+1. Ein `CREATE_ROOM` erzeugt einen neuen Raum, ordnet die Sitzung ihm zu und
+   macht den Beitretenden zu seinem Host (ADR-016, unverändert — er ist der
+   erste Teilnehmer). Erzeugen und Beitreten sind seit ADR-040 getrennte
+   Kommandos, keine Ausprägungen desselben `JOIN` mehr — Erzeugen bringt den
+   Raum erst in die Welt, Beitreten setzt ihn voraus.
 2. Ein `JOIN` mit dem Code eines bestehenden Raums tritt diesem Raum bei; der
    Beitretende ist ein gewöhnlicher Teilnehmer.
-3. Ein Code, zu dem kein Raum existiert, führt zu einer Fehlermeldung und
-   erzeugt **keinen** Raum. Ein Tippfehler beim Vorlesen darf niemanden in
-   ein leeres eigenes Wohnzimmer setzen, wo er auf Mitspieler wartet, die
-   längst in einem anderen Raum sitzen.
+3. Ein Code, zu dem kein Raum existiert — oder gar keiner —, führt zu einer
+   Fehlermeldung und erzeugt **keinen** Raum. Ein Tippfehler beim Vorlesen
+   darf niemanden in ein leeres eigenes Wohnzimmer setzen, wo er auf
+   Mitspieler wartet, die längst in einem anderen Raum sitzen.
 4. Der Code ist vierstellig aus Ziffern und Buchstaben. Die Eingabe wird
    unabhängig von Groß-/Kleinschreibung angenommen; angezeigt wird er in
    einer festen Schreibweise (Großbuchstaben).
@@ -128,9 +130,9 @@ Als JGiven-Szenarien auf der Port-zu-Port-Ebene (`teststrategie.md` 2.2)
 entstehen die Kriterien 1 bis 3, 7 bis 14 und 17. Sie brauchen eine
 Erweiterung der Stufen, die heute stillschweigend von einem Raum ausgehen.
 
-**Wer ohne Code beitritt, erzeugt eine Watchparty und ist ihr Host.**
+**Wer eine Watchparty erzeugt, ist ihr Host.**
 Angenommen niemand ist verbunden.
-Wenn Anna ohne Code beitritt.
+Wenn Anna eine Watchparty erzeugt.
 Dann existiert eine Watchparty mit einem vierstelligen Code, Anna ist ihr Host
 und der Code steht in ihrer Begrüßung.
 
@@ -232,10 +234,13 @@ eigenen Szenarien.
 
 ## Umgesetzt in
 
-Domäne: `RoomId` (neues Value Object, `@ValueObject` nach ADR-027), `Room`
-(bekommt das `@Identity`-Feld — heute trägt es ausdrücklich keines, mit
-Begründung im Javadoc, und genau diese Begründung fällt weg), `RoomSnapshot`
-(Code im Dateiformat, `SCHEMA_VERSION` 2).
+Domäne: `RoomCode` (neues Value Object, `@ValueObject` nach ADR-027— der
+Name folgt der Fachsprache aus diesem Dokument und ADR-033, nicht dem
+`*Id`-Muster der übrigen Identitäten, weil er anders als sie für Menschen
+lesbar und vorlesbar sein muss), `Room` (bekommt das `@Identity`-Feld —
+vorher trug es ausdrücklich keines, mit Begründung im Javadoc, und genau
+diese Begründung fällt weg), `RoomSnapshot` (Code im Dateiformat,
+`SCHEMA_VERSION` 2).
 
 Anwendung: `RoomActor` — ein gemeinsamer Loop für alle Räume, statt eines
 Actors je Raum. Damit bleibt Invariante 1 wörtlich wahr (ein Thread, aller
@@ -243,35 +248,67 @@ Zustand) und die Threadzahl wächst nicht mit der Zahl der Watchpartys; dass
 ein Raum die anderen ausbremst, ist durch Invariante 2 ausgeschlossen, denn
 der Loop wartet ohnehin nie. Aus dem einzelnen `Room`-Feld wird eine
 Zuordnung Code → Raum, aus der Sitzungszuordnung eine, die Raum *und* Spieler
-kennt, und der Empfängerkreis einer Zustandsmeldung wird auf die Sitzungen
-des betroffenen Raums eingeschränkt. Dazu das Aufräumen nach 1-j über den
-bestehenden `Scheduler`-Port. `RoomView` bleibt unverändert — sie projiziert
-einen Raum, und das tut sie weiter.
+kennt — eine Sitzung landet darin erst, wenn `CREATE_ROOM` oder `JOIN`
+erfolgreich war, nicht schon beim Verbindungsaufbau, und der Empfängerkreis
+einer Zustandsmeldung wird entsprechend auf die Sitzungen des betroffenen
+Raums eingeschränkt. Dazu ein wiederkehrender Aufräum-Sweep nach 1-j über
+den bestehenden `Scheduler`-Port (Intervall eine Stunde, siehe „Bewusste
+Festlegungen"). `RoomView` bleibt unverändert — sie projiziert einen Raum,
+und das tut sie weiter. Der Eingangs-Port `RoomCommands` bekommt seit
+ADR-040 ein eigenes `createRoom(sessionId, name)` neben `join`, statt eines
+optionalen vierten Arguments auf `join` allein — Erzeugen und Beitreten
+sind fachlich verschiedene Vorgänge, keine Ausprägungen desselben.
 
 Ports: `SnapshotRepository` (`save` mit Code im Snapshot, `loadAll` beim
-Start, `delete` beim Verfall), `ClientGateway` unverändert — er spricht
-schon heute Sitzungs-IDs und muss von Räumen nichts wissen.
+Start, `delete` beim Verfall — beide nicht blockierend wie `save`, siehe
+Invariante 2), `ClientGateway` unverändert — er spricht schon heute
+Sitzungs-IDs und muss von Räumen nichts wissen.
 
-Adapter und Konfiguration: `GameWebSocketHandler` und `WebSocketConfig` (der
-Raumbezug hängt an der Verbindung: `/ws?room=CODE` beim Beitreten, `/ws` ohne
-Parameter beim Erzeugen — eine Sitzung ist damit ab dem Verbindungsaufbau
-höchstens einem Raum zugeordnet, und eine noch nicht zugeordnete Sitzung
-steht in keiner Empfängerliste, was Kriterium 7 ohne Sonderfall erfüllt),
+Adapter und Konfiguration: **Anders als hier ursprünglich vorgesehen hängt
+der Raumbezug nicht an der WebSocket-Verbindung, sondern reist auf dem
+Kommando selbst** — genau wie Name und Token es heute schon tun. Das
+erfüllt jedes Kriterium unverändert (sie sind verhaltens-, nicht
+mechanismusbezogen), erspart aber das Auslesen von Query-Parametern aus dem
+WebSocket-Handshake und passt genau zum Beitrittsformular, das Name und
+Code gemeinsam abschickt. `GameWebSocketHandler` übersetzt seit ADR-040
+zwei Frame-Typen (`CREATE_ROOM`, `JOIN`) statt eines; `WebSocketConfig`
+bleibt unverändert. Eine noch nicht beigetretene Sitzung steht in keiner
+Empfängerliste, was Kriterium 7 weiterhin ohne Sonderfall erfüllt. Dazu
 `SnapshotStore` und `SnapshotConfig` (aus einem Dateipfad wird ein
-Verzeichnis, eine Datei je Raum; der Schreib-Thread bleibt einer),
-`RoomConfig`, eine neue Weiterleitung von `/join/**` auf `index.html` — ohne
-sie läuft der Beitrittslink in einen 404, weil heute nur `/` die Anwendung
-ausliefert. `WATCHPARTY_SNAPSHOT_PATH` in `fly.toml` zeigt künftig auf ein
-Verzeichnis unter `/data`.
+Verzeichnis, eine Datei je Raum; der Schreib-Thread bleibt einer, jetzt mit
+eigener Warteschlange für Löschaufträge), `RoomConfig` unverändert. Neu:
+`config/WebConfig` leitet `/join/{code}` auf `index.html` weiter — ohne sie
+liefe der Beitrittslink in einen 404, weil Spring Boots eingebaute
+Startseite nur `/` selbst bedient. Sie lebt bewusst in `config`, nicht in
+einem eigenen Adapter-Unterpaket: `config` ist von den Ring-Regeln
+ausdrücklich ausgenommen, eine reine Weiterleitungsregel rechtfertigt kein
+neues Paket samt eigenem Ring-Eintrag. `WATCHPARTY_SNAPSHOT_PATH` in
+`fly.toml` zeigt künftig auf ein Verzeichnis unter `/data`.
 
-Frontend: `useRoom.js` (Code aus der URL, Token je Raum in `localStorage`),
-das Beitrittsformular in `App.jsx` mit optionalem Code-Feld und wechselnder
-Schaltfläche, die ständige Anzeige des Codes, Routing für `/join/CODE`.
+Frontend: `useRoom.js` (`CREATE_ROOM` ohne Code, `JOIN` mit Code — dieselbe
+Unterscheidung, die die Schaltfläche schon trifft, ein Token je Raum in
+`localStorage` unter dem jeweiligen Code, der zuletzt betretene Code separat
+gemerkt fürs automatische Wiederverbinden), das Beitrittsformular in
+`App.jsx` mit optionalem Code-Feld und wechselnder Schaltfläche, die
+ständige Anzeige des Codes im Kopfbereich, `/join/CODE` als reines
+Vorbefüllen des Code-Felds beim ersten Rendern (kein Routing-Paket nötig).
 
-Tests: ein neues Szenario-Bündel für die Trennung (der Kern dieses Features),
-Erweiterung der bestehenden Stufen um den Raumbezug, `RestoreTest` um mehrere
-Räume, `VerdeckteTippsStufen` um die fremde Sitzung, `ArchitectureTest` um
-den Stereotyp von `RoomId`.
+Tests: `WatchpartyTrennungStufen`/`WatchpartyTrennungScenarioTest` als neues
+Szenario-Bündel für die Trennung (der Kern dieses Features, Kritikalität
+HIGH), eine Erweiterung von `RaumStufen` (der gemeinsamen Basis aller
+Port-to-Port-Stufen), die bei jedem ersten Beitritt eines Szenarios den vom
+Server vergebenen Code merkt und ihn für alle weiteren Beitritte desselben
+Szenarios mitschickt — dreizehn bestehende Stufen-Klassen bleiben dadurch
+unverändert lauffähig. `WiederanlaufStufen`/`WiederanlaufScenarioTest` um
+mehrere Watchpartys und den Aufräum-Sweep, `VerdeckteTippsStufen` um die
+fremde Sitzung, ein neuer `RoomCodeTest` auf Einheitenebene für Form und
+Faltung. Seit ADR-040 rufen `RaumStufen`/`WiederanlaufStufen` intern
+`RoomActor.createRoom` statt `join` mit leerem Code auf, unsichtbar für ihre
+Unterklassen; auf der Adapter- und API-Ebene bekommen
+`GameWebSocketHandlerTest`, `RundenablaufStufen` und `WireProtocolSmokeTest`
+denselben Wechsel sichtbar, weil sie das rohe Frame selbst verschicken.
+Faltung. `ArchitectureTest` brauchte keine Änderung — `RoomCode` erfüllt die
+bestehende Stereotyp-Regel automatisch, ohne neue Ausnahme.
 
 ## Bewusste Festlegungen
 
@@ -283,7 +320,7 @@ verloren. Der Schlüssel trägt deshalb den Code des Raums. Der Name bleibt
 global, er ist über Räume hinweg derselbe.
 
 **Codes, die sich vorlesen lassen.** Vier Stellen aus Ziffern und Buchstaben
-sind rund 1,7 Millionen Möglichkeiten, was gegen versehentliche Kollisionen
+sind rund 1,2 Millionen Möglichkeiten (33⁴), was gegen versehentliche Kollisionen
 reicht. Das eigentliche Problem beim Vorlesen sind verwechselbare Zeichen.
 Deshalb: Erzeugt werden nur Codes ohne `O`, `I` und `L`; angenommen wird die
 Eingabe trotzdem mit diesen Zeichen und `O` zu `0`, `I` und `L` zu `1`
@@ -301,13 +338,22 @@ Link weitergeben — vertretbar und als Beobachtungspunkt in `probelauf.md`
 besser aufgehoben als als geratenes Limit im Code.
 
 **Der Code ist die einzige Zugangskontrolle.** Wer ihn kennt oder errät, ist
-drin. Kein Kennwort, keine Sperre gegen Durchprobieren. Bei rund 1,7 Millionen
+drin. Kein Kennwort, keine Sperre gegen Durchprobieren. Bei rund 1,2 Millionen
 Codes und einer Handvoll lebender Räume trifft ein Rateversuch praktisch nie;
 systematisches Durchprobieren über die Leitung wäre möglich, und der Gewinn
 daraus wäre, in einem fremden Wohnzimmer mitzuspielen. Host wird ein
 Eindringling dabei nicht, denn Host ist, wer den Raum erzeugt hat (ADR-016) —
 die schädlichen Kommandos bleiben ihm also verwehrt. Das ist als
 Restrisiko angenommen, nicht übersehen.
+
+**Ein stündlicher Sweep statt eines Timers je Watchparty.** Statt für jede
+Watchparty einen eigenen Sechs-Stunden-Timer zu führen, prüft ein einzelner,
+sich selbst neu einplanender Task stündlich alle Watchpartys gegen ihre
+letzte Aktivität. „Nach sechs Stunden" muss dafür nicht sekundengenau sein
+— eine abgelaufene Watchparty verschwindet damit spätestens eine Stunde
+nach ihrem eigentlichen Ablauf, was für einen unbeobachteten Aufräumvorgang
+weit genug reicht. Das hält die Zahl der geplanten Tasks unabhängig von der
+Zahl der Watchpartys bei eins statt bei n.
 
 ## Offene Fragen
 

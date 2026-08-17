@@ -19,11 +19,26 @@ const GUIDE_SEEN_KEY = "watchparty.guideSeen";
  */
 const STANDINGS_OPEN_KEY = "watchparty.standingsOpen";
 
+/**
+ * `/join/CODE` füllt das Code-Feld vor (Anforderung 1-l) — eingegeben
+ * werden muss dann nur noch der Name. Danach wird die URL bereinigt, damit
+ * ein Neuladen der Seite nicht erneut denselben Code vorschlägt.
+ */
+function codeFromJoinLink() {
+  const match = window.location.pathname.match(/^\/join\/([A-Za-z0-9]{4})$/);
+  if (!match) return "";
+  window.history.replaceState(null, "", "/");
+  return match[1].toUpperCase();
+}
+
 function JoinScreen({ onJoin, status }) {
   const [name, setName] = useState(
     () => window.localStorage.getItem("watchparty.name") ?? ""
   );
+  const [code, setCode] = useState(codeFromJoinLink);
   const trimmed = name.trim();
+  const trimmedCode = code.trim();
+  const buttonLabel = trimmedCode ? "Mitspielen" : "Raum erstellen";
 
   return (
     <div className="join">
@@ -37,15 +52,26 @@ function JoinScreen({ onJoin, status }) {
         autoComplete="off"
         onChange={(event) => setName(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === "Enter" && trimmed) onJoin(trimmed);
+          if (event.key === "Enter" && trimmed) onJoin(trimmed, trimmedCode);
+        }}
+      />
+      <input
+        className="field"
+        value={code}
+        maxLength={4}
+        placeholder="Code (optional — leer lässt eine neue Watchparty entstehen)"
+        autoComplete="off"
+        onChange={(event) => setCode(event.target.value.toUpperCase())}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && trimmed) onJoin(trimmed, trimmedCode);
         }}
       />
       <button
         className="button primary"
         disabled={!trimmed || status !== "online"}
-        onClick={() => onJoin(trimmed)}
+        onClick={() => onJoin(trimmed, trimmedCode)}
       >
-        Mitspielen
+        {buttonLabel}
       </button>
     </div>
   );
@@ -450,6 +476,7 @@ export default function App() {
     status,
     state,
     playerId,
+    roomCode,
     error,
     yourPick,
     catalog,
@@ -525,6 +552,8 @@ export default function App() {
 
       <header className="scorebug">
         <span className="brand">Watchparty</span>
+        {/* Ständig sichtbar (Anforderung 1-k), damit er sich am Tisch schnell vorlesen lässt. */}
+        {roomCode && <span className="tag room-code">{roomCode}</span>}
         {isHost && <span className="tag">Host</span>}
         <span className="bug-stat">
           <span className="bug-label">Punkte</span>

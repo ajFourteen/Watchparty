@@ -51,10 +51,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             JsonNode node = mapper.readTree(message.getPayload());
             String type = node.path("type").asText();
             switch (type) {
+                case "CREATE_ROOM" -> room.createRoom(sessionId, node.path("name").asText(null));
                 case "JOIN" -> room.join(
                         sessionId,
                         node.path("name").asText(null),
-                        node.path("token").asText(null));
+                        node.path("token").asText(null),
+                        node.path("roomCode").asText(null));
                 case "OPEN_BET" -> room.openBet(sessionId, node.path("betId").asText(null));
                 case "PLACE_PICK" -> room.placePick(
                         sessionId,

@@ -38,4 +38,18 @@ class VerdeckteTippsScenarioTest
                 .und().einWeitererTippversuchVonAnnaWirdAbgelehntWeilDasFensterZuIst()
                 .und().invariantenGeltenWeiterhin();
     }
+
+    @Test
+    @Anforderung("1-i")
+    void eineFremdeSitzungBekommtWaehrendDesOffenenFenstersGarNichts() {
+        angenommen()
+                .einHostUndAnnaSindImRaum()
+                .und().einSpielerInEinerAnderenWatchpartyIstDabei();
+
+        wenn()
+                .derHostOeffnetEineWette()
+                .und().annaTipptTouchdownMitEinsatz(100);
+
+        dann().dieFremdeSitzungHatSeitdemGarNichtsBekommen();
+    }
 }

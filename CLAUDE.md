@@ -20,8 +20,12 @@ und durchspielbar, dazu der Wettkatalog aus Anforderung 4 mit vier Wetten,
 eine Kurzanleitung im Spiel und der Broadcast-Look. Seit ADR-023 übersteht
 der Raumzustand außerdem einen Neustart innerhalb desselben Abends (Snapshot
 auf Platte, Fly-Volume), mit `RESET` als explizitem Gegenstück für den Host.
-Was fehlt, lässt sich nicht mehr am Schreibtisch klären: Die drei Parameter
-aus Anforderung 3.1 sind implementiert, aber nicht am echten Spielabend
+Seit ADR-033 hält ein Prozess mehrere, voneinander vollständig getrennte
+Watchpartys gleichzeitig, adressiert über einen vierstelligen Code
+(`docs/features/004-mehrere-watchpartys.md`) — innerhalb einer Watchparty
+gilt weiterhin, dass immer nur eine Runde gleichzeitig läuft. Was fehlt,
+lässt sich nicht mehr am Schreibtisch klären: Die drei Parameter aus
+Anforderung 3.1 sind implementiert, aber nicht am echten Spielabend
 kalibriert.
 
 ## Stack
@@ -126,12 +130,13 @@ src/main/java/de/fourteen/watchparty/
   domain/model/            Der Kern. Kein Spring, kein Jackson, kein WebSocket.
 
     -- Aggregate Root (@AggregateRoot, ADR-027) --
-    Room.java              Raumzustand, Host-Rolle, Rundenverwaltung; die
-                           Übergänge closeCurrentRound/annulCurrentRound/
+    Room.java              Eine Watchparty: Raumzustand, Host-Rolle,
+                           Rundenverwaltung; die Übergänge
+                           closeCurrentRound/annulCurrentRound/
                            resolveCurrentRound/applyDeltas/addPick sowie
-                           toSnapshot()/fromSnapshot() (ADR-023). Bewusst
-                           ohne @Identity — nach ADR-005 gibt es genau eine
-                           Instanz, nie mehr
+                           toSnapshot()/fromSnapshot() (ADR-023). Trägt seit
+                           ADR-033 ein @Identity-Feld (RoomCode) — ein
+                           Prozess hält seither mehrere Watchpartys
 
     -- Entities (@Entity, ADR-027; Identität über @Identity-Feld) --
     Round.java             Eine Runde: Wette, closesAt, eingefrorener
@@ -143,6 +148,10 @@ src/main/java/de/fourteen/watchparty/
     -- Value Objects (@ValueObject, ADR-027; Identität über die Werte) --
     PlayerId/RoundId/BetId/OutcomeId   Identitäten, gegeneinander nicht
                            austauschbar — Vertauschen ist ein Kompilierfehler
+    RoomCode.java           Identität einer Watchparty (ADR-033). Anders als
+                           die *Id-Typen für Menschen lesbar und vorlesbar:
+                           vier Zeichen aus 0-9/A-Z ohne O/I/L, dafür fällt
+                           die Eingabe auf die passende Ziffer (parse)
     Token.java             Wiedererkennung ueber Verbindungsabbrüche (ADR-014)
     PlayerName.java        Trägt die Regel "1 bis 20 Zeichen" (statt einer
                            if-Kette im Actor)
@@ -174,10 +183,14 @@ src/main/java/de/fourteen/watchparty/
                            Javadoc
   application/             Orchestrierung. Kennt die Domäne und die Ports,
                            sonst nichts — insbesondere kein Spring.
-    RoomActor.java         Eventloop und Zustandsautomat (ADR-020): OPEN_BET,
-                           PLACE_PICK, CLOSE_BET, RESOLVE, ANNUL, RESET,
-                           Auto-Close, Laden des Snapshots beim Start. Hält
-                           die Zuordnung Sitzung -> Spieler
+    RoomActor.java         Eventloop und Zustandsautomat (ADR-020) für alle
+                           Watchpartys zusammen (ADR-033, ein gemeinsamer
+                           Loop statt eines je Raum): OPEN_BET, PLACE_PICK,
+                           CLOSE_BET, RESOLVE, ANNUL, RESET, Auto-Close,
+                           Laden aller Snapshots beim Start, wiederkehrender
+                           Aufräum-Sweep nach sechs Stunden Inaktivität
+                           (1-j). Hält die Zuordnung Code -> Watchparty und
+                           Sitzung -> Watchparty/Spieler
     RoomView.java          Projektion Raumzustand -> Nachricht, rein lesend;
                            hier hängt Invariante 4 (nur der Zähler in OPEN)
     message/Messages.java  Nachrichten Server -> Client (STATE, YOUR_PICK, ...)
@@ -191,15 +204,20 @@ src/main/java/de/fourteen/watchparty/
     ClientSession.java     Verbindung mit eigener Ausgangs-Queue (ADR-012)
     WebSocketConfig.java   Registriert den Handler auf /ws
   adapter/out/file/
-    SnapshotStore.java     Schreiben/Lesen auf Platte, eigener Thread
+    SnapshotStore.java     Schreiben/Lesen auf Platte, eigener Thread; seit
+                           ADR-033 ein Verzeichnis, eine Datei je Watchparty
   adapter/out/time/
     ScheduledExecutorScheduler
   config/                  Sämtliche Spring-Beans: RoomConfig verdrahtet den
                            Actor, TimeConfig Uhr und Scheduler, SnapshotConfig
-                           den Pfad watchparty.snapshot.path
+                           den Pfad watchparty.snapshot.path, WebConfig
+                           leitet /join/{code} auf index.html weiter (1-l)
 frontend/src/
-  useRoom.js               Verbindung, Reconnect, Token, Uhren-Offset
-  App.jsx                  Phasen-Ansichten: Tippen, Countdown, Aufdeckung,
+  useRoom.js               Verbindung, Reconnect, Token je Watchparty-Code
+                           (ADR-033), Uhren-Offset
+  App.jsx                  Beitrittsformular mit optionalem Code-Feld,
+                           /join/CODE-Vorbefüllung, ständige Code-Anzeige,
+                           Phasen-Ansichten: Tippen, Countdown, Aufdeckung,
                            Ergebnis, Leaderboard
   Guide.jsx                Kurzanleitung als Overlay, baut den Wettkatalog
                            aus den Serverdaten auf

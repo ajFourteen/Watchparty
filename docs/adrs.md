@@ -1253,10 +1253,14 @@ Frage, die zur Debatte stand.
 
 **Entscheidung:** Ein Server-Prozess hält mehrere Watchpartys gleichzeitig,
 jede mit eigenem Zustand, eigenem Snapshot und einem vierstelligen
-alphanumerischen Code als Adresse. Ein Beitritt ohne Code erzeugt eine neue
-Watchparty; ihr Ersteller wird ihr Host (ADR-016, unverändert). Ein Beitritt
-mit Code tritt einer bestehenden bei. Details, Akzeptanzkriterien und
-Szenarien stehen in `docs/features/004-mehrere-watchpartys.md`.
+alphanumerischen Code als Adresse. Wer eine Watchparty erzeugt, wird ihr
+Host (ADR-016, unverändert); wer einer bestehenden beitritt, ein
+gewöhnlicher Teilnehmer. Wie diese Unterscheidung am Eingangs-Port
+ankommt — ursprünglich über einen optionalen Code auf einem einzigen
+`JOIN`, seit ADR-040 über zwei getrennte Kommandos — ist dort beschrieben,
+nicht hier; diese Entscheidung betrifft nur, dass es mehrere Watchpartys
+pro Prozess gibt, nicht das Protokoll dorthin. Details, Akzeptanzkriterien
+und Szenarien stehen in `docs/features/004-mehrere-watchpartys.md`.
 
 Bewusst **nicht** angetastet:
 
@@ -1290,9 +1294,17 @@ Bewusst **nicht** angetastet:
   Grenze einer Watchparty hinweg. Das ist die zentrale, geprüfte Zusicherung
   dieses Umbaus (`docs/features/004-mehrere-watchpartys.md`, Kritikalität
   HIGH), nicht ein Nebeneffekt der Mehrfachhaltung.
-- `RoomId` wird neues Value Object; `Room` bekommt ein `@Identity`-Feld, das
+- `RoomCode` wird neues Value Object — der Name folgt der Fachsprache
+  („Code", nicht „Id"), weil er anders als `PlayerId`/`RoundId` für Menschen
+  lesbar und vorlesbar sein muss; `Room` bekommt ein `@Identity`-Feld, das
   es zuvor mit ausdrücklicher Begründung nicht trug (ADR-025/027 blieben
   unberührt, nur die Instanzzahl von `Room` ändert sich).
+- Der Raumbezug reist entgegen einer ersten Überlegung nicht an der
+  WebSocket-Verbindung, sondern auf dem Kommando selbst — ursprünglich als
+  viertes Feld auf einem gemeinsamen `JOIN`, seit ADR-040 auf einem eigenen
+  `JOIN` neben `CREATE_ROOM`. Beides spart das Auslesen von
+  Query-Parametern aus dem Handshake und passt zum Beitrittsformular, das
+  Name und Code gemeinsam abschickt.
 - Der Snapshot-Pfad aus ADR-023 wird von einer Datei zu einem Verzeichnis,
   eine Datei je Watchparty; die sechs Stunden Verfallszeit gelten fortan je
   Watchparty und räumen zusätzlich leere, inaktive Watchpartys komplett ab
@@ -1581,3 +1593,55 @@ eine aktuellere Rangliste sehen will, fragt erneut.
 - `WebSocketConfig` und `GameWebSocketHandler` bleiben unverändert und ohne
   Wissen vom Tippspiel — der zweite Spielmodus fügt der Anwendung einen
   zweiten Eingang hinzu, statt den bestehenden zu erweitern.
+
+## ADR-040: Getrennte Kommandos `CREATE_ROOM` und `JOIN` statt eines `JOIN` mit optionalem Code
+
+**Status:** Akzeptiert
+
+**Kontext:** ADR-033 hatte das Erzeugen einer Watchparty als Sonderfall von
+`JOIN` modelliert: ein leerer Code erzeugt eine neue, ein bekannter Code
+tritt einer bestehenden bei — angelehnt an das Vorbild aus ADR-014, wo
+Erstbeitritt und Reconnect ebenfalls ein einziges `JOIN` mit optionalem
+Token sind, unterschieden allein durch die Daten. Diese Analogie trägt bei
+Reconnect, weil Erstbeitritt und Reconnect fachlich derselbe Vorgang sind —
+man betritt eine bestehende Watchparty, ob man ihr schon einmal angehörte,
+entscheidet nur, ob der Server einen Spieler wiedererkennt. Sie trägt nicht
+beim Erzeugen: Eine Watchparty existiert dabei noch nicht, sie entsteht
+erst. Erzeugen und Beitreten sind keine zwei Ausprägungen desselben
+Vorgangs, sondern zwei verschiedene — das eine bringt das Aggregat in die
+Welt, das andere setzt es voraus. Sichtbar wurde das am Beitrittsformular:
+Es unterscheidet Erzeugen und Beitreten bereits heute über zwei
+Beschriftungen desselben Knopfs (Kriterium 18), der Client kennt die
+Absicht also in dem Moment, in dem er sie an den Server schickt.
+
+**Entscheidung:** `RoomCommands` bekommt ein eigenes `createRoom(sessionId,
+name)` neben `join(sessionId, name, token, roomCode)`. `createRoom` erzeugt
+immer eine neue Watchparty und macht den Aufrufer zu ihrem Host; einen Code
+nimmt es nicht entgegen, weil keiner sinnvoll wäre — der Server vergibt ihn
+über `RoomCode.random()`. `join` setzt eine bestehende Watchparty voraus:
+ein fehlender, unbekannter oder nicht wohlgeformter Code ist jetzt in jedem
+Fall ein Fehler (vorher nur bei einem tatsächlich befüllten, aber falschen
+Code) — Kriterium 3 gilt damit unverändert, nur nicht mehr über einen
+Nebenpfad in derselben Methode. Das Token bleibt in `join` optional, denn
+Erstbeitritt und Reconnect bleiben, was sie in ADR-014 schon waren: derselbe
+Vorgang.
+
+**Konsequenzen:**
+- `GameWebSocketHandler` übersetzt zwei Frame-Typen (`CREATE_ROOM`, `JOIN`)
+  statt eines; das Beitrittsformular schickt `CREATE_ROOM`, wenn das
+  Code-Feld leer ist, sonst `JOIN` — dieselbe Unterscheidung, die die
+  Beschriftung des Knopfs heute schon trifft, wandert jetzt bis zum
+  Kommando durch.
+- `RoomActor.handleJoin` verliert den Fall „kein Code" komplett;
+  `handleCreateRoom` ist die einzige Stelle, die `freeRoomCode()` aufruft.
+  Die gemeinsame Nachbereitung (Sitzung binden, Host zuweisen, `WELCOME`
+  senden, Zustand rundschicken) bleibt eine gemeinsame Methode, weil sie in
+  beiden Fällen identisch ist — die Trennung betrifft die fachliche
+  Vorbedingung, nicht jeden Codezeilen-Anteil.
+- Die Aussage in ADR-033 „Ein Beitritt ohne Code erzeugt eine neue
+  Watchparty" gilt nicht mehr wörtlich; ADR-033 bleibt als Entscheidung für
+  mehrere Watchpartys pro Prozess bestehen, nur der Weg zur ersten Watchparty
+  ist jetzt hier beschrieben statt dort.
+- `docs/features/004-mehrere-watchpartys.md` wird an den Stellen
+  nachgezogen, die `JOIN ohne Code` als Erzeugungsweg nennen (Kriterium 1,
+  Szenarien, „Umgesetzt in").

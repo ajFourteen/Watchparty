@@ -1,7 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const TOKEN_KEY = "watchparty.token";
 const NAME_KEY = "watchparty.name";
+
+/** Der Code der zuletzt betretenen Watchparty -- wird beim automatischen Reconnect wieder gebraucht. */
+const CURRENT_ROOM_KEY = "watchparty.currentRoom";
+
+/**
+ * Ein Token je Watchparty (ADR-033): Wer zwei Watchpartys im selben Browser
+ * besucht, soll dabei nicht das Token der einen mit dem der anderen
+ * überschreiben -- sonst risse der Reconnect in der zuerst besuchten ab.
+ */
+function tokenKey(roomCode) {
+  return `watchparty.token.${roomCode}`;
+}
+
+function tokenFor(roomCode) {
+  return roomCode ? window.localStorage.getItem(tokenKey(roomCode)) : null;
+}
 
 function socketUrl() {
   const scheme = window.location.protocol === "https:" ? "wss" : "ws";
@@ -20,6 +35,7 @@ export function useRoom() {
   const [status, setStatus] = useState("connecting");
   const [state, setState] = useState(null);
   const [playerId, setPlayerId] = useState(null);
+  const [roomCode, setRoomCode] = useState(null);
   const [error, setError] = useState(null);
   const [yourPick, setYourPick] = useState(null);
 
@@ -54,9 +70,9 @@ export function useRoom() {
 
   const rejoin = useCallback(() => {
     const name = window.localStorage.getItem(NAME_KEY);
-    const token = window.localStorage.getItem(TOKEN_KEY);
+    const currentRoom = window.localStorage.getItem(CURRENT_ROOM_KEY);
     if (name) {
-      send({ type: "JOIN", name, token });
+      send({ type: "JOIN", name, token: tokenFor(currentRoom), roomCode: currentRoom });
     }
   }, [send]);
 
@@ -74,7 +90,9 @@ export function useRoom() {
       socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === "WELCOME") {
-          window.localStorage.setItem(TOKEN_KEY, message.token);
+          window.localStorage.setItem(tokenKey(message.roomCode), message.token);
+          window.localStorage.setItem(CURRENT_ROOM_KEY, message.roomCode);
+          setRoomCode(message.roomCode);
           playerIdRef.current = message.playerId;
           setPlayerId(message.playerId);
           setCatalog(message.catalog ?? []);
@@ -91,10 +109,15 @@ export function useRoom() {
             playerIdRef.current &&
             !message.players.some((player) => player.id === playerIdRef.current)
           ) {
-            window.localStorage.removeItem(TOKEN_KEY);
+            const currentRoom = window.localStorage.getItem(CURRENT_ROOM_KEY);
+            if (currentRoom) {
+              window.localStorage.removeItem(tokenKey(currentRoom));
+            }
+            window.localStorage.removeItem(CURRENT_ROOM_KEY);
             window.localStorage.removeItem(NAME_KEY);
             playerIdRef.current = null;
             setPlayerId(null);
+            setRoomCode(null);
             setState(null);
             setYourPick(null);
             lastRoundIdRef.current = null;
@@ -136,10 +159,24 @@ export function useRoom() {
     };
   }, [rejoin]);
 
+  /**
+   * Erzeugen und Beitreten sind getrennte Kommandos (ADR-040): Ohne Code
+   * entsteht eine neue Watchparty (`CREATE_ROOM`), mit einem Code tritt man
+   * einer bestehenden bei (`JOIN`) -- dieselbe Unterscheidung, die die
+   * Beschriftung des Knopfs im Beitrittsformular schon trifft. Der Client
+   * normalisiert den Code hier nur so weit, dass er ein eigenes, frueher
+   * gespeichertes Token fuer genau diesen Code wiederfindet; die
+   * massgebliche Faltung verwechselbarer Zeichen (O/I/L) macht der Server.
+   */
   const join = useCallback(
-    (name) => {
+    (name, code) => {
       window.localStorage.setItem(NAME_KEY, name);
-      send({ type: "JOIN", name, token: window.localStorage.getItem(TOKEN_KEY) });
+      const normalizedCode = code ? code.trim().toUpperCase() : "";
+      if (normalizedCode) {
+        send({ type: "JOIN", name, token: tokenFor(normalizedCode), roomCode: normalizedCode });
+      } else {
+        send({ type: "CREATE_ROOM", name });
+      }
     },
     [send]
   );
@@ -161,6 +198,7 @@ export function useRoom() {
     status,
     state,
     playerId,
+    roomCode,
     error,
     yourPick,
     catalog,

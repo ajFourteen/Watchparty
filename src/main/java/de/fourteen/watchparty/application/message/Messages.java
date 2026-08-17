@@ -23,8 +23,12 @@ public final class Messages {
      * Abend unveraendert, muesste sonst aber bei jedem Zustandswechsel
      * mitgeschickt werden. Beim Reconnect kommt WELCOME erneut, der Client
      * hat ihn also immer (Invariante 3).
+     *
+     * {@code roomCode} seit ADR-033: der Code der Watchparty, damit der
+     * Client ihn anzeigen und fuer den Reconnect merken kann (Anforderung
+     * 1-g/1-k).
      */
-    public record Welcome(String playerId, String token, List<BetView> catalog, Params params) {
+    public record Welcome(String roomCode, String playerId, String token, List<BetView> catalog, Params params) {
         @JsonProperty("type")
         public String type() {
             return "WELCOME";

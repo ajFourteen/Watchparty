@@ -9,7 +9,9 @@ import org.springframework.context.annotation.Configuration;
 import java.nio.file.Path;
 
 /**
- * Bindet den {@link SnapshotStore} produktiv an einen Pfad (ADR-023).
+ * Bindet den {@link SnapshotStore} produktiv an ein Verzeichnis (ADR-023,
+ * seit ADR-033 ein Verzeichnis statt einer einzelnen Datei -- eine Datei je
+ * Watchparty).
  *
  * {@code watchparty.snapshot.path} leer oder ungesetzt bedeutet Persistenz
  * aus -- das ist die Voreinstellung fuer lokale Entwicklung und Tests und

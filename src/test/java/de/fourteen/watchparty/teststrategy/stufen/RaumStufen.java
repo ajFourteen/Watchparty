@@ -40,12 +40,61 @@ abstract class RaumStufen<SELF extends RaumStufen<?>> extends DeutscheStufe<SELF
     private final Map<String, String> sessionByName = new LinkedHashMap<>();
     private int sessionCounter;
 
+    /**
+     * Der Code der Watchparty dieses Szenarios, vom ersten {@link #beitreten}
+     * beim Server erfragt und danach fuer jeden weiteren Beitritt
+     * mitgeschickt (ADR-033) -- damit landen alle Spieler eines bestehenden
+     * Szenarios wie bisher automatisch im selben, einzigen Raum, ohne dass
+     * jede Unterklasse selbst etwas vom Code-Konzept wissen muss. Szenarien,
+     * die bewusst zwei getrennte Watchpartys brauchen (Trennung, ADR-033),
+     * steuern das ueber eine eigene, tiefer liegende Stufe.
+     */
+    private String raumCode;
+
     protected void beitreten(String name) {
         String sessionId = name + "-" + (++sessionCounter);
         sessionByName.put(name, sessionId);
         actor.connected(sessionId);
-        actor.join(sessionId, name, null);
+        if (raumCode == null) {
+            actor.createRoom(sessionId, name);
+        } else {
+            actor.join(sessionId, name, null, raumCode);
+        }
         actor.awaitIdle();
+        if (raumCode == null) {
+            raumCode = welcomeVon(name).roomCode();
+        }
+    }
+
+    /**
+     * Fuer Szenarien, die den Code selbst bestimmen wollen -- Beitritt zu
+     * einer zweiten Watchparty, ein unbekannter oder klein geschriebener
+     * Code (Anforderung 1-g bis 1-i). Anders als {@link #beitreten} landet
+     * hier nichts automatisch im geteilten {@link #raumCode} des Szenarios.
+     * {@code code == null} erzeugt eine neue Watchparty (ADR-040) -- fuer
+     * Szenarien, die bewusst eine zweite, unabhaengige Watchparty brauchen.
+     */
+    protected String beitretenMitExplizitemCode(String name, String code) {
+        String sessionId = name + "-" + (++sessionCounter);
+        sessionByName.put(name, sessionId);
+        actor.connected(sessionId);
+        if (code == null) {
+            actor.createRoom(sessionId, name);
+        } else {
+            actor.join(sessionId, name, null, code);
+        }
+        actor.awaitIdle();
+        return sessionId;
+    }
+
+    /** Wie {@link #beitretenMitExplizitemCode}, aber mit einem selbst gewaehlten Token statt keinem. */
+    protected String beitretenMitExplizitemCodeUndToken(String name, String code, String token) {
+        String sessionId = name + "-" + (++sessionCounter);
+        sessionByName.put(name, sessionId);
+        actor.connected(sessionId);
+        actor.join(sessionId, name, token, code);
+        actor.awaitIdle();
+        return sessionId;
     }
 
     protected String sessionVon(String name) {
@@ -81,7 +130,7 @@ abstract class RaumStufen<SELF extends RaumStufen<?>> extends DeutscheStufe<SELF
         String token = tokenVon(name);
         sessionByName.put(name, neueSession);
         actor.connected(neueSession);
-        actor.join(neueSession, name, token);
+        actor.join(neueSession, name, token, raumCode);
         actor.awaitIdle();
     }
 

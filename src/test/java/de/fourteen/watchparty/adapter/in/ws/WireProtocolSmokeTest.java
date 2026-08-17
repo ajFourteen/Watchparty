@@ -67,13 +67,14 @@ class WireProtocolSmokeTest {
     @Test
     void waehrendOffenemFensterVerraetKeinFrameEinenEinzelnenTippNurDerHostErfaehrtDenZaehler() throws Exception {
         RecordingClient host = connect();
-        host.send("{\"type\":\"JOIN\",\"name\":\"Host\"}");
+        host.send("{\"type\":\"CREATE_ROOM\",\"name\":\"Host\"}");
         JsonNode hostWelcome = host.awaitType("WELCOME");
         String betId = hostWelcome.path("catalog").get(0).path("id").asText();
         String outcomeId = hostWelcome.path("catalog").get(0).path("outcomes").get(0).path("id").asText();
+        String roomCode = hostWelcome.path("roomCode").asText();
 
         RecordingClient anna = connect();
-        anna.send("{\"type\":\"JOIN\",\"name\":\"Anna\"}");
+        anna.send("{\"type\":\"JOIN\",\"name\":\"Anna\",\"roomCode\":\"" + roomCode + "\"}");
         String annaPlayerId = anna.awaitType("WELCOME").path("playerId").asText();
 
         host.send("{\"type\":\"OPEN_BET\",\"betId\":\"" + betId + "\"}");
@@ -127,7 +128,7 @@ class WireProtocolSmokeTest {
                 "pickCount", "participantCount");
 
         RecordingClient host = connect();
-        host.send("{\"type\":\"JOIN\",\"name\":\"Host\"}");
+        host.send("{\"type\":\"CREATE_ROOM\",\"name\":\"Host\"}");
         JsonNode hostWelcome = host.awaitType("WELCOME");
         String betId = hostWelcome.path("catalog").get(0).path("id").asText();
 
@@ -148,12 +149,13 @@ class WireProtocolSmokeTest {
     @Test
     void reconnectUeberEchtenSocketLiefertDenVollstaendigenZustandZurueck() throws Exception {
         RecordingClient host = connect();
-        host.send("{\"type\":\"JOIN\",\"name\":\"Host\"}");
+        host.send("{\"type\":\"CREATE_ROOM\",\"name\":\"Host\"}");
         JsonNode hostWelcome = host.awaitType("WELCOME");
         String betId = hostWelcome.path("catalog").get(0).path("id").asText();
+        String roomCode = hostWelcome.path("roomCode").asText();
 
         RecordingClient anna = connect();
-        anna.send("{\"type\":\"JOIN\",\"name\":\"Anna\"}");
+        anna.send("{\"type\":\"JOIN\",\"name\":\"Anna\",\"roomCode\":\"" + roomCode + "\"}");
         JsonNode annaWelcome = anna.awaitType("WELCOME");
         String annaPlayerId = annaWelcome.path("playerId").asText();
         String annaToken = annaWelcome.path("token").asText();
@@ -164,7 +166,7 @@ class WireProtocolSmokeTest {
         anna.close();
 
         RecordingClient annaReconnected = connect();
-        annaReconnected.send("{\"type\":\"JOIN\",\"name\":\"Anna\",\"token\":\"" + annaToken + "\"}");
+        annaReconnected.send("{\"type\":\"JOIN\",\"name\":\"Anna\",\"token\":\"" + annaToken + "\",\"roomCode\":\"" + roomCode + "\"}");
         JsonNode reconnectWelcome = annaReconnected.awaitType("WELCOME");
         assertThat(reconnectWelcome.path("playerId").asText()).isEqualTo(annaPlayerId);
 
@@ -186,17 +188,18 @@ class WireProtocolSmokeTest {
     @Test
     void eineAbgebrocheneVerbindungHaeltDenRaumNichtAn() throws Exception {
         RecordingClient host = connect();
-        host.send("{\"type\":\"JOIN\",\"name\":\"Host\"}");
+        host.send("{\"type\":\"CREATE_ROOM\",\"name\":\"Host\"}");
         JsonNode hostWelcome = host.awaitType("WELCOME");
         String betId = hostWelcome.path("catalog").get(0).path("id").asText();
+        String roomCode = hostWelcome.path("roomCode").asText();
 
         RecordingClient stoerenfried = connect();
-        stoerenfried.send("{\"type\":\"JOIN\",\"name\":\"Stoerenfried\"}");
+        stoerenfried.send("{\"type\":\"JOIN\",\"name\":\"Stoerenfried\",\"roomCode\":\"" + roomCode + "\"}");
         stoerenfried.awaitType("WELCOME");
         stoerenfried.close();
 
         RecordingClient anna = connect();
-        anna.send("{\"type\":\"JOIN\",\"name\":\"Anna\"}");
+        anna.send("{\"type\":\"JOIN\",\"name\":\"Anna\",\"roomCode\":\"" + roomCode + "\"}");
         anna.awaitType("WELCOME");
 
         host.send("{\"type\":\"OPEN_BET\",\"betId\":\"" + betId + "\"}");

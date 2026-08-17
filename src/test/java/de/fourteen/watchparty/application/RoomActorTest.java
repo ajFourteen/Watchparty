@@ -30,7 +30,7 @@ class RoomActorTest {
                 gateway);
 
         actor.connected("socket-1");
-        actor.join("socket-1", "Alex", null);
+        actor.createRoom("socket-1", "Alex");
         actor.awaitIdle();
 
         // Ohne awaitIdle koennte diese Pruefung vor der Verarbeitung laufen.

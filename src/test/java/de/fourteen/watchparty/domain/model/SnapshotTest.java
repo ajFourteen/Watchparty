@@ -27,6 +27,10 @@ class SnapshotTest {
         return PlayerId.of(id);
     }
 
+    private static Room neuerRaum() {
+        return new Room(RoomCode.of("AB3D"));
+    }
+
     private static Player addPlayer(Room room, String id, String token, String name) {
         return room.addPlayer(PlayerId.of(id), Token.of(token), PlayerName.of(name), Params.DEFAULT.startingPoints());
     }
@@ -37,7 +41,7 @@ class SnapshotTest {
 
     @Test
     void idleRaumUeberstehtDenRundweg() {
-        Room room = new Room();
+        Room room = neuerRaum();
         addPlayer(room, "p1", "t1", "Anna");
         Player p2 = addPlayer(room, "p2", "t2", "Bo");
         p2.setConnected(false);
@@ -46,6 +50,7 @@ class SnapshotTest {
         Room restored = Room.fromSnapshot(room.toSnapshot(NOW.toEpochMilli()));
 
         assertThat(restored.getPhase()).isEqualTo(Phase.IDLE);
+        assertThat(restored.getCode()).isEqualTo(room.getCode());
         assertThat(restored.getHostPlayerId()).isEqualTo(room.getHostPlayerId());
         assertThat(restored.players()).hasSize(2);
 
@@ -61,7 +66,7 @@ class SnapshotTest {
 
     @Test
     void offeneRundeUeberstehtDenRundwegMitTippsUndTeilnehmerkreis() {
-        Room room = new Room();
+        Room room = neuerRaum();
         addPlayer(room, "host", "th", "Host");
         addPlayer(room, "p2", "t2", "Bo");
         Round round = room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
@@ -81,7 +86,7 @@ class SnapshotTest {
 
     @Test
     void geschlosseneRundeUeberstehtDenRundwegMitAllenAufgedecktenTipps() {
-        Room room = new Room();
+        Room room = neuerRaum();
         addPlayer(room, "host", "th", "Host");
         addPlayer(room, "p2", "t2", "Bo");
         Round round = room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
@@ -97,7 +102,7 @@ class SnapshotTest {
 
     @Test
     void aufgeloesteRundeUeberstehtDenRundwegMitErgebnisPoolUndDeltas() {
-        Room room = new Room();
+        Room room = neuerRaum();
         addPlayer(room, "host", "th", "Host");
         addPlayer(room, "p2", "t2", "Bo");
         Round round = room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
@@ -123,7 +128,7 @@ class SnapshotTest {
 
     @Test
     void vomHostAnnullierteRundeUeberstehtDenRundweg() {
-        Room room = new Room();
+        Room room = neuerRaum();
         addPlayer(room, "host", "th", "Host");
         Round round = room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
         round.setPhase(Phase.CLOSED);
@@ -143,7 +148,7 @@ class SnapshotTest {
 
     @Test
     void unbekannteWetteImSnapshotVerwirftDieRundeAberNichtDieSpieler() {
-        Room room = new Room();
+        Room room = neuerRaum();
         addPlayer(room, "host", "th", "Host");
         addPlayer(room, "p2", "t2", "Bo");
         room.openBet(Bets.DRIVE_OUTCOME, NOW, Duration.ofSeconds(15));
@@ -152,7 +157,7 @@ class SnapshotTest {
                 original.round().id(), "es-gibt-diese-wette-nicht-mehr", original.round().closesAt(),
                 original.round().phase(), original.round().participants(), List.of(),
                 null, null, 0, false, false);
-        RoomSnapshot manipuliert = new RoomSnapshot(original.schemaVersion(), original.savedAt(),
+        RoomSnapshot manipuliert = new RoomSnapshot(original.schemaVersion(), original.code(), original.savedAt(),
                 original.hostPlayerId(), original.nextRoundId(), original.players(), roundMitUnbekannterWette);
 
         Room restored = Room.fromSnapshot(manipuliert);

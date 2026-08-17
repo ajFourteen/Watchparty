@@ -124,7 +124,7 @@ class WiederanlaufScenarioTest
 
         wenn()
                 .derServerWirdNeuGestartet()
-                .und().trittBei("Neu");
+                .und().trittBeiInEinerNeuenWatchparty("Neu");
 
         dann().istJetztDerEinzigeSpielerUndHost("Neu");
     }
@@ -139,7 +139,7 @@ class WiederanlaufScenarioTest
         wenn()
                 .dieDateiWirdDurchKaputtesJsonErsetzt()
                 .und().derRaumStartet()
-                .und().trittBei("Neu");
+                .und().trittBeiInEinerNeuenWatchparty("Neu");
 
         dann().istJetztDerEinzigeSpielerUndHost("Neu");
     }
@@ -153,5 +153,54 @@ class WiederanlaufScenarioTest
                 .und().trittBei("Host");
 
         dann().keineDateiWirdGeschrieben();
+    }
+
+    /** Kriterium 17 aus Feature 004: mehrere Watchpartys überstehen gemeinsam einen Neustart, jede mit ihrem eigenen Stand. */
+    @Test
+    @Anforderung("1-c")
+    void einNeustartBringtMehrereWatchpartysZurueck(@TempDir Path verzeichnis) {
+        angenommen()
+                .dasSnapshotVerzeichnisIst(verzeichnis)
+                .und().derRaumStartet()
+                .und().trittBei("Host")
+                .und().trittBei("Anna")
+                .und().derHostOeffnetEineWette()
+                .und().derHostTipptTouchdownMitEinsatz(234)
+                .und().derHostSchliesstUndLoestZugunstenVonTouchdownAuf()
+                .und().derHostOeffnetEineWette()
+                .und().trittEinerZweitenWatchpartyBei("HostB");
+
+        wenn()
+                .derServerWirdNeuGestartet()
+                .und().trittMitDemAltenTokenWiederBei("Host")
+                .und().trittMitDemAltenTokenWiederBeiDerZweitenWatchparty("HostB");
+
+        dann()
+                .derRaumEnthaeltGenauSpieler("Host", 2)
+                .und().hatPunkte("Host", 1025)
+                .und().dasFensterIstFuer("Host", "OPEN")
+                .und().derRaumEnthaeltGenauSpieler("HostB", 1)
+                .und().hatPunkte("HostB", 1000)
+                .und().dasFensterIstFuer("HostB", "IDLE");
+    }
+
+    /** Kriterium 14/15 aus Feature 004: eine Watchparty ohne Aktivität verschwindet nach sechs Stunden, samt Snapshot. */
+    @Test
+    @Anforderung("1-j")
+    void watchpartyOhneAktivitaetVerschwindetNachSechsStunden(@TempDir Path verzeichnis) {
+        angenommen()
+                .dasSnapshotVerzeichnisIst(verzeichnis)
+                .und().derRaumStartet()
+                .und().trittBei("HostA")
+                .und().dieZeitVergeht(3600)
+                .und().trittEinerZweitenWatchpartyBei("HostB")
+                .und().dieErsteWatchpartyIstUeberDieVerfallszeitHinausInaktivDieZweiteNicht("HostB");
+
+        wenn().wirdAufgeraeumt();
+
+        dann()
+                .dieWatchpartyExistiertNichtMehr()
+                .und().derSnapshotDerErstenWatchpartyIstVonDerPlatteVerschwunden()
+                .und().dieZweiteWatchpartyExistiertWeiterhin();
     }
 }

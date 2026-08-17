@@ -24,9 +24,31 @@ public class VerdeckteTippsStufen extends RaumStufen<VerdeckteTippsStufen> {
             "players", "hostPlayerId", "phase", "roundId", "bet", "closesAt", "serverNow",
             "pickCount", "participantCount");
 
+    private int nachrichtenstandFremde;
+
     public VerdeckteTippsStufen einHostUndAnnaSindImRaum() {
         beitreten("Host");
         beitreten("Anna");
+        return this;
+    }
+
+    /**
+     * Anforderung 1-i, Kriterium 13: die Verdeckung gilt nicht nur innerhalb
+     * einer Watchparty, sondern erst recht ueber ihre Grenze hinweg -- eine
+     * fremde Sitzung darf noch weniger erfahren als eine eigene. Eine eigene,
+     * neue Watchparty (nicht der geteilte {@code raumCode} des Szenarios).
+     */
+    public VerdeckteTippsStufen einSpielerInEinerAnderenWatchpartyIstDabei() {
+        beitretenMitExplizitemCode("Fremde", null);
+        nachrichtenstandFremde = gateway.messagesFor(sessionVon("Fremde")).size();
+        return this;
+    }
+
+    public VerdeckteTippsStufen dieFremdeSitzungHatSeitdemGarNichtsBekommen() {
+        assertThat(gateway.messagesFor(sessionVon("Fremde")))
+                .as("eine Sitzung in einer anderen Watchparty bekommt waehrend eines fremden offenen "
+                        + "Fensters gar nichts (Anforderung 1-i)")
+                .hasSize(nachrichtenstandFremde);
         return this;
     }
 

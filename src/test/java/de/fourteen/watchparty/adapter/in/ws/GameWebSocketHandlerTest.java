@@ -69,7 +69,20 @@ class GameWebSocketHandlerTest {
         assertThat(session.isOpen()).isTrue();
         assertThat(commands.aufrufe()).containsExactly(
                 "connected(" + session.getId() + ")",
-                "join(" + session.getId() + ", null, null)");
+                "join(" + session.getId() + ", null, null, null)");
+    }
+
+    @Test
+    void createRoomOhneNameFeldWirdMitNullWeitergereichtStattZuWerfen() {
+        FakeWebSocketSession session = new FakeWebSocketSession();
+        handler.afterConnectionEstablished(session);
+
+        handler.handleTextMessage(session, new TextMessage("{\"type\":\"CREATE_ROOM\"}"));
+
+        assertThat(session.isOpen()).isTrue();
+        assertThat(commands.aufrufe()).containsExactly(
+                "connected(" + session.getId() + ")",
+                "createRoom(" + session.getId() + ", null)");
     }
 
     @Test
@@ -103,8 +116,13 @@ class GameWebSocketHandlerTest {
         }
 
         @Override
-        public void join(String sessionId, String name, String token) {
-            aufrufe.add("join(" + sessionId + ", " + name + ", " + token + ")");
+        public void createRoom(String sessionId, String name) {
+            aufrufe.add("createRoom(" + sessionId + ", " + name + ")");
+        }
+
+        @Override
+        public void join(String sessionId, String name, String token, String roomCode) {
+            aufrufe.add("join(" + sessionId + ", " + name + ", " + token + ", " + roomCode + ")");
         }
 
         @Override

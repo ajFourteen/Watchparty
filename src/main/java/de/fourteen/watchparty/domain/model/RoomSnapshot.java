@@ -25,16 +25,18 @@ import java.util.Map;
  * ändert oder die {@code schemaVersion} steigen müsste. Die Umrechnung
  * steht in {@code Room.toSnapshot}/{@code fromSnapshot}.
  */
-@Criticality(level = Criticality.Level.MEDIUM, requirements = { "1-d" })
+@Criticality(level = Criticality.Level.MEDIUM, requirements = { "1-d", "1-j" })
 public record RoomSnapshot(
         int schemaVersion,
+        String code,
         long savedAt,
         @Nullable String hostPlayerId,
         long nextRoundId,
         List<PlayerSnapshot> players,
         @Nullable RoundSnapshot round) {
 
-    public static final int SCHEMA_VERSION = 1;
+    /** Seit Version 2 (ADR-033) traegt der Snapshot den Code seiner Watchparty. */
+    public static final int SCHEMA_VERSION = 2;
 
     public record PlayerSnapshot(String id, String token, String name, int points, int missedRounds) {
     }

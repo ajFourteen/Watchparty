@@ -12,63 +12,65 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Schreibt und liest den {@link RoomSnapshot} auf die Platte (ADR-023).
+ * Schreibt und liest die {@link RoomSnapshot}s aller Watchpartys auf die
+ * Platte (ADR-023), eine Datei je Watchparty in einem gemeinsamen
+ * Verzeichnis (ADR-033).
  *
  * Analog zur Ausgangs-Queue in {@code ClientSession} (ADR-012): Der
  * Raum-Thread darf nicht auf Dateisystem-I/O warten (Invariante 2), deshalb
- * läuft das Schreiben auf einem eigenen Thread. {@link #save} wird
- * ausschließlich vom Raum-Thread aufgerufen — genau ein Erzeuger. Nur damit
- * ist die Verdichtung über eine einfache {@link ArrayBlockingQueue} der
- * Kapazität 1 korrekt: {@code poll()} gefolgt von {@code offer()} kann sich
- * nicht mit einem zweiten Erzeuger verschränken.
+ * laufen Schreiben <em>und</em> Loeschen auf einem eigenen Thread. {@link
+ * #save}/{@link #delete} reihen nur ein — je Code gewinnt der jeweils
+ * letzte Aufruf, ein Save loescht einen zuvor angestossenen Delete fuer
+ * denselben Code aus der Warteschlange und umgekehrt, es kann sich also
+ * keine Queue je Watchparty aufstauen.
  *
- * {@code path == null} bedeutet Persistenz aus — die Voreinstellung für
- * lokale Entwicklung und Tests, siehe {@code watchparty.snapshot.path}.
+ * {@code directory == null} bedeutet Persistenz aus — die Voreinstellung
+ * fuer lokale Entwicklung und Tests, siehe {@code watchparty.snapshot.path}.
  */
-@Criticality(level = Criticality.Level.MEDIUM, requirements = { "1-d" })
+@Criticality(level = Criticality.Level.MEDIUM, requirements = { "1-d", "1-j" })
 public class SnapshotStore implements SnapshotRepository {
 
     private static final Logger log = LoggerFactory.getLogger(SnapshotStore.class);
 
-    private final @Nullable Path path;
+    private final @Nullable Path directory;
     private final ObjectMapper mapper = new ObjectMapper();
     private final @Nullable Thread writer;
 
-    /**
-     * Der wartende Stand mit einer laufenden Nummer. Die Nummer traegt die
-     * Warteschlange und nicht ein Feld daneben, weil {@link #awaitWritten()}
-     * sonst nicht sicher sagen koennte, <em>welcher</em> Stand geschrieben
-     * wurde: Zwischen dem Leeren der Queue und dem Ablesen einer separaten
-     * Nummer koennte laengst der naechste Stand eingereiht worden sein.
-     */
-    private record Queued(long seq, RoomSnapshot snapshot) {
-    }
+    private final Map<String, RoomSnapshot> pendingSaves = new ConcurrentHashMap<>();
+    private final Set<String> pendingDeletes = ConcurrentHashMap.newKeySet();
 
-    private final ArrayBlockingQueue<Queued> pending = new ArrayBlockingQueue<>(1);
+    /** Weckt den Schreib-Thread, sobald etwas ansteht. Traegt keine Daten, nur das Signal. */
+    private final Semaphore wecker = new Semaphore(0);
 
-    /** Zuletzt eingereiht bzw. zuletzt fertig geschrieben — siehe {@link #awaitWritten()}. */
+    /** Zuletzt eingereiht bzw. zuletzt fertig verarbeitet — siehe {@link #awaitWritten()}. */
     private final AtomicLong queuedSeq = new AtomicLong();
     private final AtomicLong writtenSeq = new AtomicLong();
 
-    public SnapshotStore(@Nullable Path path) {
-        this.path = path;
-        if (path != null) {
-            // path wird hier als Wert in die Closure aufgenommen, nicht ueber
-            // das Feld gelesen: Der Schreib-Thread braucht keinen weiteren
-            // Nullpruefung -- er existiert ja nur, weil path beim Start
-            // bereits nicht-null war.
-            writer = new Thread(() -> runLoop(path), "snapshot-writer");
+    public SnapshotStore(@Nullable Path directory) {
+        this.directory = directory;
+        if (directory != null) {
+            // directory wird hier als Wert in die Closure aufgenommen, nicht
+            // ueber das Feld gelesen: Der Schreib-Thread braucht keinen
+            // weiteren Nullpruefung -- er existiert ja nur, weil directory
+            // beim Start bereits nicht-null war.
+            writer = new Thread(() -> runLoop(directory), "snapshot-writer");
             writer.setDaemon(true);
             writer.start();
         } else {
@@ -77,115 +79,163 @@ public class SnapshotStore implements SnapshotRepository {
     }
 
     public boolean isEnabled() {
-        return path != null;
+        return directory != null;
     }
 
     /**
-     * Reiht einen Snapshot zum Schreiben ein. Wer während eines laufenden
-     * Schreibvorgangs nachlegt, überschreibt den wartenden — es kann sich
-     * keine Queue aufstauen, egal wie oft der Raumzustand sich ändert.
+     * Reiht einen Snapshot zum Schreiben ein. Wer waehrend eines laufenden
+     * Schreibvorgangs fuer denselben Code nachlegt, ueberschreibt den
+     * wartenden Stand — es kann sich keine Queue je Watchparty aufstauen,
+     * egal wie oft ihr Zustand sich aendert.
      */
     @Override
     public void save(RoomSnapshot snapshot) {
         if (!isEnabled()) {
             return;
         }
-        Queued queued = new Queued(queuedSeq.incrementAndGet(), snapshot);
-        pending.poll();
-        pending.offer(queued);
+        pendingDeletes.remove(snapshot.code());
+        pendingSaves.put(snapshot.code(), snapshot);
+        queuedSeq.incrementAndGet();
+        wecker.release();
     }
 
-    private void runLoop(Path path) {
+    /** Reiht das Loeschen einer Watchparty-Datei ein (Anforderung 1-j). Nicht blockierend. */
+    @Override
+    public void delete(String code) {
+        if (!isEnabled()) {
+            return;
+        }
+        pendingSaves.remove(code);
+        pendingDeletes.add(code);
+        queuedSeq.incrementAndGet();
+        wecker.release();
+    }
+
+    private void runLoop(Path directory) {
+        try {
+            Files.createDirectories(directory);
+        } catch (IOException e) {
+            log.error("Snapshot-Verzeichnis {} konnte nicht angelegt werden", directory, e);
+        }
         while (!Thread.currentThread().isInterrupted()) {
-            Queued queued;
             try {
-                queued = pending.take();
+                wecker.acquire();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
             }
-            // Waehrend des Schreibens kann schon der naechste Stand anstehen
-            // -- dann gleich den neuesten nehmen statt zwei Schreibvorgaenge
-            // hintereinander zu machen.
-            Queued latest = queued;
-            Queued next;
-            while ((next = pending.poll()) != null) {
-                latest = next;
+            // Seq VOR dem Verarbeiten gelesen: Alles bis zu diesem Stand war
+            // beim Aufruf von save()/delete() bereits eingereiht und wird
+            // unten mitverarbeitet -- eine sichere untere Schranke fuer das,
+            // was writtenSeq gleich behaupten darf (siehe awaitWritten()).
+            long seqAmStart = queuedSeq.get();
+            for (String code : List.copyOf(pendingDeletes)) {
+                pendingDeletes.remove(code);
+                deleteFromDisk(directory, code);
             }
-            writeToDisk(path, latest.snapshot());
-            writtenSeq.set(latest.seq());
+            for (String code : List.copyOf(pendingSaves.keySet())) {
+                RoomSnapshot snapshot = pendingSaves.remove(code);
+                if (snapshot != null) {
+                    writeToDisk(directory, code, snapshot);
+                }
+            }
+            writtenSeq.set(seqAmStart);
         }
     }
 
-    private void writeToDisk(Path path, RoomSnapshot snapshot) {
+    private void writeToDisk(Path directory, String code, RoomSnapshot snapshot) {
         try {
-            Path tmp = path.resolveSibling(path.getFileName() + ".tmp");
+            Path target = directory.resolve(code + ".json");
+            Path tmp = directory.resolve(code + ".json.tmp");
             byte[] json = mapper.writeValueAsBytes(snapshot);
             try (FileChannel channel = FileChannel.open(tmp,
                     StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 channel.write(ByteBuffer.wrap(json));
                 channel.force(true);
             }
-            Files.move(tmp, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             // Ein volles Dateisystem oder ein fehlendes Volume darf das
             // Spiel nicht anhalten (Invariante 2) -- geloggt und geschluckt.
-            log.error("Snapshot konnte nicht geschrieben werden", e);
+            log.error("Snapshot fuer Watchparty {} konnte nicht geschrieben werden", code, e);
+        }
+    }
+
+    private void deleteFromDisk(Path directory, String code) {
+        try {
+            Files.deleteIfExists(directory.resolve(code + ".json"));
+        } catch (IOException e) {
+            log.error("Snapshot fuer Watchparty {} konnte nicht geloescht werden", code, e);
         }
     }
 
     /**
-     * Liest den zuletzt geschriebenen Snapshot. {@code Optional.empty()} in
-     * jedem Zweifelsfall (Datei fehlt, ist kaputt, oder ist aelter als
-     * {@code ttl}) -- ein Snapshot, der den Start zerschiesst, ist der
-     * schlimmste denkbare Ausgang.
+     * Liest alle zuletzt geschriebenen, noch nicht abgelaufenen Staende aus
+     * dem Verzeichnis. Ein einzelner kaputter oder abgelaufener Stand faellt
+     * einfach weg, statt den Start der uebrigen Watchpartys zu gefaehrden —
+     * ein Snapshot, der den Start zerschiesst, ist der schlimmste denkbare
+     * Ausgang.
      */
     @Override
-    public Optional<RoomSnapshot> load(Instant now, Duration ttl) {
-        Path currentPath = path;
-        if (currentPath == null || !Files.exists(currentPath)) {
-            return Optional.empty();
+    public List<RoomSnapshot> loadAll(Instant now, Duration ttl) {
+        Path currentDirectory = directory;
+        if (currentDirectory == null || !Files.isDirectory(currentDirectory)) {
+            return List.of();
         }
+        List<RoomSnapshot> result = new ArrayList<>();
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(currentDirectory, "*.json")) {
+            for (Path file : files) {
+                readIfValid(file, now, ttl).ifPresent(result::add);
+            }
+        } catch (IOException e) {
+            log.error("Snapshot-Verzeichnis {} konnte nicht gelesen werden", currentDirectory, e);
+        }
+        return result;
+    }
+
+    private Optional<RoomSnapshot> readIfValid(Path file, Instant now, Duration ttl) {
         RoomSnapshot snapshot;
         try {
-            snapshot = mapper.readValue(currentPath.toFile(), RoomSnapshot.class);
+            snapshot = mapper.readValue(file.toFile(), RoomSnapshot.class);
         } catch (IOException e) {
-            log.error("Snapshot ist beschaedigt, Raum startet leer", e);
-            quarantine(currentPath);
+            log.error("Snapshot {} ist beschaedigt, wird uebersprungen", file.getFileName(), e);
+            quarantine(file);
             return Optional.empty();
         }
         if (snapshot.schemaVersion() != RoomSnapshot.SCHEMA_VERSION) {
-            log.error("Snapshot mit unbekannter schemaVersion {} ignoriert, Raum startet leer",
-                    snapshot.schemaVersion());
-            quarantine(currentPath);
+            log.error("Snapshot {} mit unbekannter schemaVersion {} ignoriert",
+                    file.getFileName(), snapshot.schemaVersion());
+            quarantine(file);
             return Optional.empty();
         }
         if (Instant.ofEpochMilli(snapshot.savedAt()).plus(ttl).isBefore(now)) {
-            log.info("Snapshot ist aelter als die Verfallszeit, Raum startet leer");
+            log.info("Snapshot {} ist aelter als die Verfallszeit, wird uebersprungen", file.getFileName());
             return Optional.empty();
         }
         return Optional.of(snapshot);
     }
 
-    private void quarantine(Path path) {
+    private void quarantine(Path file) {
         try {
-            Files.move(path, path.resolveSibling(path.getFileName() + ".bad"), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(file, file.resolveSibling(file.getFileName() + ".bad"), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            log.error("Kaputter Snapshot konnte nicht beiseite gelegt werden", e);
+            log.error("Kaputter Snapshot {} konnte nicht beiseite gelegt werden", file.getFileName(), e);
         }
     }
 
     /**
      * Nur fuer Tests: blockiert (durch Polling), bis der Schreib-Thread alle
-     * bis hierhin per {@link #save} eingereihten Snapshots geschrieben hat.
+     * bis hierhin per {@link #save}/{@link #delete} eingereihten Auftraege
+     * abgearbeitet hat.
      *
-     * Wartet auf die laufende Nummer, nicht auf "Queue leer und gerade nichts
-     * am Schreiben". Die fruehere Fassung hatte dort eine Luecke: Der
-     * Schreib-Thread nimmt den Stand mit {@code take()} aus der Queue, bevor
-     * er sich als beschaeftigt markiert. Genau dazwischen sah diese Methode
-     * eine leere Queue und einen unbeschaeftigten Schreiber und kehrte zurueck
-     * -- der Test las dann den vorherigen Stand von der Platte und schlug
-     * sporadisch fehl. Mit der Nummer gibt es dieses Fenster nicht mehr.
+     * Wartet auf die laufende Nummer, nicht auf "Warteschlangen leer und
+     * gerade nichts in Arbeit". Eine fruehere Fassung hatte dort eine
+     * Luecke: Der Schreib-Thread nimmt einen Auftrag aus der Warteschlange,
+     * bevor er sich als beschaeftigt markiert. Genau dazwischen saehe diese
+     * Methode leere Warteschlangen und einen unbeschaeftigten Schreiber und
+     * kehrte zurueck -- ein Test laese dann den vorherigen Stand von der
+     * Platte und schluege sporadisch fehl. Mit der Nummer gibt es dieses
+     * Fenster nicht mehr.
      */
     public void awaitWritten() {
         if (!isEnabled()) {

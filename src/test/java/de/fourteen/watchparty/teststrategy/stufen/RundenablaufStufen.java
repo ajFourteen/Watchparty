@@ -32,6 +32,14 @@ public class RundenablaufStufen extends DeutscheStufe<RundenablaufStufen> {
     private int port;
     private String outcomeId;
 
+    /**
+     * Der Code der Watchparty dieses Szenarios, vom ersten Beitritt beim
+     * Server erfragt und danach fuer jeden weiteren Beitritt mitgeschickt
+     * (ADR-033) -- damit landen Host und Anna wie bisher automatisch im
+     * selben, einzigen Raum.
+     */
+    private String raumCode;
+
     public RundenablaufStufen einServerLaeuftAufPort(int port) {
         this.port = port;
         return this;
@@ -86,8 +94,15 @@ public class RundenablaufStufen extends DeutscheStufe<RundenablaufStufen> {
                 .get(5, TimeUnit.SECONDS);
         recording.session = session;
         clientsByName.put(name, recording);
-        recording.send("{\"type\":\"JOIN\",\"name\":\"" + name + "\"}");
-        recording.awaitType("WELCOME");
+        if (raumCode == null) {
+            recording.send("{\"type\":\"CREATE_ROOM\",\"name\":\"" + name + "\"}");
+        } else {
+            recording.send("{\"type\":\"JOIN\",\"name\":\"" + name + "\",\"roomCode\":\"" + raumCode + "\"}");
+        }
+        JsonNode welcome = recording.awaitType("WELCOME");
+        if (raumCode == null) {
+            raumCode = welcome.path("roomCode").asText();
+        }
     }
 
     private RecordingClient clientVon(String name) {

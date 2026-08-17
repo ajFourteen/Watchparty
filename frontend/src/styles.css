@@ -663,6 +663,15 @@ body {
   color: var(--ink-dim);
 }
 
+/* Der Code der eigenen Watchparty (Anforderung 1-k) -- monospace, damit er
+   sich am Tisch als Code statt als Wort liest. */
+.tag.room-code {
+  background: var(--line);
+  color: var(--ink);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.15em;
+}
+
 /* --- Rahmen um die Anwendung -------------------------------------------- */
 
 .frame {

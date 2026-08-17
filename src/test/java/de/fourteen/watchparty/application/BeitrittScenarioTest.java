@@ -34,4 +34,39 @@ class BeitrittScenarioTest extends DeutschesSzenario<BeitrittStufen, BeitrittStu
 
         dann().kenntDieDreiParameterAusDemWelcome("Anna");
     }
+
+    @Test
+    @Anforderung({ "1-g" })
+    void werOhneCodeBeitrittErzeugtEineWatchpartyUndIstIhrHost() {
+        wenn().einSpielerTrittNurMitEinemNamenBei("Anna");
+
+        dann().istHostDerNeuenWatchparty("Anna");
+    }
+
+    @Test
+    @Anforderung({ "1-g" })
+    void werDenCodeKenntKommtInDieselbeWatchparty() {
+        wenn().einSpielerTrittNurMitEinemNamenBei("Anna")
+                .und().einSpielerTrittNurMitEinemNamenBei("Ben");
+
+        dann().istInDerselbenWatchpartyWie("Anna", "Ben");
+    }
+
+    @Test
+    @Anforderung({ "1-h", "1-i" })
+    void einUnbekannterCodeIstEinFehlerKeinNeuerRaum() {
+        wenn().einSpielerTrittNurMitEinemNamenBei("Anna")
+                .und().trittMitUnbekanntemCodeBei("Ben", "ZZZZ");
+
+        dann().bekommtEinenFehlerWeilDerCodeUnbekanntIst("Ben");
+    }
+
+    @Test
+    @Anforderung({ "1-h" })
+    void grossUndKleinschreibungDesCodesIstGleichgueltig() {
+        wenn().einSpielerTrittNurMitEinemNamenBei("Anna")
+                .und().trittMitDemCodeVonInKleinschreibungBei("Ben", "Anna");
+
+        dann().istInDerselbenWatchpartyWie("Anna", "Ben");
+    }
 }

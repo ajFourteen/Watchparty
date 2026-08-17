@@ -30,7 +30,7 @@ class WebSocketClientGatewayTest {
         FakeWebSocketSession session = new FakeWebSocketSession();
         gateway.register(session);
 
-        gateway.send(session.getId(), new Messages.Welcome("p1", "t1", List.of(
+        gateway.send(session.getId(), new Messages.Welcome("AB3D", "p1", "t1", List.of(
                 new Messages.BetView("drive-outcome", "Frage", "Anmerkung",
                         List.of(new Messages.OutcomeView("touchdown", "Touchdown", null)))),
                 new Messages.Params(1000, 25, 25)));
@@ -44,6 +44,7 @@ class WebSocketClientGatewayTest {
 
         JsonNode welcome = mapper.readTree(frames.get(0));
         assertThat(welcome.path("type").asText()).isEqualTo("WELCOME");
+        assertThat(welcome.path("roomCode").asText()).isEqualTo("AB3D");
         assertThat(welcome.path("catalog").get(0).path("outcomes").get(0).path("id").asText()).isEqualTo("touchdown");
         // 3.1-c: der Client bekommt die Parameter genannt, statt sie zu kennen
         assertThat(welcome.path("params").path("minStake").asInt()).isEqualTo(25);

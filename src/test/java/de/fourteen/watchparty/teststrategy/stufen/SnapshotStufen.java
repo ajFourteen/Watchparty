@@ -8,7 +8,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,14 +22,15 @@ public class SnapshotStufen extends DeutscheStufe<SnapshotStufen> {
 
     private static final Instant JETZT = Instant.parse("2026-08-01T20:00:00Z");
 
-    private Path pfad;
+    private Path verzeichnis;
     private RoomSnapshot geschrieben;
-    private Optional<RoomSnapshot> geladen = Optional.empty();
+    private List<RoomSnapshot> geladen = List.of();
 
     public SnapshotStufen einRaumSnapshotMitEinerAbgeschlossenenRunde(Path verzeichnis) {
-        pfad = verzeichnis.resolve("room.json");
+        this.verzeichnis = verzeichnis;
         geschrieben = new RoomSnapshot(
                 RoomSnapshot.SCHEMA_VERSION,
+                "AB3D",
                 JETZT.toEpochMilli(),
                 "host",
                 3,
@@ -53,17 +53,17 @@ public class SnapshotStufen extends DeutscheStufe<SnapshotStufen> {
     }
 
     public SnapshotStufen wirdGeschriebenUndWiederGeladen() {
-        SnapshotStore writer = new SnapshotStore(pfad);
+        SnapshotStore writer = new SnapshotStore(verzeichnis);
         writer.save(geschrieben);
         writer.awaitWritten();
 
-        SnapshotStore reader = new SnapshotStore(pfad);
-        geladen = reader.load(JETZT, Duration.ofHours(6));
+        SnapshotStore reader = new SnapshotStore(verzeichnis);
+        geladen = reader.loadAll(JETZT, Duration.ofHours(6));
         return this;
     }
 
     public SnapshotStufen ergibtWiederExaktDenselbenStand() {
-        assertThat(geladen).contains(geschrieben);
+        assertThat(geladen).containsExactly(geschrieben);
         return this;
     }
 }
