@@ -65,7 +65,7 @@ function JoinScreen({ onJoin, status }) {
         className="field"
         value={code}
         maxLength={4}
-        placeholder="Code (optional — leer lässt eine neue Watchparty entstehen)"
+        placeholder="Code (optional)"
         autoComplete="off"
         onChange={(event) => setCode(event.target.value.toUpperCase())}
         onKeyDown={(event) => {
