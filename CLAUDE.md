@@ -31,10 +31,12 @@ kalibriert.
 Seit dem 2026-08-17 entsteht daneben ein zweiter, unabhängiger Spielmodus,
 das Tippspiel über eine ganze Saison (`docs/features/005-tippspiel-liga.md`,
 ADR-034 bis ADR-039, Kapitel 13 in `anforderungen.md`). Gebaut wird
-stufenweise; Stufe 0 (Entscheidungen), Stufe 1 (Wertung, `domain/*/league`)
-und Stufe 2 (Persistenz: Postgres/Flyway unter `adapter/out/db`, erster
-Baustein `Account`) sind fertig, alles Weitere — Konten, Spieldaten, Tippen,
-Ligen, Oberfläche, Betrieb — steht noch aus (Tabelle im Feature-Dokument). Die
+stufenweise; Stufe 0 (Entscheidungen), Stufe 1 (Wertung, `domain/*/league`),
+Stufe 2 (Persistenz: Postgres/Flyway unter `adapter/out/db`, erster Baustein
+`Account`) und Stufe 3 (Konten: Magic Link, Sitzung, Rate Limit, Löschung —
+Mailversand vorerst als Log-Adapter, ein echter Anbieter ist Stufe 8) sind
+fertig, alles Weitere — Spieldaten, Tippen, Ligen, Oberfläche, Betrieb —
+steht noch aus (Tabelle im Feature-Dokument). Die
 Live-Wetten sind davon nicht betroffen: Beide Modi teilen sich die Anwendung
 und sonst nichts.
 
@@ -204,16 +206,26 @@ src/main/java/de/fourteen/watchparty/
                            (13.5-c) samt Grenzen als of(margin)
     LeaguePoints.java       Value Object: Wertungspunkte — ausdrücklich nicht
                            Points, eine Liga zahlt keinen Pool aus
-    Account.java            Aggregate Root: das Konto eines Tippers. Bislang
-                           nur Datenhaltung (register/of) — Anmeldefluss und
-                           Löschen kommen mit Stufe 3
-    AccountId.java           Identität, UUID-basiert (anders als RoomCode
-                           nie vorzulesen)
+    Account.java            Aggregate Root: das Konto eines Tippers.
+                           Identität ist die E-Mail-Adresse selbst — kein
+                           separates AccountId (so wenig personenbezogene
+                           Daten wie möglich)
     EmailAddress.java        Value Object: Format, Normalisierung
                            (Kleinschreibung)
     DisplayName.java         Value Object — 1..20 Zeichen wie PlayerName,
                            aber eigenständig implementiert: ein Anzeigename
                            ist kein Spielername
+    LoginLinkToken.java       Value Object: 32 Zufallsbyte, Base64url
+    LoginLink.java           Entity: ein angeforderter Anmeldelink,
+                           einmalig, verfällt nach 15 Minuten (Kriterium 2),
+                           trägt den beim Anfordern mitgeschickten
+                           DisplayName für ein noch nicht existierendes Konto
+    SessionToken.java         Value Object: dieselbe Bauweise wie
+                           LoginLinkToken, aber ein eigener Typ
+    AccountSession.java       Entity: eine angemeldete Sitzung, hält 90 Tage
+                           (Kriterium 5)
+    ClientIp.java             Value Object: Absenderadresse fürs Rate Limit
+                           je IP (Kriterium 4), eigener Typ statt String
   domain/service/league/
     Scoring.java            Domain Service: (Ergebnistipp, Endergebnis) ->
                            LeaguePoints, reine Funktion wie Settlement,
@@ -240,10 +252,20 @@ src/main/java/de/fourteen/watchparty/
                            keinen Typ aus application/RoomActor & Co. und
                            umgekehrt (ArchitectureTest, seit Stufe 2 auch auf
                            dem Anwendungsring geprüft, nicht nur der Domäne)
+    LoginService.java        Setzt LoginCommands um (ADR-036), analog zu
+                           RoomActor für RoomCommands — auf Request-Threads
+                           statt auf dem Raum-Thread, kein Zustand außer den
+                           injizierten Ports
+    port/in/LoginCommands    requestLink/redeemLink/deleteAccount. Kein
+                           Rückgabewert bei requestLink: macht eine
+                           unterscheidbare Antwort strukturell unmöglich
+                           (Kriterium 3/4)
     port/out/AccountRepository   Ausgangs-Port für Konten, ohne die
                            Nicht-blockierend-Zusicherung von
                            SnapshotRepository: die Liga läuft auf
                            Request-Threads, nicht auf dem Raum-Thread
+    port/out/LoginLinkRepository, AccountSessionRepository, MailSender,
+             RateLimiter    Weitere Ausgangs-Ports der Anmeldung
   adapter/in/ws/
     GameWebSocketHandler   Frames -> Kommandos, ändert selbst nichts
     WebSocketClientGateway Hält die Verbindungen, serialisiert nach JSON
@@ -258,7 +280,18 @@ src/main/java/de/fourteen/watchparty/
                            Flyway-Migrationen unter
                            src/main/resources/db/league/migration
     AccountRepositoryJdbc  AccountRepository über NamedParameterJdbcTemplate,
-                           save() ein Upsert über die Konto-ID
+                           save() ein Upsert über die E-Mail-Adresse
+    LoginLinkRepositoryJdbc, AccountSessionRepositoryJdbc   Dieselbe Bauweise
+  adapter/out/mail/
+    LoggingMailSender       MailSender, schreibt den Anmeldelink strukturiert
+                           ins Log statt ihn zu versenden — ein echter
+                           Anbieter (Konto, Zugangsdaten, Vertrag) ist eine
+                           betriebliche Entscheidung für Stufe 8
+  adapter/out/ratelimit/
+    InMemoryRateLimiter     Gleitendes Zeitfenster im Arbeitsspeicher
+                           (Kriterium 4), synchronized statt Concurrent-
+                           Collection — anders als die Domäne (Invariante 1)
+                           kennt dieser Ring Nebenläufigkeits-Werkzeuge
   config/                  Sämtliche Spring-Beans: RoomConfig verdrahtet den
                            Actor, TimeConfig Uhr und Scheduler, SnapshotConfig
                            den Pfad watchparty.snapshot.path, WebConfig
@@ -269,6 +302,9 @@ src/main/java/de/fourteen/watchparty/
                            (in WatchpartyApplication ausgeschaltet); fehlt
                            watchparty.league.db.url, entsteht kein Bean —
                            die Live-Wetten starten trotzdem (Kriterium 37)
+    LeagueLoginConfig       Verdrahtet Repositories, Rate Limit, Mailversand
+                           und LoginService; dieselbe Bedingung wie
+                           LeagueDatabaseConfig
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token je Watchparty-Code
                            (ADR-033), Uhren-Offset

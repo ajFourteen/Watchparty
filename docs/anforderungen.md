@@ -290,21 +290,51 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 | Abschnitt | Inhalt | Stand |
 |---|---|---|
 | 13.1 | Zweck, Abgrenzung zu den Live-Wetten, Parallelbetrieb | folgt mit Stufe 2 (erst mit einer zweiten Datenhaltung ist „Parallelbetrieb" prüfbar) |
-| 13.2 | Konto und Anmeldung | folgt mit Stufe 3 |
+| 13.2 | Konto und Anmeldung | **normativ seit Stufe 3** (2026-08-17), siehe unten |
 | 13.3 | Spielplan, Anstoßzeiten, Endergebnisse | folgt mit Stufe 4 |
 | 13.4 | Tippen und Abgabeschluss | folgt mit Stufe 5 |
 | 13.5 | Wertung (Tendenz, Abstand, exaktes Ergebnis) | **normativ seit Stufe 1** (2026-08-17), siehe unten |
 | 13.6 | Ligen, Mitgliedschaft, Rangliste | folgt mit Stufe 6 |
 | 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | folgt mit Stufe 4 und 6 |
-| 13.8 | Datenschutz und Löschung | folgt mit Stufe 3 |
+| 13.8 | Datenschutz und Löschung | Löschen selbst normativ seit Stufe 3 (13.2-h); die volle Datenschutzerklärung bleibt Stufe 8 |
 
 Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
 nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
 Postgres, Liga je Saison, keine Playoffs in der ersten Saison, gleichwertiger
 Moduswechsel — gelten bereits als Entscheidung; sie werden hier erst
-normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.5 ist das
-seit Stufe 1 der Fall, siehe unten; für die übrigen Abschnitte bleibt es bei
-den Verweisen oben.
+normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.2 und 13.5
+ist das seit Stufe 3 bzw. Stufe 1 der Fall, siehe unten; für die übrigen
+Abschnitte bleibt es bei den Verweisen oben.
+
+### 13.2 Konto und Anmeldung
+
+Wiedererkennung über ein Benutzerkonto, angemeldet per Magic Link statt
+Kennwort (ADR-036): Wer seine E-Mail-Adresse und einen Anzeigenamen angibt,
+bekommt eine Nachricht mit einem Link, der ihn anmeldet — unabhängig davon,
+ob zur Adresse bereits ein Konto existiert. Existiert noch keines, entsteht
+es beim ersten erfolgreichen Einlösen mit dem beim Anfordern mitgeschickten
+Namen; existiert bereits eines, bleibt dessen Name unverändert, auch wenn ein
+neuer mitgeschickt wurde — ein bestehender Name ändert sich nur über ein
+eigenes, ausdrückliches Kommando, nie beiläufig durchs Anmelden.
+
+Ein Anmeldelink ist genau einmal verwendbar und verfällt 15 Minuten nach der
+Ausstellung; ein verbrauchter oder verfallener Link meldet niemanden mehr an.
+Die Antwort auf eine Anmeldeanfrage ist immer dieselbe, unabhängig davon, ob
+die Adresse bekannt ist — sonst wäre das Formular eine Auskunft darüber, wer
+mitspielt. Anmeldeanfragen sind zusätzlich je E-Mail-Adresse und je
+Absender-IP in ihrer Häufigkeit begrenzt; greift das Limit, wird kein Link
+mehr ausgestellt, ohne dass die Antwort das nach außen zeigt.
+
+Eine erfolgreiche Anmeldung hält 90 Tage, damit niemand sich innerhalb einer
+Saison wöchentlich neu anmelden muss. Der Anzeigename eines Kontos umfasst 1
+bis 20 Zeichen (dieselbe Regel wie der Spielername der Live-Wetten, aber ein
+eigener, unabhängiger Begriff — ein Anzeigename ist kein Spielername).
+
+Ein Konto kann gelöscht werden. Danach sind E-Mail-Adresse und Anzeigename
+nicht mehr vorhanden, und alle seine Sitzungen sind ungültig — die
+vollständige Zusage aus 13.8 (auch das Verschwinden aus alle Ranglisten)
+greift erst, sobald es Tipps und Ligen gibt, deren Vorhandensein sie
+voraussetzt.
 
 ### 13.5 Wertung (Tendenz, Abstand, exaktes Ergebnis)
 
@@ -520,11 +550,20 @@ die Marke.
 
 ### 13. Tippspiel — Liga über die Saison
 
-*Nur 13.5 (Wertung) ist mit Stufe 1 gebaut; die übrigen Abschnitte kommen
-mit ihrer jeweiligen Baustufe dazu (siehe die Tabelle in Kapitel 13).*
+*13.2 (Konto und Anmeldung) und 13.5 (Wertung) sind mit Stufe 3 bzw. Stufe 1
+gebaut; die übrigen Abschnitte kommen mit ihrer jeweiligen Baustufe dazu
+(siehe die Tabelle in Kapitel 13).*
 
 | ID | Regel | Geltung | Marke |
 |---|---|---|---|
+| 13.2-a | Eine Anfrage mit E-Mail-Adresse und Anzeigename löst den Versand eines Anmeldelinks aus, unabhängig davon, ob zur Adresse schon ein Konto existiert. | Tippspiel | backend |
+| 13.2-b | Existiert zur Adresse noch kein Konto, entsteht es beim Einlösen mit dem beim Anfordern mitgeschickten Namen; existiert bereits eines, bleibt sein Name unverändert. | Tippspiel | backend |
+| 13.2-c | Ein Anmeldelink ist genau einmal verwendbar und verfällt 15 Minuten nach der Ausstellung. | Tippspiel | backend |
+| 13.2-d | Die Antwort auf eine Anmeldeanfrage ist immer dieselbe, unabhängig davon, ob die Adresse bekannt ist. | Tippspiel | backend |
+| 13.2-e | Anmeldeanfragen sind je E-Mail-Adresse und je Absender-IP in ihrer Häufigkeit begrenzt; greift das Limit, wird kein Link mehr ausgestellt. | Tippspiel | backend |
+| 13.2-f | Eine erfolgreiche Anmeldung (Sitzung) hält 90 Tage. | Tippspiel | backend |
+| 13.2-g | Der Anzeigename eines Kontos umfasst 1 bis 20 Zeichen. | Tippspiel | backend |
+| 13.2-h | Ein Konto kann gelöscht werden; danach sind E-Mail-Adresse und Anzeigename fort, und seine Sitzungen sind ungültig. | Tippspiel | backend |
 | 13.5-a | Höchste erreichte Stufe zählt, nicht die Summe: exaktes Ergebnis 6 Wertungspunkte, sonst richtige Tendenz und richtiger Abstands-Eimer 5, sonst nur richtige Tendenz 3. | Tippspiel | backend |
 | 13.5-b | Falsche Tendenz bringt 0 Wertungspunkte, unabhängig vom Abstand — der Abstand wird nur bei richtiger Tendenz gewertet. | Tippspiel | backend |
 | 13.5-c | Die Abstands-Eimer sind 0 (Unentschieden) / 1–8 / 9–16 / ab 17. | Tippspiel | backend |

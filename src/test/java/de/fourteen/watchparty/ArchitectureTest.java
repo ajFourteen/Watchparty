@@ -70,6 +70,8 @@ class ArchitectureTest {
             .adapter("file", "de.fourteen.watchparty.adapter.out.file..")
             .adapter("time", "de.fourteen.watchparty.adapter.out.time..")
             .adapter("db", "de.fourteen.watchparty.adapter.out.db..")
+            .adapter("mail", "de.fourteen.watchparty.adapter.out.mail..")
+            .adapter("ratelimit", "de.fourteen.watchparty.adapter.out.ratelimit..")
             .ignoreDependency(
                     resideIn("de.fourteen.watchparty.config"),
                     alwaysTrue())

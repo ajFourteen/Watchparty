@@ -1,5 +1,5 @@
 /**
- * Ausgangs-Ports des Tippspiels: Persistenz, Mailversand, Rate Limit.
+ * Eingangs-Ports des Tippspiels: was von aussen ausgeloest werden kann.
  *
  * Eigener Zweig neben {@code de.fourteen.watchparty.application.port}
  * (ADR-034): Ein Ligatyp importiert keinen Live-Wetten-Typ und umgekehrt
@@ -16,7 +16,7 @@
  */
 @NullMarked
 @ApplicationServiceRing
-package de.fourteen.watchparty.application.league.port.out;
+package de.fourteen.watchparty.application.league.port.in;
 
 import org.jspecify.annotations.NullMarked;
 import org.jmolecules.architecture.onion.classical.ApplicationServiceRing;

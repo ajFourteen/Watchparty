@@ -1,9 +1,10 @@
--- Konto eines Tippers (Feature 005, Stufe 2/3). E-Mail eindeutig und bereits
--- kleingeschrieben gespeichert -- die Normalisierung traegt EmailAddress
+-- Konto eines Tippers (Feature 005, Stufe 2/3). Die E-Mail-Adresse ist die
+-- Identitaet -- kein separates AccountId, ein Feld und ein Index weniger
+-- (so wenig personenbezogene Daten wie moeglich). Bereits kleingeschrieben
+-- gespeichert -- die Normalisierung traegt EmailAddress
 -- (domain/model/league), nicht diese Migration.
 CREATE TABLE account (
-    id UUID PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE,
+    email TEXT PRIMARY KEY,
     display_name TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL
 );

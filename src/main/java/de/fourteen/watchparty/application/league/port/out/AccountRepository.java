@@ -1,7 +1,6 @@
 package de.fourteen.watchparty.application.league.port.out;
 
 import de.fourteen.watchparty.domain.model.league.Account;
-import de.fourteen.watchparty.domain.model.league.AccountId;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
 
 import java.util.Optional;
@@ -20,7 +19,8 @@ public interface AccountRepository {
 
     void save(Account account);
 
-    Optional<Account> findById(AccountId id);
-
     Optional<Account> findByEmail(EmailAddress email);
+
+    /** Kriterium 7: Adresse und Anzeigename sind danach fort. */
+    void delete(EmailAddress email);
 }

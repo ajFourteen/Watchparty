@@ -344,8 +344,13 @@ Dann ist sie darüber nicht angemeldet.
 Angenommen zu `anna@example.org` existiert ein Konto und zu
 `niemand@example.org` nicht.
 Wenn für beide Adressen ein Link angefordert wird.
-Dann sind beide Antworten nicht unterscheidbar, und nur an die erste Adresse
-geht eine Nachricht.
+Dann sind beide Antworten nicht unterscheidbar, und an beide Adressen geht
+eine Nachricht — sonst könnte über den Empfang selbst erschlossen werden,
+welche Adresse ein Konto hat, und niemand könnte sich über eine neue Adresse
+je zum ersten Mal anmelden (Kriterium 1). *Korrigiert am 2026-08-17: Der
+ursprüngliche Text dieses Szenarios sagte "nur an die erste Adresse", im
+Widerspruch zu Kriterium 1 — auf Rückfrage entschieden zugunsten von
+Kriterium 1 (Selbstregistrierung bleibt der einzige Weg zu einem Konto).*
 
 **Die Spielmodi rühren einander nicht an.**
 Angenommen Anna ist Host einer Watchparty mit abgerechneten Runden und
@@ -398,7 +403,11 @@ einander **nicht** importieren.
 
 ```
 domain/model/league/
-  Account            @AggregateRoot, @Identity AccountId — Konto des Tippers
+  Account            @AggregateRoot, @Identity EmailAddress — Konto des
+                     Tippers. Kein separates AccountId: die E-Mail-Adresse
+                     selbst ist die Identitaet, ein Feld und ein Index
+                     weniger (so wenig personenbezogene Daten wie moeglich,
+                     Rueckfrage vom 2026-08-17)
   EmailAddress       @ValueObject — Format, Normalisierung (Kleinschreibung)
   DisplayName        @ValueObject — 1..20 Zeichen (Regel wie PlayerName,
                      eigener Typ: ein Anzeigename ist kein Spielername)
@@ -514,7 +523,7 @@ voraus, dass die folgende je gebaut wird.
 | 0 | Entscheidungen | ADR-034 bis ADR-039 stehen, Kapitel 13 ist in `anforderungen.md`. Die fachlichen und technischen Fragen selbst sind seit dem 2026-08-17 beantwortet (siehe „Bewusste Festlegungen") | S | **erledigt** |
 | 1 | Wertung | `Scoring`, `GameScore`, `ScoreBucket`, `LeaguePoints` samt Szenarien und Property-Tests. **Ohne jede Infrastruktur** — der HIGH-Teil zuerst, solange nichts drumherum ablenkt | S | **erledigt** (2026-08-17): `domain/model/league`, `domain/service/league`, Kapitel 13.5 in `anforderungen.md`, Anhang A 13.5-a bis 13.5-e, Mutation Score 100 % |
 | 2 | Persistenz | Datenbank, Migrationen, Repository-Ports und -Adapter, Testaufbau. Die Stufe, die ADR-004 einordnet | M | **erledigt** (2026-08-17): Postgres-Anbindung (ADR-035) mit Flyway unter `adapter/out/db`, Testaufbau mit Testcontainers, erster Baustein `Account` (nur Datenhaltung — Anmeldefluss folgt in Stufe 3) samt `AccountRepository`/`AccountRepositoryJdbc`, ArchUnit-Trennung jetzt auch auf dem Anwendungsring |
-| 3 | Konten | Magic Link, Mailversand, Sitzung, Rate Limit, Löschung | M | offen |
+| 3 | Konten | Magic Link, Mailversand, Sitzung, Rate Limit, Löschung | M | **erledigt** (2026-08-17): `LoginLink`/`LoginLinkToken`, `AccountSession`/`SessionToken`, `ClientIp`, `LoginService` (`LoginCommands`), Rate Limit im Arbeitsspeicher, Mailversand vorerst als Log-Adapter (echter Anbieter ist Stufe 8), Kapitel 13.2 in `anforderungen.md`, Anhang A 13.2-a bis 13.2-h |
 | 4 | Spieldaten | Feed-Anbindung, Nachführ-Job, Handeintrag, Umgang mit Verlegung, Absage, Korrektur | M | offen |
 | 5 | Tippen | Spieltag abrufen, tippen, Abgabeschluss, Verdeckung bis Anstoß | M | offen |
 | 6 | Ligen | Anlegen, Beitreten, Verlassen, Rangliste je Saison und je Spieltag | M | offen |

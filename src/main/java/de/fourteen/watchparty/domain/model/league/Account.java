@@ -8,40 +8,34 @@ import java.time.Instant;
 /**
  * Das Konto eines Tippers. Aggregate Root.
  *
- * Traegt in dieser Stufe nur Datenhaltung: {@link #register} legt ein neues
- * Konto an, {@link #of} baut ein bestehendes aus der Datenbank wieder auf.
- * Der Anmeldefluss (Magic Link, ADR-036) und das Loeschen (Kriterium 7)
- * kommen mit ihren eigenen Kommandos und benannten Uebergaengen erst in
- * Stufe 3 — bis dahin ist ein {@code Account} unveraenderlich.
+ * Die E-Mail-Adresse selbst ist die Identitaet — kein zusaetzliches,
+ * zufaellig erzeugtes {@code AccountId}: Ein Konto ohne diese Indirektion
+ * ist ein Feld und ein Index weniger, und die Adresse ist ohnehin bereits
+ * eindeutig (Kriterium 1). Trifft die Zusage, so wenig personenbezogene
+ * Daten wie moeglich zu halten (Rueckfrage vom 2026-08-17).
+ *
+ * Traegt in dieser Stufe nur Datenhaltung. Der Anmeldefluss (Magic Link,
+ * ADR-036) und das Loeschen (Kriterium 7) kommen mit ihren eigenen
+ * Kommandos und benannten Uebergaengen erst in Stufe 3 — bis dahin ist ein
+ * {@code Account} unveraenderlich.
  */
 @AggregateRoot
 public class Account {
 
     @Identity
-    private final AccountId id;
     private final EmailAddress email;
     private final DisplayName displayName;
     private final Instant createdAt;
 
-    private Account(AccountId id, EmailAddress email, DisplayName displayName, Instant createdAt) {
-        this.id = id;
+    private Account(EmailAddress email, DisplayName displayName, Instant createdAt) {
         this.email = email;
         this.displayName = displayName;
         this.createdAt = createdAt;
     }
 
-    /** Legt ein neues Konto an, mit frisch vergebener {@link AccountId}. */
-    public static Account register(EmailAddress email, DisplayName displayName, Instant createdAt) {
-        return new Account(AccountId.newId(), email, displayName, createdAt);
-    }
-
-    /** Baut ein bestehendes Konto aus seinen gespeicherten Werten wieder auf. */
-    public static Account of(AccountId id, EmailAddress email, DisplayName displayName, Instant createdAt) {
-        return new Account(id, email, displayName, createdAt);
-    }
-
-    public AccountId getId() {
-        return id;
+    /** Legt ein neues Konto an oder baut ein bestehendes aus seinen gespeicherten Werten wieder auf. */
+    public static Account of(EmailAddress email, DisplayName displayName, Instant createdAt) {
+        return new Account(email, displayName, createdAt);
     }
 
     public EmailAddress getEmail() {
