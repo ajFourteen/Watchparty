@@ -2,27 +2,38 @@
 
 ## Zwei Spielmodi
 
-Die Anwendung trägt zwei getrennte Spielmodi:
+Die Anwendung trägt zwei gleichwertige Spielmodi. Keiner ist der Normalfall,
+von dem der andere abweicht:
 
-- **Live-Wetten** — der Abend vor dem Fernseher: Kapitel 1 bis 12. Das ist
-  alles, was heute gebaut ist.
-- **Tippspiel** — die Liga über eine ganze Saison: Kapitel 13. Beschlossen am
+- **Live-Wetten** — der Abend vor dem Fernseher: Kapitel 1 bis 10, dazu die so
+  vermerkten Punkte in 11 und 12. Das ist alles, was heute gebaut ist.
+- **Tippspiel** — die Liga über eine ganze Saison: Kapitel 13, dazu die so
+  vermerkten Punkte in 11 und 12. Beschlossen am
   2026-08-17 (`docs/features/005-tippspiel-liga.md`), noch nicht gebaut. Die
   Abschnitte entstehen stufenweise mit der Umsetzung, nicht vorab — eine Regel
   mit der Marke `backend` ohne grünes Szenario ist ein Fehlschlag im Build
   (`teststrategie.md` 7.1).
 
-**Ohne ausdrücklichen Vermerk gilt jedes Kapitel für die Live-Wetten.** Diese
-Voreinstellung hat einen Grund: Die Nummerierung bleibt, wie sie ist. Die IDs
-aus Anhang A sind aus dem Code, den ADRs und `probelauf.md` verlinkt und werden
-nicht umgeschrieben, nur weil ein zweiter Spielmodus dazukommt.
+**Keine Anforderung ohne Geltungsvermerk.** Jedes Kapitel nennt seinen
+Spielmodus direkt unter der Überschrift, jede Regel in Anhang A in einer
+eigenen Spalte: `Live-Wetten`, `Tippspiel` oder `beide`. Wo die Punkte eines
+Kapitels sich unterscheiden, trägt jeder Punkt seinen eigenen Vermerk.
+Unterabschnitte teilen die Geltung ihres Kapitels, solange sie keine eigene
+nennen — das ist die einzige Vererbung, und sie steht hier, statt sich von
+selbst zu verstehen.
 
-Was für beide Spielmodi gilt, gilt nicht durch Verallgemeinerung, sondern weil
-es dasteht. In Anhang A trägt jede Regel ihre Geltung deshalb in einer eigenen
-Spalte, und zwar je Regel statt je Kapitel: Einzelne Regeln — etwa der Betrieb
-— gelten für beide, obwohl ihr Kapitel es nicht tut.
+Dass mehr Kapitel `Live-Wetten` tragen als `Tippspiel`, ist Baureihenfolge und
+keine Rangordnung. Es heißt auch nicht, dass die Live-Wetten der Grundfall
+wären, von dem das Tippspiel Ausnahmen macht: Für die Regeln des einen Modus
+ist der andere schlicht nicht zuständig.
+
+Die Nummerierung bleibt davon unberührt. Die IDs aus Anhang A sind aus dem
+Code, den ADRs und `probelauf.md` verlinkt und werden nicht umgeschrieben, nur
+weil ein zweiter Spielmodus dazukommt.
 
 ## 1. Zweck und Kontext
+
+*Geltung: Live-Wetten.*
 
 Die App richtet sich an Freunde, die gemeinsam vor Ort ein Football-Spiel schauen und das Zuschauen spannender machen wollen. Über ihre Handys wetten sie live auf Football-Ereignisse — der Ausgang des nächsten Drives, ein Big Play, ein einzelner Kick. Es geht um Spaß und ein gemeinsames Punkte-Ranking, nicht um echtes Geld.
 
@@ -37,6 +48,8 @@ Die App richtet sich an Freunde, die gemeinsam vor Ort ein Football-Spiel schaue
 
 ## 2. Wett-Grundprinzip (Pari-mutuel / Totalisator)
 
+*Geltung: Live-Wetten.*
+
 Es gibt keinen Buchmacher und kein Wahrscheinlichkeitsmodell. Die Wett-Ökonomie funktioniert nach dem Totalisator-Prinzip:
 
 - Alle Einsätze einer Runde wandern in einen gemeinsamen Pool.
@@ -46,6 +59,8 @@ Es gibt keinen Buchmacher und kein Wahrscheinlichkeitsmodell. Die Wett-Ökonomie
 **Nullsummen-Eigenschaft:** Punkte entstehen und verschwinden nicht, sie werden nur umverteilt. Der Pool ist stets exakt die Summe aller Einsätze plus aller Strafen. Diese Eigenschaft ist bindend.
 
 ## 3. Spieler und Punktekonten
+
+*Geltung: Live-Wetten.*
 
 - Jeder Spieler startet mit einem festen Punkte-Startguthaben.
 - Punkte sind ganzzahlig. Es gibt keine Bruchteile von Punkten.
@@ -65,6 +80,8 @@ Das sind 40 Mindesteinsätze Puffer bei etwa 25 Drives pro Abend; ein echter Ban
 Die Werte sind am realen Spielgefühl zu justieren; sie stehen an einer Stelle im Code, nicht verstreut.
 
 ## 4. Wetten
+
+*Geltung: Live-Wetten.*
 
 - Eine **Wette** ist fachlich eine **Frage mit einer festen Liste möglicher Ausgänge** und einer späteren Auflösung. Sie wird als eigenständige Struktur behandelt, nicht als Sonderfall im Code, damit weitere Wetten ohne Umbau ergänzt werden können.
 - Der Wettkatalog steht auf dem Server. Der Host wählt beim Öffnen aus, welche Wette läuft; welche gerade passt, sieht nur er vor dem Fernseher.
@@ -109,6 +126,8 @@ Gut / Kein Field Goal. Verschossen oder geblockt zählt als „Kein Field Goal".
 
 ## 5. Wettfenster und Timing
 
+*Geltung: Live-Wetten.*
+
 - Der **Host** entscheidet, welche Wette wann öffnet.
 - Nach dem Öffnen bleibt das Fenster **15 Sekunden** offen und schließt dann automatisch.
 - Zusätzlich hat der Host einen **„Jetzt schließen"-Knopf** als Notbremse. Das Fenster schließt bei Ablauf der 15 Sekunden **oder** beim Host-Klick — je nachdem, was zuerst eintritt.
@@ -117,6 +136,8 @@ Gut / Kein Field Goal. Verschossen oder geblockt zählt als „Kein Field Goal".
 
 ## 6. Wettmechanik
 
+*Geltung: Live-Wetten.*
+
 - **Ein Tipp pro Spieler pro Runde.** Kein Aufteilen des Einsatzes auf mehrere Ausgänge, kein Nachbessern.
 - **Wetten sind verdeckt**, solange das Fenster offen ist. Während der offenen Phase ist nur sichtbar, *wie viele* schon getippt haben, nicht *was*.
 - Es gibt einen **Mindesteinsatz**. Der Mindesteinsatz ist der Standard-Einsatz: Ein einzelner Tipp auf einen Ausgang setzt automatisch den Mindesteinsatz. Wer will, erhöht den Einsatz vor dem Bestätigen.
@@ -124,6 +145,8 @@ Gut / Kein Field Goal. Verschossen oder geblockt zählt als „Kein Field Goal".
 - **Spieler mit weniger Punkten als dem Mindesteinsatz** können trotzdem mitwetten und gehen dabei zwangsweise All-in (auch mit 0 Punkten, siehe 8.3).
 
 ## 7. Auszahlung
+
+*Geltung: Live-Wetten.*
 
 Die Auszahlung trennt zwei Dinge: die **echten Punkte** im Pool und die **Anteile**, nach denen der Pool verteilt wird.
 
@@ -140,6 +163,8 @@ Die Auszahlung trennt zwei Dinge: die **echten Punkte** im Pool und die **Anteil
 - Der beim Teilen entstehende Rest wird nach dem **Größte-Reste-Verfahren (Hamilton)** vergeben: Jeder Gewinner erhält seinen abgerundeten Anteil; die übrigen einzelnen Punkte gehen an die Gewinner mit dem größten Nachkomma-Rest. Die Summe der Auszahlungen entspricht damit exakt dem Pool.
 
 ## 8. Strafen, Sonder- und Randfälle
+
+*Geltung: Live-Wetten.*
 
 ### 8.1 Nicht-Tipper-Strafe
 - Wer in einer Runde gar nicht tippt, zahlt eine kleine Strafe, die in den Pool fließt.
@@ -186,6 +211,8 @@ Wer weiterspielen will, tritt mit neuem Namen erneut bei; kein automatisches Wie
 
 ## 9. Ablauf einer Runde (fachliche Sicht)
 
+*Geltung: Live-Wetten.*
+
 1. **Leerlauf** — der Host kann eine Wette öffnen.
 2. **Öffnen** — Host wählt eine Wette aus dem Katalog und öffnet sie; die 15-Sekunden-Uhr läuft.
 3. **Tippen (verdeckt)** — Spieler tippen; sichtbar ist nur die Anzahl der abgegebenen Tipps.
@@ -196,6 +223,8 @@ Wer weiterspielen will, tritt mit neuem Namen erneut bei; kein automatisches Wie
 **Wichtig:** Aufdeckung der Tipps erfolgt beim **Schließen** (Schritt 4). Die **Punkte-Verrechnung** erfolgt getrennt davon erst beim **Auflösen** (Schritt 5).
 
 ## 10. Rollen
+
+*Geltung: Live-Wetten.*
 
 - **Host:** hat zusätzlich die Steuerknöpfe (Wette auswählen und öffnen, jetzt schließen, Ausgang auflösen, Runde annullieren, Raum zurücksetzen). Ansonsten normaler Spieler.
 - **Spieler:** tippen, sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard.
@@ -213,21 +242,28 @@ Die Rolle kann über den Abend zwischen den Runden mehrfach wandern, wenn Handys
 
 ## 11. Bewusst nicht enthalten (out of scope)
 
-Diese Ausschlüsse gelten für die Live-Wetten. Wo das Tippspiel es anders hält,
-steht es dabei — der Ausschluss ist dann kein aufgegebenes Prinzip, sondern
-einer mit Geltungsbereich.
+*Geltung: je Punkt vermerkt.*
 
-- Kein Remote-/Online-Play über mehrere Orte hinweg — jede Watchparty bleibt an einen Ort gebunden (1-a), auch wenn mehrere Watchpartys gleichzeitig laufen können (Feature 004). Das Tippspiel ist dagegen ortsunabhängig; es gibt dort keinen gemeinsamen Fernseher, an dem man sitzen müsste.
-- Keine Persistenz / keine Saison über mehrere Abende (ADR-023 überbrückt nur einen Neustart innerhalb desselben Abends, mit Verfallszeit). Das Tippspiel ist per Definition dauerhaft und hält seinen Zustand in einer eigenen Datenbank; der Arbeitsspeicher der Live-Wetten bleibt davon unberührt.
-- Keine automatische Ergebnis-Erkennung per Datenfeed; der Host löst manuell auf (bewusst, um die Broadcast-Verzögerung zu umgehen und synchron zum Fernsehbild im Raum zu bleiben). Für das Tippspiel trägt diese Begründung nicht: Ein Endergebnis steht nach Spielschluss fest und wartet auf niemanden im Wohnzimmer, es kommt deshalb aus dem Feed.
-- Kein echtes Geld. **Das gilt für beide Spielmodi.**
+Ein Ausschluss ohne Geltungsvermerk wäre hier besonders teuer: Er sperrt sonst
+eine Frage, die für den anderen Spielmodus offen sein muss.
+
+- **(Live-Wetten)** Kein Remote-/Online-Play über mehrere Orte hinweg — jede Watchparty bleibt an einen Ort gebunden (1-a), auch wenn mehrere Watchpartys gleichzeitig laufen können (Feature 004).
+- **(Live-Wetten)** Keine Persistenz / keine Saison über mehrere Abende (ADR-023 überbrückt nur einen Neustart innerhalb desselben Abends, mit Verfallszeit).
+- **(Live-Wetten)** Keine automatische Ergebnis-Erkennung per Datenfeed; der Host löst manuell auf — bewusst, um die Broadcast-Verzögerung zu umgehen und synchron zum Fernsehbild im Raum zu bleiben.
+- **(Tippspiel)** Keine Live-Komponente: kein Tippen während des Spiels, keine Zwischenstände, keine Wette auf einen einzelnen Spielzug. Gewertet wird ausschließlich das Endergebnis. Wer live wetten will, nimmt den anderen Spielmodus.
+- **(Tippspiel)** Kein Handeintrag von Spielplan und Ergebnissen als Regelfall; von Hand geht nur die Korrektur eines falschen Ergebnisses. Die Regel dazu entsteht mit Kapitel 13.
+- **(beide)** Kein echtes Geld.
 
 ## 12. Offene Punkte / spätere Erweiterungen
 
-- Weitere Wetten über die vier aus Abschnitt 4 hinaus.
-- Nachjustierung der Parameter aus 3.1 am realen Spielgefühl.
-- Das Tippspiel über die Saison ist beschlossen und entsteht als Kapitel 13;
-  was dafür nötig ist, steht in `docs/features/005-tippspiel-liga.md`.
+*Geltung: je Punkt vermerkt.*
+
+- **(Live-Wetten)** Weitere Wetten über die vier aus Abschnitt 4 hinaus.
+- **(Live-Wetten)** Nachjustierung der Parameter aus 3.1 am realen Spielgefühl.
+- **(Tippspiel)** Das Tippspiel über die Saison ist beschlossen und entsteht
+  als Kapitel 13; was dafür nötig ist, steht in
+  `docs/features/005-tippspiel-liga.md`. Offene Einzelfragen dazu stehen in
+  `docs/offene-entscheidungen.md`.
 
 ---
 
@@ -249,8 +285,10 @@ keine eigene Überschrift hat. Die Regeln des Tippspiels tragen die Nummern
 aus Kapitel 13 (`13.5-a` …) und kommen mit dem Bau dazu.
 
 **Zur Geltung.** Jede Regel nennt ihren Spielmodus: `Live-Wetten`, `Tippspiel`
-oder `beide`. Eine Regel gilt nie stillschweigend für den jeweils anderen
-Modus — das ist der Zweck der Spalte. Sie steht **vor** der Marke, weil beide
+oder `beide`. Die Spalte ist Pflicht und hat keinen Vorgabewert — eine Regel
+ohne Geltung ist eine unfertige Regel, keine Regel für die Live-Wetten. Sie
+gilt auch nie stillschweigend für den jeweils anderen Modus. Sie steht **vor**
+der Marke, weil beide
 Auswerter die Marke als letzte Spalte lesen (`AnhangA` im Testcode und der
 Gradle-Task `abdeckung`); eine Spalte dahinter würde die Feature-Abdeckung
 stillschweigend leer laufen lassen.
