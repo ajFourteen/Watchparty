@@ -6,6 +6,9 @@
     "ghcr.io/devcontainers/features/java:1": {
       "version": "25",
       "installGradle": true
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false
     }
   }
 }
