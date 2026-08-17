@@ -38,7 +38,13 @@ function JoinScreen({ onJoin, status }) {
   const [code, setCode] = useState(codeFromJoinLink);
   const trimmed = name.trim();
   const trimmedCode = code.trim();
-  const buttonLabel = trimmedCode ? "Mitspielen" : "Raum erstellen";
+  const isCreatingRoom = trimmedCode === "";
+  // Mitspielen setzt einen echten Code voraus (Anforderung 1-h) -- ein
+  // unvollstaendiger Code waere ohnehin ein Fehler beim Server, das soll der
+  // Knopf schon vorher zeigen, statt erst nach dem Absenden.
+  const codeIsValid = isCreatingRoom || /^[A-Z0-9]{4}$/.test(trimmedCode);
+  const canSubmit = trimmed !== "" && codeIsValid;
+  const buttonLabel = isCreatingRoom ? "Raum erstellen" : "Mitspielen";
 
   return (
     <div className="join">
@@ -52,7 +58,7 @@ function JoinScreen({ onJoin, status }) {
         autoComplete="off"
         onChange={(event) => setName(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === "Enter" && trimmed) onJoin(trimmed, trimmedCode);
+          if (event.key === "Enter" && canSubmit) onJoin(trimmed, trimmedCode);
         }}
       />
       <input
@@ -63,12 +69,12 @@ function JoinScreen({ onJoin, status }) {
         autoComplete="off"
         onChange={(event) => setCode(event.target.value.toUpperCase())}
         onKeyDown={(event) => {
-          if (event.key === "Enter" && trimmed) onJoin(trimmed, trimmedCode);
+          if (event.key === "Enter" && canSubmit) onJoin(trimmed, trimmedCode);
         }}
       />
       <button
         className="button primary"
-        disabled={!trimmed || status !== "online"}
+        disabled={!canSubmit || status !== "online"}
         onClick={() => onJoin(trimmed, trimmedCode)}
       >
         {buttonLabel}
