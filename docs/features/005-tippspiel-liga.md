@@ -513,7 +513,7 @@ voraus, dass die folgende je gebaut wird.
 |---|---|---|---|---|
 | 0 | Entscheidungen | ADR-034 bis ADR-039 stehen, Kapitel 13 ist in `anforderungen.md`. Die fachlichen und technischen Fragen selbst sind seit dem 2026-08-17 beantwortet (siehe „Bewusste Festlegungen") | S | **erledigt** |
 | 1 | Wertung | `Scoring`, `GameScore`, `ScoreBucket`, `LeaguePoints` samt Szenarien und Property-Tests. **Ohne jede Infrastruktur** — der HIGH-Teil zuerst, solange nichts drumherum ablenkt | S | **erledigt** (2026-08-17): `domain/model/league`, `domain/service/league`, Kapitel 13.5 in `anforderungen.md`, Anhang A 13.5-a bis 13.5-e, Mutation Score 100 % |
-| 2 | Persistenz | Datenbank, Migrationen, Repository-Ports und -Adapter, Testaufbau. Die Stufe, die ADR-004 einordnet | M | offen |
+| 2 | Persistenz | Datenbank, Migrationen, Repository-Ports und -Adapter, Testaufbau. Die Stufe, die ADR-004 einordnet | M | **erledigt** (2026-08-17): Postgres-Anbindung (ADR-035) mit Flyway unter `adapter/out/db`, Testaufbau mit Testcontainers, erster Baustein `Account` (nur Datenhaltung — Anmeldefluss folgt in Stufe 3) samt `AccountRepository`/`AccountRepositoryJdbc`, ArchUnit-Trennung jetzt auch auf dem Anwendungsring |
 | 3 | Konten | Magic Link, Mailversand, Sitzung, Rate Limit, Löschung | M | offen |
 | 4 | Spieldaten | Feed-Anbindung, Nachführ-Job, Handeintrag, Umgang mit Verlegung, Absage, Korrektur | M | offen |
 | 5 | Tippen | Spieltag abrufen, tippen, Abgabeschluss, Verdeckung bis Anstoß | M | offen |

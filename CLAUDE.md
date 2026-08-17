@@ -31,9 +31,10 @@ kalibriert.
 Seit dem 2026-08-17 entsteht daneben ein zweiter, unabhängiger Spielmodus,
 das Tippspiel über eine ganze Saison (`docs/features/005-tippspiel-liga.md`,
 ADR-034 bis ADR-039, Kapitel 13 in `anforderungen.md`). Gebaut wird
-stufenweise; Stufe 0 (Entscheidungen) und Stufe 1 (Wertung, `domain/*/league`)
-sind fertig, alles Weitere — Persistenz, Konten, Spieldaten, Tippen, Ligen,
-Oberfläche, Betrieb — steht noch aus (Tabelle im Feature-Dokument). Die
+stufenweise; Stufe 0 (Entscheidungen), Stufe 1 (Wertung, `domain/*/league`)
+und Stufe 2 (Persistenz: Postgres/Flyway unter `adapter/out/db`, erster
+Baustein `Account`) sind fertig, alles Weitere — Konten, Spieldaten, Tippen,
+Ligen, Oberfläche, Betrieb — steht noch aus (Tabelle im Feature-Dokument). Die
 Live-Wetten sind davon nicht betroffen: Beide Modi teilen sich die Anwendung
 und sonst nichts.
 
@@ -194,7 +195,7 @@ src/main/java/de/fourteen/watchparty/
   domain/model/league/     Eigener Zweig für das Tippspiel (ADR-034,
                            Feature 005) — importiert nichts von oben und wird
                            von dort auch nicht importiert (ArchitectureTest).
-                           Bislang nur Stufe 1 (Wertung):
+                           Stufe 1 (Wertung) und Stufe 2 (Persistenz):
     GameScore.java         Value Object: ein Ergebnis (Heim/Gast-Punkte),
                            trägt tendency() und margin() — Tipp und
                            Endergebnis haben dieselbe Form
@@ -203,6 +204,16 @@ src/main/java/de/fourteen/watchparty/
                            (13.5-c) samt Grenzen als of(margin)
     LeaguePoints.java       Value Object: Wertungspunkte — ausdrücklich nicht
                            Points, eine Liga zahlt keinen Pool aus
+    Account.java            Aggregate Root: das Konto eines Tippers. Bislang
+                           nur Datenhaltung (register/of) — Anmeldefluss und
+                           Löschen kommen mit Stufe 3
+    AccountId.java           Identität, UUID-basiert (anders als RoomCode
+                           nie vorzulesen)
+    EmailAddress.java        Value Object: Format, Normalisierung
+                           (Kleinschreibung)
+    DisplayName.java         Value Object — 1..20 Zeichen wie PlayerName,
+                           aber eigenständig implementiert: ein Anzeigename
+                           ist kein Spielername
   domain/service/league/
     Scoring.java            Domain Service: (Ergebnistipp, Endergebnis) ->
                            LeaguePoints, reine Funktion wie Settlement,
@@ -225,6 +236,14 @@ src/main/java/de/fourteen/watchparty/
                            Sitzungs-IDs, nie Verbindungsobjekte
     port/out/              ClientGateway (an die Clients), SnapshotRepository
                            (auf Platte), Scheduler (verzögerte Ausführung)
+  application/league/      Eigener Zweig für das Tippspiel (ADR-034) — kennt
+                           keinen Typ aus application/RoomActor & Co. und
+                           umgekehrt (ArchitectureTest, seit Stufe 2 auch auf
+                           dem Anwendungsring geprüft, nicht nur der Domäne)
+    port/out/AccountRepository   Ausgangs-Port für Konten, ohne die
+                           Nicht-blockierend-Zusicherung von
+                           SnapshotRepository: die Liga läuft auf
+                           Request-Threads, nicht auf dem Raum-Thread
   adapter/in/ws/
     GameWebSocketHandler   Frames -> Kommandos, ändert selbst nichts
     WebSocketClientGateway Hält die Verbindungen, serialisiert nach JSON
@@ -235,10 +254,21 @@ src/main/java/de/fourteen/watchparty/
                            ADR-033 ein Verzeichnis, eine Datei je Watchparty
   adapter/out/time/
     ScheduledExecutorScheduler
+  adapter/out/db/          Postgres-Adapter des Tippspiels (ADR-035),
+                           Flyway-Migrationen unter
+                           src/main/resources/db/league/migration
+    AccountRepositoryJdbc  AccountRepository über NamedParameterJdbcTemplate,
+                           save() ein Upsert über die Konto-ID
   config/                  Sämtliche Spring-Beans: RoomConfig verdrahtet den
                            Actor, TimeConfig Uhr und Scheduler, SnapshotConfig
                            den Pfad watchparty.snapshot.path, WebConfig
                            leitet /join/{code} auf index.html weiter (1-l)
+  config/league/
+    LeagueDatabaseConfig    DataSource (Hikari) + Flyway-Migration von Hand,
+                           bewusst ohne Spring-Boot-Autoconfiguration
+                           (in WatchpartyApplication ausgeschaltet); fehlt
+                           watchparty.league.db.url, entsteht kein Bean —
+                           die Live-Wetten starten trotzdem (Kriterium 37)
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token je Watchparty-Code
                            (ADR-033), Uhren-Offset

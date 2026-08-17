@@ -44,6 +44,17 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
 
+    // Persistenz des Tippspiels (ADR-035): Standard-JDBC-Weg von Spring Boot,
+    // kein Spring Data -- Repository-Adapter sprechen JdbcTemplate direkt,
+    // damit die Zugriffe so explizit bleiben wie der Rest dieser Codebasis.
+    // DataSource-/Flyway-Autoconfiguration wird in WatchpartyApplication
+    // ausgeschaltet; das Wiring uebernimmt config/league von Hand (Stil wie
+    // RoomConfig/SnapshotConfig).
+    implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    runtimeOnly("org.postgresql:postgresql")
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+
     // Die Annotationen selbst (ADR-026): @NullMarked, @Nullable. Reine
     // Deklarationen ohne Laufzeitverhalten -- die Durchsetzung macht NullAway.
     implementation("org.jspecify:jspecify:1.0.0")
@@ -84,6 +95,12 @@ dependencies {
     // jqwik die Property-Tests (Abschnitt 4).
     testImplementation("com.tngtech.jgiven:jgiven-junit5:2.0.3")
     testImplementation("net.jqwik:jqwik:1.9.3")
+
+    // Adapter-Tests gegen echtes Postgres statt einer Attrappe (Abschnitt
+    // 2.3): derselbe SQL-Dialekt wie die Produktion, kein H2-Drift. Versionen
+    // stammen aus Spring Boots eigenem Dependency-Management.
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
 
     // Ab Gradle 9 liegt der Launcher nicht mehr automatisch auf dem
     // Test-Classpath; ohne ihn startet der Test-Executor gar nicht erst.

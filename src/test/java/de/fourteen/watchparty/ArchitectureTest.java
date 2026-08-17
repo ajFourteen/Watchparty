@@ -69,6 +69,7 @@ class ArchitectureTest {
             .adapter("ws", "de.fourteen.watchparty.adapter.in.ws..")
             .adapter("file", "de.fourteen.watchparty.adapter.out.file..")
             .adapter("time", "de.fourteen.watchparty.adapter.out.time..")
+            .adapter("db", "de.fourteen.watchparty.adapter.out.db..")
             .ignoreDependency(
                     resideIn("de.fourteen.watchparty.config"),
                     alwaysTrue())
@@ -137,6 +138,35 @@ class ArchitectureTest {
                     "de.fourteen.watchparty.domain.model.league..",
                     "de.fourteen.watchparty.domain.service.league..")
             .because("der Raumcode kennt keinen Ligatyp (CLAUDE.md, Trennung der Spielmodi)");
+
+    /**
+     * Dieselbe Trennung, jetzt auf dem Anwendungsring: Seit
+     * {@code application.league} entsteht (Stufe 2 von Feature 005) gilt
+     * dieselbe Zusage wie fuer die Domaene — sonst waere ein Zugriff eines
+     * Ligakommandos auf {@code RoomActor} oder umgekehrt ein Datenrennen, das
+     * kein Test zufaellig findet (die Liga laeuft auf Request-Threads statt
+     * auf dem Raum-Thread, CLAUDE.md, "Was mit den harten Invarianten
+     * passiert").
+     */
+    @ArchTest
+    static final ArchRule ligaUndAnwendungskernKennenEinanderNicht = noClasses()
+            .that().resideInAnyPackage("de.fourteen.watchparty.application.league..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "de.fourteen.watchparty.application",
+                    "de.fourteen.watchparty.application.message..",
+                    "de.fourteen.watchparty.application.port.in..",
+                    "de.fourteen.watchparty.application.port.out..")
+            .because("die Liga kennt keinen Anwendungskern-Typ der Live-Wetten (CLAUDE.md, Trennung der Spielmodi)");
+
+    @ArchTest
+    static final ArchRule anwendungskernKenntKeineLiga = noClasses()
+            .that().resideInAnyPackage(
+                    "de.fourteen.watchparty.application",
+                    "de.fourteen.watchparty.application.message..",
+                    "de.fourteen.watchparty.application.port.in..",
+                    "de.fourteen.watchparty.application.port.out..")
+            .should().dependOnClassesThat().resideInAnyPackage("de.fourteen.watchparty.application.league..")
+            .because("der Anwendungskern der Live-Wetten kennt keinen Ligatyp (CLAUDE.md, Trennung der Spielmodi)");
 
     /**
      * Der Kern bleibt framework-frei: Spring wird ausschliesslich in
