@@ -1,3 +1,10 @@
+# [3.7.0](https://github.com/ajFourteen/Watchparty/compare/v3.6.1...v3.7.0) (2026-08-17)
+
+
+### Features
+
+* mehrere Watchpartys gleichzeitig (Feature 004) ([526d619](https://github.com/ajFourteen/Watchparty/commit/526d619f94cae3670d77f3b603ec673e58485180))
+
 ## [3.6.1](https://github.com/ajFourteen/Watchparty/compare/v3.6.0...v3.6.1) (2026-08-12)
 
 
