@@ -262,8 +262,10 @@ eine Frage, die für den anderen Spielmodus offen sein muss.
 - **(Live-Wetten)** Nachjustierung der Parameter aus 3.1 am realen Spielgefühl.
 - **(Tippspiel)** Das Tippspiel über die Saison ist beschlossen und entsteht
   als Kapitel 13; was dafür nötig ist, steht in
-  `docs/features/005-tippspiel-liga.md`. Offene Einzelfragen dazu stehen in
-  `docs/offene-entscheidungen.md`.
+  `docs/features/005-tippspiel-liga.md`.
+- **(Tippspiel)** Playoffs: Die erste Saison endet mit der Regular Season. Ob
+  die Playoffs danach dazukommen, wird im Januar mit echten Daten entschieden —
+  kein dauerhafter Ausschluss, sondern ein verschobener Zuschnitt.
 
 ---
 

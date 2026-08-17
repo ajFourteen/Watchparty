@@ -121,6 +121,47 @@ Saison: Wer im November den Browser aufräumt, verliert vier Monate Tipps. Kein
 Kennwort, weil ein Kennwort einen Weg zurück braucht und der Weg zurück wieder
 die E-Mail wäre.
 
+Die folgenden sechs standen bis zum 2026-08-17 unter „Offene Fragen" und sind
+seitdem entschieden. Sie gehören in ADR-034 bis ADR-039, sobald die geschrieben
+sind.
+
+**Verwaltetes Postgres, nicht SQLite auf dem Volume.** Nicht wegen der Last —
+die ist lächerlich klein —, sondern wegen der Sicherung: Ein Fly-Volume hängt
+an einer Maschine, und der Verlust einer Saison ist etwas anderes als der
+Verlust eines Abends. Für die Live-Wetten ändert das nichts; ADR-004 gilt
+unverändert, der Raumzustand bleibt im Arbeitsspeicher.
+
+**ESPN als Feed, hinter dem Port `ScheduleFeed`.** Die Quelle ist
+unbeauftragt: keine Zusage, keine Nutzungserlaubnis, jederzeit änderbar. Das
+ist als Risiko angenommen und nicht übersehen — abgefedert durch den Port (ein
+Wechsel bleibt ein Adapter), durch aufgezeichnete Antworten im Test statt Netz
+und durch den Handeintrag als Notweg (14).
+
+**Eine Liga wertet die ganze Saison, auch für Spätbeitreter.** Wer im November
+beitritt, bringt seine bis dahin abgegebenen Tipps mit und kann am ersten Tag
+vorne stehen. Das ist der Preis dafür, dass die Rangliste aus den Tipps allein
+nachrechenbar bleibt: „erst ab Beitritt" verlangt eine Zeitachse, die niemand
+am Tisch nachvollzieht, und einen zweiten Weg durch die Wertung — ausgerechnet
+den Teil mit `HIGH` und 99 % Mutation Score.
+
+**Eine Liga gehört zu genau einer Saison.** `League` trägt eine `SeasonId`;
+nächstes Jahr entsteht eine neue Liga mit neuem Code. Eine fortbestehende Liga
+bräuchte einen Saisonwechsel als eigenen Vorgang, den jemand auslöst, und
+prompt die Frage nach der ewigen Tabelle. Dass sich die Runde jedes Jahr neu
+zusammenfindet, ist bei einer Handvoll Freunden kein Aufwand.
+
+**Erste Saison ohne Playoffs.** Die Wertung endet nach der Regular Season.
+Playoff-Runden haben andere Größen (6, 4, 2, 1 Spiele) und hängen am Ergebnis
+der Vorrunde; das in `Matchday` vorzusehen, bevor überhaupt jemand getippt hat,
+ist Aufwand gegen eine Vermutung. Die Entscheidung fällt im Januar mit echten
+Daten neu — bis dahin bleibt `Matchday` auf die Regular Season beschränkt.
+
+**Beide Spielmodi stehen gleichwertig nebeneinander, mit einem sichtbaren
+Wechsel.** Kein Auswahlschritt vor dem Beitritt (1-f: ein Link genügt) und
+keine getrennten Wege, bei denen das Tippspiel nur findet, wer den Pfad kennt.
+Der Umschalter ist die Oberflächenseite der Festlegung aus `anforderungen.md`,
+dass keiner der beiden Modi der Normalfall ist.
+
 ## Akzeptanzkriterien
 
 ### Konto und Anmeldung (13.2)
@@ -375,7 +416,8 @@ domain/model/league/
                      zu einem Spiel; Identität ist das Paar (Konto, Spiel)
   LeaguePoints       @ValueObject — Wertungspunkte. Eigener Typ, ausdrücklich
                      nicht Points: eine Liga zahlt keinen Pool aus (ADR-025)
-  League             @AggregateRoot, @Identity LeagueId
+  League             @AggregateRoot, @Identity LeagueId; traegt eine SeasonId
+                     — eine Liga gehoert zu genau einer Saison
   LeagueCode         @ValueObject — vorlesbarer Beitrittscode
   Membership         @Entity — Mitgliedschaft mit Beitrittszeitpunkt
 domain/service/league/
@@ -395,8 +437,8 @@ application/league/
   view/              Projektionen für die Antworten; hier hängt Kriterium 19
                      (verdeckt bis Anstoß) — dieselbe Rolle wie RoomView
 adapter/in/http/     REST-Endpunkte, Sitzungscookie, Rate Limit (4)
-adapter/out/db/      Repository-Umsetzungen, Migrationen
-adapter/out/feed/    Feed-Client und Mapping, Nachführ-Job über den
+adapter/out/db/      Repository-Umsetzungen, Flyway-Migrationen (Postgres)
+adapter/out/feed/    ESPN-Client und Mapping, Nachführ-Job über den
                      bestehenden Scheduler-Port
 adapter/out/mail/    Versand der Anmeldelinks
 config/league/       Beans, Datenquelle, Feed- und Mail-Konfiguration
@@ -446,9 +488,9 @@ Feature 004 hat ADR-033 belegt. Neu zu schreiben:
 | ADR | Entscheidung |
 |---|---|
 | ADR-034 | Zwei Spielmodi in einer Anwendung, getrennte Modelle statt Wiederverwendung; Trennung per ArchUnit erzwungen |
-| ADR-035 | Datenbank für das Tippspiel — welche, wo, mit welchen Migrationen; Verhältnis zu ADR-004 (der für die Live-Wetten unverändert gilt) |
+| ADR-035 | Verwaltetes Postgres für das Tippspiel, mit Flyway-Migrationen; Verhältnis zu ADR-004 (der für die Live-Wetten unverändert gilt) |
 | ADR-036 | Konten mit Magic Link statt Kennwort; Sitzungsdauer, Einmaligkeit, Rate Limit |
-| ADR-037 | Externer Feed als Quelle für Spielplan und Ergebnisse; Wahl der Quelle, Nachführ-Takt, Verhalten bei Ausfall, Handeintrag als Notweg |
+| ADR-037 | ESPN als Feed hinter dem Port `ScheduleFeed`; Nachführ-Takt, Verhalten bei Ausfall, Handeintrag als Notweg, Wechsel der Quelle als Adapter |
 | ADR-038 | Wertung als reine Funktion mit „höchste Stufe zählt"; Fachbegriffe der Liga (Ergebnistipp, Wertungspunkte, Abstand, Rangliste) analog ADR-022 |
 | ADR-039 | HTTP statt WebSocket für das Tippspiel — Anfrage/Antwort reicht, wo nichts in Sekunden geschieht |
 
@@ -469,7 +511,7 @@ voraus, dass die folgende je gebaut wird.
 
 | # | Stufe | Ergebnis | Umfang |
 |---|---|---|---|
-| 0 | Entscheidungen | Die offenen Fragen unten sind beantwortet, ADR-034 bis ADR-039 stehen, Kapitel 13 ist in `anforderungen.md` | S |
+| 0 | Entscheidungen | ADR-034 bis ADR-039 stehen, Kapitel 13 ist in `anforderungen.md`. Die fachlichen und technischen Fragen selbst sind seit dem 2026-08-17 beantwortet (siehe „Bewusste Festlegungen") | S |
 | 1 | Wertung | `Scoring`, `GameScore`, `ScoreBucket`, `LeaguePoints` samt Szenarien und Property-Tests. **Ohne jede Infrastruktur** — der HIGH-Teil zuerst, solange nichts drumherum ablenkt | S |
 | 2 | Persistenz | Datenbank, Migrationen, Repository-Ports und -Adapter, Testaufbau. Die Stufe, die ADR-004 einordnet | M |
 | 3 | Konten | Magic Link, Mailversand, Sitzung, Rate Limit, Löschung | M |
@@ -490,7 +532,9 @@ keiner davon aus dem bisherigen Betrieb bekannt ist:
 
 - **Eine Datenbank** mit Migrationen, Sicherung und Rückspielprobe. Ein
   Fly-Volume ohne Sicherung ist für einen Abend vertretbar (ADR-023), für eine
-  Saison nicht.
+  Saison nicht — deshalb verwaltetes Postgres. Die Rückspielprobe gehört
+  trotzdem dazu: Eine Sicherung, die nie zurückgespielt wurde, ist eine
+  Vermutung.
 - **Personenbezogene Daten.** E-Mail-Adressen verlangen Datenschutzerklärung,
   Löschkonzept und einen Vertrag mit dem Mailversender. Das Repository ist
   öffentlich (ADR-028) — Zugangsdaten gehören ausschließlich in Fly-Secrets.
@@ -506,35 +550,13 @@ keiner davon aus dem bisherigen Betrieb bekannt ist:
 
 ## Offene Fragen
 
-Zu jeder steht eine Empfehlung, keine Festlegung. Die fünf, die den Bau
-blockieren, stehen seit dem Beschluss auch in `offene-entscheidungen.md` —
-dort sind sie zu beantworten, hier bleiben sie als Teil des Antrags stehen.
+**Keine mehr.** Die sechs Fragen dieses Abschnitts sind am 2026-08-17
+beantwortet und stehen als Festlegungen oben; sie sind damit aus
+`offene-entscheidungen.md` verschwunden, wie es dort vorgesehen ist. Ihre
+dauerhafte Heimat sind ADR-034 bis ADR-039 und Kapitel 13 in
+`anforderungen.md` — beides entsteht mit Stufe 0 des Baus.
 
-**Welche Datenbank?** Empfehlung: verwaltetes Postgres statt SQLite auf dem
-vorhandenen Volume. Nicht wegen der Last — die ist lächerlich klein —, sondern
-wegen der Sicherung: Ein Volume ist an eine Maschine gebunden, und der Verlust
-einer Saison ist etwas anderes als der Verlust eines Abends.
-
-**Welche Feed-Quelle?** Die offen erreichbaren ESPN-Endpunkte sind bequem und
-unbeauftragt: keine Zusage, keine Nutzungserlaubnis, jederzeit änderbar. Eine
-bezahlte Quelle kostet wenig und ist verlässlich. Empfehlung: mit ESPN
-anfangen, aber hinter dem Port `ScheduleFeed`, damit ein Wechsel ein Adapter
-ist und kein Umbau.
-
-**Welche Liga wertet ab wann?** Empfehlung: Eine Liga wertet die ganze Saison,
-auch für Mitglieder, die später beitreten (Kriterium 17). Die Alternative — erst
-ab Beitritt — ist gerechter für Frühstarter und verlangt eine Zeitachse in der
-Rangliste. Am ersten Spieltag zu klären, nicht am Schreibtisch.
-
-**Wie viele Saisons gleichzeitig?** Alles oben ist auf eine laufende Saison
-geschrieben. Ob eine Liga über Saisons hinweg fortbesteht oder jede Saison eine
-neue Liga ist, ändert das Modell (`League` mit oder ohne `SeasonId`).
-Empfehlung: Liga je Saison, das ist die einfachere Zeitachse.
-
-**Braucht die Liga Playoffs?** Anstoßzeiten und Spieltage der Playoffs folgen
-anderen Regeln als die Regular Season. Empfehlung: erste Saison ohne Playoffs,
-danach entscheiden, ob es sich gelohnt hat.
-
-**Wie sichtbar sind die Live-Wetten für Ligamitglieder?** Ob jemand, der nur
-tippt, die Watchparty überhaupt angeboten bekommt — eine Frage an die
-Oberfläche, die sich am ersten Spieltag schneller beantwortet als vorher.
+Was offen *bleibt*, ist nicht entscheidbar, sondern zu beobachten: ob eine
+Saison über Postgres tatsächlich unauffällig läuft, ob der ESPN-Feed die Saison
+durchhält und ob die Rangliste bei Spätbeitretern am Tisch als fair empfunden
+wird. Das gehört auf den Bogen in `probelauf.md`, nicht hierher.

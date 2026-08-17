@@ -35,22 +35,6 @@ Die 15 Sekunden aus Anforderung 5 gelten für alle Wetten gleich. Ob ein Kick
 ein kürzeres und der Drive-Ausgang ein längeres Fenster braucht, zeigt sich
 erst am Spielabend. Bis dahin bleibt es bei einem Wert für alle.
 
-**Wertung für Spätbeitreter.** (Tippspiel)
-Eine Liga kann rückwirkend werten, weil die Tipps ihrer Mitglieder ohnehin
-existieren (Feature 005). Ob sie das soll — ganze Saison für alle, oder erst ab
-Beitritt — ist nicht entschieden. Empfehlung: ganze Saison, weil „erst ab
-Beitritt" eine Zeitachse in die Rangliste bringt, die niemand nachrechnen kann.
-
-**Liga je Saison oder über Saisons hinweg.** (Tippspiel)
-Ob eine Liga fortbesteht und jede Saison neu beginnt, oder ob jede Saison eine
-eigene Liga ist. Die Antwort steht im Modell (`League` mit oder ohne
-`SeasonId`) und lässt sich später nur mit Datenwanderung ändern. Empfehlung:
-Liga je Saison, die einfachere Zeitachse.
-
-**Playoffs.** (Tippspiel)
-Spieltage und Anstoßzeiten der Playoffs folgen anderen Regeln als die Regular
-Season. Empfehlung: erste Saison ohne, danach entscheiden.
-
 ## Technisch
 
 **Verhalten bei sehr kleiner Runde.** (Live-Wetten)
@@ -58,20 +42,6 @@ Bei drei bis vier Spielern ist die Varianz hoch. Bewusst als Feature
 akzeptiert; falls es zu wild wird, wären eine Mindestteilnehmerzahl pro
 Ausgang oder ein kleiner Grundpool denkbare Stellschrauben. Aktuell nicht
 umgesetzt.
-
-**Welche Datenbank.** (Tippspiel)
-Blockiert Stufe 2 aus Feature 005. Empfehlung: verwaltetes Postgres statt
-SQLite auf dem vorhandenen Fly-Volume — nicht wegen der Last, die ist
-lächerlich klein, sondern wegen der Sicherung: Ein Volume hängt an einer
-Maschine, und der Verlust einer Saison ist etwas anderes als der Verlust eines
-Abends. Für die Live-Wetten ändert sich dadurch nichts (ADR-004 bleibt).
-
-**Welche Feed-Quelle.** (Tippspiel)
-Blockiert Stufe 4 aus Feature 005. Die offen erreichbaren ESPN-Endpunkte sind
-bequem und unbeauftragt: keine Zusage, keine Nutzungserlaubnis, jederzeit
-änderbar. Eine bezahlte Quelle kostet wenig und ist verlässlich. Empfehlung:
-mit ESPN anfangen, aber hinter dem Port `ScheduleFeed`, damit ein Wechsel ein
-Adapter bleibt und kein Umbau.
 
 ## Nicht offen — bewusst ausgeschlossen
 
