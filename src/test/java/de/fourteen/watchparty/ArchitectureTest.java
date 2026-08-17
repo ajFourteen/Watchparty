@@ -346,7 +346,8 @@ class ArchitectureTest {
                 "de.fourteen.watchparty.application.RoomView",
                 "de.fourteen.watchparty.domain.service.league.Scoring",
                 "de.fourteen.watchparty.domain.model.league.GameScore",
-                "de.fourteen.watchparty.domain.model.league.ScoreBucket");
+                "de.fourteen.watchparty.domain.model.league.ScoreBucket",
+                "de.fourteen.watchparty.application.league.view.PredictionView");
 
         Set<String> tatsaechlicheHighKlassen = classes.stream()
                 .filter(javaClass -> javaClass.isAnnotatedWith(Criticality.class))

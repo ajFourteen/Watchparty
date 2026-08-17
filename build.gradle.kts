@@ -376,7 +376,8 @@ pitest {
             "de.fourteen.watchparty.application.RoomView",
             "de.fourteen.watchparty.domain.service.league.Scoring",
             "de.fourteen.watchparty.domain.model.league.GameScore",
-            "de.fourteen.watchparty.domain.model.league.ScoreBucket"))
+            "de.fourteen.watchparty.domain.model.league.ScoreBucket",
+            "de.fourteen.watchparty.application.league.view.PredictionView"))
     targetTests.set(setOf("de.fourteen.watchparty.*"))
     includedGroups.set(setOf("unit", "port"))
     testPlugin.set("junit5")

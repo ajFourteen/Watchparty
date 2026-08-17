@@ -292,7 +292,7 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 | 13.1 | Zweck, Abgrenzung zu den Live-Wetten, Parallelbetrieb | folgt mit Stufe 2 (erst mit einer zweiten Datenhaltung ist „Parallelbetrieb" prüfbar) |
 | 13.2 | Konto und Anmeldung | **normativ seit Stufe 3** (2026-08-17), siehe unten |
 | 13.3 | Spielplan, Anstoßzeiten, Endergebnisse | **normativ seit Stufe 4** (2026-08-17), siehe unten |
-| 13.4 | Tippen und Abgabeschluss | folgt mit Stufe 5 |
+| 13.4 | Tippen und Abgabeschluss | **normativ seit Stufe 5** (2026-08-17), siehe unten |
 | 13.5 | Wertung (Tendenz, Abstand, exaktes Ergebnis) | **normativ seit Stufe 1** (2026-08-17), siehe unten |
 | 13.6 | Ligen, Mitgliedschaft, Rangliste | folgt mit Stufe 6 |
 | 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | die Regeln selbst sind mit 13.3 seit Stufe 4 abgedeckt (dieselben Tatsachen, keine zweite Nummerierung); was daraus für die Rangliste folgt, erst mit Stufe 6 |
@@ -302,9 +302,9 @@ Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
 nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
 Postgres, Liga je Saison, keine Playoffs in der ersten Saison, gleichwertiger
 Moduswechsel — gelten bereits als Entscheidung; sie werden hier erst
-normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.2, 13.3 und
-13.5 ist das seit Stufe 3, Stufe 4 bzw. Stufe 1 der Fall, siehe unten; für
-die übrigen Abschnitte bleibt es bei den Verweisen oben.
+normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.2, 13.3,
+13.4 und 13.5 ist das seit Stufe 3, Stufe 4, Stufe 5 bzw. Stufe 1 der Fall,
+siehe unten; für die übrigen Abschnitte bleibt es bei den Verweisen oben.
 
 ### 13.2 Konto und Anmeldung
 
@@ -365,6 +365,27 @@ abgegebener Tipp durch eine Verlegung nicht entwertet wird (13.4), und dass
 eine Korrektur die Rangliste neu bildet (13.6) — wird erst normativ, sobald
 Tippen bzw. Ligen gebaut sind (Stufe 5 bzw. 6); hier normativ ist die
 Datenhaltung und Nachführung des Spielplans selbst.
+
+### 13.4 Tippen und Abgabeschluss
+
+Ein angemeldeter Tipper sieht die Spiele eines Spieltags mit Anstoßzeit und
+kann zu jedem Spiel einen Ergebnistipp abgeben: zwei nicht-negative ganze
+Zahlen, dieselbe Form wie ein Endergebnis (13.3/13.5). Ein Ergebnistipp ist
+bis zum Anstoß des jeweiligen Spiels änderbar — ein neuer Tipp ersetzt den
+bisherigen. Ab dem Anstoß nicht mehr, weder ändern noch nachtragen; der
+Abgabeschluss ist der Anstoß des einzelnen Spiels, nicht der Spieltag als
+Ganzes.
+
+Fremde Ergebnistipps zu einem Spiel sind erst ab dessen Anstoß Teil der
+Antwort — vorher liefert der Server sie nicht aus, dieselbe Zusage wie
+Invariante 4 bei den Live-Wetten, hier je Spiel statt je Wettfenster. Der
+eigene Tipp ist dagegen jederzeit sichtbar, vor wie nach dem Anstoß.
+
+Dass ein Tipp für alle Ligen des Tippers gleichzeitig gilt und dass ein
+nicht abgegebener Tipp 0 Wertungspunkte ohne Strafe bringt, folgt aus der
+Konstruktion — ein Ergebnistipp gehört dem Tipper und dem Spiel, nicht
+einer Liga (Feature-Dokument) — wird aber erst prüfbar, sobald es Ligen
+gibt (Stufe 6).
 
 ### 13.5 Wertung (Tendenz, Abstand, exaktes Ergebnis)
 
@@ -580,10 +601,10 @@ die Marke.
 
 ### 13. Tippspiel — Liga über die Saison
 
-*13.2 (Konto und Anmeldung), 13.3 (Spielplan und Ergebnisse) und 13.5
-(Wertung) sind mit Stufe 3, Stufe 4 bzw. Stufe 1 gebaut; die übrigen
-Abschnitte kommen mit ihrer jeweiligen Baustufe dazu (siehe die Tabelle in
-Kapitel 13).*
+*13.2 (Konto und Anmeldung), 13.3 (Spielplan und Ergebnisse), 13.4 (Tippen)
+und 13.5 (Wertung) sind mit Stufe 3, Stufe 4, Stufe 5 bzw. Stufe 1 gebaut;
+die übrigen Abschnitte kommen mit ihrer jeweiligen Baustufe dazu (siehe die
+Tabelle in Kapitel 13).*
 
 | ID | Regel | Geltung | Marke |
 |---|---|---|---|
@@ -602,6 +623,11 @@ Kapitel 13).*
 | 13.3-e | Ein Endergebnis kann sich nachträglich korrigieren (Feed oder Handeintrag); der gespeicherte Stand wird entsprechend aktualisiert. | Tippspiel | backend |
 | 13.3-f | Ein abgesagtes oder nicht gewertetes Spiel trägt einen eigenen Status statt eines Endergebnisses. | Tippspiel | backend |
 | 13.3-g | Der Betreiber kann ein Endergebnis von Hand setzen; dieser Handeintrag überschreibt den Feed und bleibt bestehen, bis ihn ein neuer Handeintrag ersetzt. | Tippspiel | backend |
+| 13.4-a | Ein angemeldeter Tipper sieht die Spiele eines Spieltags mit Anstoßzeit. | Tippspiel | backend |
+| 13.4-b | Er kann zu jedem Spiel einen Ergebnistipp abgeben: zwei nicht-negative ganze Zahlen. | Tippspiel | backend |
+| 13.4-c | Ein Ergebnistipp ist bis zum Anstoß des jeweiligen Spiels änderbar, danach weder änderbar noch nachtragbar. | Tippspiel | backend |
+| 13.4-d | Fremde Ergebnistipps zu einem Spiel sind erst ab dessen Anstoß Teil der Antwort. | Tippspiel | backend |
+| 13.4-e | Der eigene Ergebnistipp ist jederzeit Teil der Antwort. | Tippspiel | backend |
 | 13.5-a | Höchste erreichte Stufe zählt, nicht die Summe: exaktes Ergebnis 6 Wertungspunkte, sonst richtige Tendenz und richtiger Abstands-Eimer 5, sonst nur richtige Tendenz 3. | Tippspiel | backend |
 | 13.5-b | Falsche Tendenz bringt 0 Wertungspunkte, unabhängig vom Abstand — der Abstand wird nur bei richtiger Tendenz gewertet. | Tippspiel | backend |
 | 13.5-c | Die Abstands-Eimer sind 0 (Unentschieden) / 1–8 / 9–16 / ab 17. | Tippspiel | backend |

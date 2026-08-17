@@ -34,11 +34,12 @@ ADR-034 bis ADR-039, Kapitel 13 in `anforderungen.md`). Gebaut wird
 stufenweise; Stufe 0 (Entscheidungen), Stufe 1 (Wertung, `domain/*/league`),
 Stufe 2 (Persistenz: Postgres/Flyway unter `adapter/out/db`, erster Baustein
 `Account`), Stufe 3 (Konten: Magic Link, Sitzung, Rate Limit, Löschung —
-Mailversand vorerst als Log-Adapter, ein echter Anbieter ist Stufe 8) und
+Mailversand vorerst als Log-Adapter, ein echter Anbieter ist Stufe 8),
 Stufe 4 (Spieldaten: ESPN-Feed hinter `ScheduleFeed`, Nachführ-Job über den
-bestehenden `Scheduler`-Port, Handeintrag als Notweg) sind fertig, alles
-Weitere — Tippen, Ligen, Oberfläche, Betrieb — steht noch aus (Tabelle im
-Feature-Dokument). Die
+bestehenden `Scheduler`-Port, Handeintrag als Notweg) und Stufe 5 (Tippen:
+`Prediction`, `PredictionView` als HIGH-kritische Sichtbarkeitsregel für
+Kriterium 19/20, Mutation Score 100 %) sind fertig, alles Weitere — Ligen,
+Oberfläche, Betrieb — steht noch aus (Tabelle im Feature-Dokument). Die
 Live-Wetten sind davon nicht betroffen: Beide Modi teilen sich die Anwendung
 und sonst nichts.
 
@@ -241,6 +242,11 @@ src/main/java/de/fourteen/watchparty/
                            übernimmt Anstoß immer, Status/Ergebnis nur ohne
                            Handeintrag) und applyManualResult (Kriterium 14,
                            überschreibt den Feed dauerhaft)
+    PredictionId.java         Value Object: das Paar (Konto, Spiel) —
+                           strukturell nur ein Tipp je Tipper und Spiel
+    Prediction.java           Aggregate Root: ein Ergebnistipp, unveränderlich
+                           — ein neuer Tipp ersetzt per Upsert über dieselbe
+                           PredictionId (Kriterium 16)
   domain/service/league/
     Scoring.java            Domain Service: (Ergebnistipp, Endergebnis) ->
                            LeaguePoints, reine Funktion wie Settlement,
@@ -292,6 +298,17 @@ src/main/java/de/fourteen/watchparty/
                            Zeitplanungs-Port ohne Live-Wetten-Begriff ist
     port/in/ScheduleCommands   syncMatchday/syncSeason/setResultManually
     port/out/GameRepository, ScheduleFeed   Ausgangs-Ports des Spielplans
+    PredictionService.java     Setzt PredictionCommands um; die Kickoff-
+                           Prüfung (Kriterium 16) sitzt hier, nicht im
+                           Aggregat — Prediction kennt kein Game
+    port/in/PredictionCommands   viewMatchday/submitPrediction
+    port/out/PredictionRepository   Ausgangs-Port für Ergebnistipps
+    view/PredictionView.java   HIGH (Kriterium 19/20, Mutation Score 100 %):
+                           die Projektion Spielplan+Tipps -> Antwort, rein
+                           lesend — dieselbe Rolle wie RoomView. Vor dem
+                           Anstoß ist ein fremder Tipp nicht Teil des
+                           zurückgegebenen Objekts, nicht nur unsichtbar in
+                           der Oberfläche
   adapter/in/ws/
     GameWebSocketHandler   Frames -> Kommandos, ändert selbst nichts
     WebSocketClientGateway Hält die Verbindungen, serialisiert nach JSON
@@ -307,8 +324,8 @@ src/main/java/de/fourteen/watchparty/
                            src/main/resources/db/league/migration
     AccountRepositoryJdbc  AccountRepository über NamedParameterJdbcTemplate,
                            save() ein Upsert über die E-Mail-Adresse
-    LoginLinkRepositoryJdbc, AccountSessionRepositoryJdbc, GameRepositoryJdbc
-                           Dieselbe Bauweise
+    LoginLinkRepositoryJdbc, AccountSessionRepositoryJdbc, GameRepositoryJdbc,
+    PredictionRepositoryJdbc   Dieselbe Bauweise
   adapter/out/feed/
     EspnScheduleFeed        ScheduleFeed über die offenen, unbeauftragten
                            ESPN-Endpunkte (ADR-037); parse() paketsichtbar,
@@ -340,6 +357,8 @@ src/main/java/de/fourteen/watchparty/
     LeagueScheduleConfig     Verdrahtet EspnScheduleFeed, ScheduleSyncService
                            und den ScheduleSyncJob; eigene Bedingung
                            watchparty.league.schedule.season-year
+    LeagueTippingConfig      Verdrahtet PredictionService; dieselbe Bedingung
+                           wie LeagueDatabaseConfig
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token je Watchparty-Code
                            (ADR-033), Uhren-Offset

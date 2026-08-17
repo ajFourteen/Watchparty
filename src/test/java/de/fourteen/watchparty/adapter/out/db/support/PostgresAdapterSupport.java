@@ -50,6 +50,6 @@ public abstract class PostgresAdapterSupport {
     /** Wird mit jeder neuen Tabelle aus einer spaeteren Stufe ergaenzt. */
     @BeforeEach
     void leereTabellen() {
-        JDBC.getJdbcTemplate().execute("TRUNCATE TABLE account, login_link, account_session, game CASCADE");
+        JDBC.getJdbcTemplate().execute("TRUNCATE TABLE account, login_link, account_session, game, prediction CASCADE");
     }
 }
