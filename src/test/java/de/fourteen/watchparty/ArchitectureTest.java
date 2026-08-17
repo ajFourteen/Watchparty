@@ -94,12 +94,49 @@ class ArchitectureTest {
             .that().haveSimpleName("package-info")
             .and().resideInAnyPackage(
                     "de.fourteen.watchparty.domain.model",
+                    "de.fourteen.watchparty.domain.model.league",
                     "de.fourteen.watchparty.domain.service",
+                    "de.fourteen.watchparty.domain.service.league",
                     "de.fourteen.watchparty.application..",
                     "de.fourteen.watchparty.adapter..",
                     "de.fourteen.watchparty.config")
             .should(tragenGenauDenErwartetenRing())
             .because("die Ring-Annotation muss zum Paket passen (ADR-027)");
+
+    /**
+     * Die beiden Spielmodi teilen sich die Anwendung und sonst nichts
+     * (CLAUDE.md, {@code docs/features/005-tippspiel-liga.md}): Kein
+     * Ligacode fasst {@code Room}, {@code Player} oder einen anderen
+     * Live-Wetten-Typ an, und umgekehrt fasst kein Live-Wetten-Typ einen
+     * Ligatyp an. Ein Zugriff waere hier keine Wiederverwendung, sondern das
+     * Datenrennen, gegen das Invariante 1 gebaut ist, sobald die Liga auf
+     * Request-Threads laeuft statt auf dem Raum-Thread.
+     *
+     * Ausgenutzt wird dieselbe Unterscheidung wie bei
+     * {@link #jederDomaenentypTraegtEinenBaustein}: {@code resideInAPackage}
+     * ohne {@code ..} trifft nur das genannte Paket, nie sein
+     * {@code .league}-Unterpaket — beide Richtungen brauchen deshalb keine
+     * explizite Ausschlussregel.
+     */
+    @ArchTest
+    static final ArchRule ligaUndRaumcodeKennenEinanderNicht = noClasses()
+            .that().resideInAnyPackage(
+                    "de.fourteen.watchparty.domain.model.league..",
+                    "de.fourteen.watchparty.domain.service.league..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "de.fourteen.watchparty.domain.model",
+                    "de.fourteen.watchparty.domain.service")
+            .because("die Liga kennt keinen Raumcode-Typ (CLAUDE.md, Trennung der Spielmodi)");
+
+    @ArchTest
+    static final ArchRule raumcodeKenntKeineLiga = noClasses()
+            .that().resideInAnyPackage(
+                    "de.fourteen.watchparty.domain.model",
+                    "de.fourteen.watchparty.domain.service")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "de.fourteen.watchparty.domain.model.league..",
+                    "de.fourteen.watchparty.domain.service.league..")
+            .because("der Raumcode kennt keinen Ligatyp (CLAUDE.md, Trennung der Spielmodi)");
 
     /**
      * Der Kern bleibt framework-frei: Spring wird ausschliesslich in
@@ -162,7 +199,9 @@ class ArchitectureTest {
      */
     @ArchTest
     static final ArchRule jederDomaenentypTraegtEinenBaustein = classes()
-            .that().resideInAPackage("de.fourteen.watchparty.domain.model")
+            .that().resideInAnyPackage(
+                    "de.fourteen.watchparty.domain.model",
+                    "de.fourteen.watchparty.domain.model.league")
             .and().arePublic()
             .and(nichtVerschachtelt())
             .and().doNotHaveSimpleName("RoomSnapshot")
@@ -262,7 +301,10 @@ class ArchitectureTest {
     static void highKritikalitaetsKlassenStimmenMitDerPitKonfigurationUeberein(JavaClasses classes) {
         Set<String> ausBuildGradleKts = Set.of(
                 "de.fourteen.watchparty.domain.service.Settlement",
-                "de.fourteen.watchparty.application.RoomView");
+                "de.fourteen.watchparty.application.RoomView",
+                "de.fourteen.watchparty.domain.service.league.Scoring",
+                "de.fourteen.watchparty.domain.model.league.GameScore",
+                "de.fourteen.watchparty.domain.model.league.ScoreBucket");
 
         Set<String> tatsaechlicheHighKlassen = classes.stream()
                 .filter(javaClass -> javaClass.isAnnotatedWith(Criticality.class))

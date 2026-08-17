@@ -293,7 +293,7 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 | 13.2 | Konto und Anmeldung | folgt mit Stufe 3 |
 | 13.3 | Spielplan, Anstoßzeiten, Endergebnisse | folgt mit Stufe 4 |
 | 13.4 | Tippen und Abgabeschluss | folgt mit Stufe 5 |
-| 13.5 | Wertung (Tendenz, Abstand, exaktes Ergebnis) | folgt mit Stufe 1 |
+| 13.5 | Wertung (Tendenz, Abstand, exaktes Ergebnis) | **normativ seit Stufe 1** (2026-08-17), siehe unten |
 | 13.6 | Ligen, Mitgliedschaft, Rangliste | folgt mit Stufe 6 |
 | 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | folgt mit Stufe 4 und 6 |
 | 13.8 | Datenschutz und Löschung | folgt mit Stufe 3 |
@@ -302,7 +302,38 @@ Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
 nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
 Postgres, Liga je Saison, keine Playoffs in der ersten Saison, gleichwertiger
 Moduswechsel — gelten bereits als Entscheidung; sie werden hier erst
-normativ, sobald der zugehörige Code samt Szenarien steht.
+normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.5 ist das
+seit Stufe 1 der Fall, siehe unten; für die übrigen Abschnitte bleibt es bei
+den Verweisen oben.
+
+### 13.5 Wertung (Tendenz, Abstand, exaktes Ergebnis)
+
+Ein Ergebnistipp besteht aus zwei nicht-negativen ganzen Zahlen, genau wie
+ein Endergebnis (13.4). Die Wertung vergleicht beide und vergibt
+Wertungspunkte nach der **höchsten erreichten Stufe** — nicht nach der Summe
+mehrerer Teilkriterien.
+
+- **Exaktes Ergebnis:** Ergebnistipp und Endergebnis stimmen genau überein
+  → 6 Wertungspunkte.
+- **Richtige Tendenz und richtiger Abstands-Eimer**, aber nicht exakt
+  → 5 Wertungspunkte.
+- **Nur richtige Tendenz** → 3 Wertungspunkte.
+- **Falsche Tendenz** → 0 Wertungspunkte, unabhängig vom Abstand. Der
+  Abstand wird nur bei richtiger Tendenz überhaupt gewertet — die Stufen
+  bauen aufeinander auf. Wer den Sieger verwechselt, hat nicht „das knappe
+  Spiel erkannt", sondern 0 Punkte.
+
+Die vier Abstands-Eimer: 0 Punkte Differenz = Unentschieden, 1–8 =
+1-Score-Game, 9–16 = 2-Score-Game, ab 17 = 3+-Score-Game. Acht ist die
+größte Differenz, die ein einzelner Drive noch ausgleicht (Touchdown plus
+Two-Point) — deshalb diese Grenzen und keine glatten Zehner. Bei einem
+Unentschieden fallen Tendenz und Abstand zusammen: Ein ebenfalls auf
+Unentschieden getippter Ergebnistipp hat den Abstand damit automatisch
+getroffen, auch ohne das exakte Ergebnis, und bekommt 5 Wertungspunkte.
+
+Wertungspunkte sind ganzzahlig und nie negativ. Die Wertung ist eine reine
+Funktion aus Ergebnistipp und Endergebnis: Zweimal dieselbe Eingabe ergibt
+zweimal dieselbe Punktzahl, ohne verstecktes Datum und ohne Seiteneffekt.
 
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
@@ -486,3 +517,16 @@ die Marke.
 | ID | Regel | Geltung | Marke |
 |---|---|---|---|
 | 11-a | Genau eine Server-Instanz; kein Autoscaling, kein Sharding. | beide | organisatorisch |
+
+### 13. Tippspiel — Liga über die Saison
+
+*Nur 13.5 (Wertung) ist mit Stufe 1 gebaut; die übrigen Abschnitte kommen
+mit ihrer jeweiligen Baustufe dazu (siehe die Tabelle in Kapitel 13).*
+
+| ID | Regel | Geltung | Marke |
+|---|---|---|---|
+| 13.5-a | Höchste erreichte Stufe zählt, nicht die Summe: exaktes Ergebnis 6 Wertungspunkte, sonst richtige Tendenz und richtiger Abstands-Eimer 5, sonst nur richtige Tendenz 3. | Tippspiel | backend |
+| 13.5-b | Falsche Tendenz bringt 0 Wertungspunkte, unabhängig vom Abstand — der Abstand wird nur bei richtiger Tendenz gewertet. | Tippspiel | backend |
+| 13.5-c | Die Abstands-Eimer sind 0 (Unentschieden) / 1–8 / 9–16 / ab 17. | Tippspiel | backend |
+| 13.5-d | Wertungspunkte sind ganzzahlig und nie negativ. | Tippspiel | backend |
+| 13.5-e | Die Wertung ist eine reine Funktion aus Ergebnistipp und Endergebnis: zustandslos, dieselbe Eingabe ergibt immer dieselbe Punktzahl. | Tippspiel | backend |

@@ -356,7 +356,10 @@ tasks.named("check") {
 pitest {
     targetClasses.set(setOf(
             "de.fourteen.watchparty.domain.service.Settlement",
-            "de.fourteen.watchparty.application.RoomView"))
+            "de.fourteen.watchparty.application.RoomView",
+            "de.fourteen.watchparty.domain.service.league.Scoring",
+            "de.fourteen.watchparty.domain.model.league.GameScore",
+            "de.fourteen.watchparty.domain.model.league.ScoreBucket"))
     targetTests.set(setOf("de.fourteen.watchparty.*"))
     includedGroups.set(setOf("unit", "port"))
     testPlugin.set("junit5")

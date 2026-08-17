@@ -509,17 +509,17 @@ die Feature-Abdeckung (`teststrategie.md` 7.1).
 Jede Stufe ist für sich abgeschlossen und einzeln einsetzbar; keine setzt
 voraus, dass die folgende je gebaut wird.
 
-| # | Stufe | Ergebnis | Umfang |
-|---|---|---|---|
-| 0 | Entscheidungen | ADR-034 bis ADR-039 stehen, Kapitel 13 ist in `anforderungen.md`. Die fachlichen und technischen Fragen selbst sind seit dem 2026-08-17 beantwortet (siehe „Bewusste Festlegungen") | S |
-| 1 | Wertung | `Scoring`, `GameScore`, `ScoreBucket`, `LeaguePoints` samt Szenarien und Property-Tests. **Ohne jede Infrastruktur** — der HIGH-Teil zuerst, solange nichts drumherum ablenkt | S |
-| 2 | Persistenz | Datenbank, Migrationen, Repository-Ports und -Adapter, Testaufbau. Die Stufe, die ADR-004 einordnet | M |
-| 3 | Konten | Magic Link, Mailversand, Sitzung, Rate Limit, Löschung | M |
-| 4 | Spieldaten | Feed-Anbindung, Nachführ-Job, Handeintrag, Umgang mit Verlegung, Absage, Korrektur | M |
-| 5 | Tippen | Spieltag abrufen, tippen, Abgabeschluss, Verdeckung bis Anstoß | M |
-| 6 | Ligen | Anlegen, Beitreten, Verlassen, Rangliste je Saison und je Spieltag | M |
-| 7 | Oberfläche | Moduswechsel, Anmeldung, Spieltagsansicht, Ranglisten | L |
-| 8 | Betrieb | Sicherung der Datenbank, Überwachung des Feeds, Datenschutzerklärung, Secrets | M |
+| # | Stufe | Ergebnis | Umfang | Stand |
+|---|---|---|---|---|
+| 0 | Entscheidungen | ADR-034 bis ADR-039 stehen, Kapitel 13 ist in `anforderungen.md`. Die fachlichen und technischen Fragen selbst sind seit dem 2026-08-17 beantwortet (siehe „Bewusste Festlegungen") | S | **erledigt** |
+| 1 | Wertung | `Scoring`, `GameScore`, `ScoreBucket`, `LeaguePoints` samt Szenarien und Property-Tests. **Ohne jede Infrastruktur** — der HIGH-Teil zuerst, solange nichts drumherum ablenkt | S | **erledigt** (2026-08-17): `domain/model/league`, `domain/service/league`, Kapitel 13.5 in `anforderungen.md`, Anhang A 13.5-a bis 13.5-e, Mutation Score 100 % |
+| 2 | Persistenz | Datenbank, Migrationen, Repository-Ports und -Adapter, Testaufbau. Die Stufe, die ADR-004 einordnet | M | offen |
+| 3 | Konten | Magic Link, Mailversand, Sitzung, Rate Limit, Löschung | M | offen |
+| 4 | Spieldaten | Feed-Anbindung, Nachführ-Job, Handeintrag, Umgang mit Verlegung, Absage, Korrektur | M | offen |
+| 5 | Tippen | Spieltag abrufen, tippen, Abgabeschluss, Verdeckung bis Anstoß | M | offen |
+| 6 | Ligen | Anlegen, Beitreten, Verlassen, Rangliste je Saison und je Spieltag | M | offen |
+| 7 | Oberfläche | Moduswechsel, Anmeldung, Spieltagsansicht, Ranglisten | L | offen |
+| 8 | Betrieb | Sicherung der Datenbank, Überwachung des Feeds, Datenschutzerklärung, Secrets | M | offen |
 
 Stufe 1 vor Stufe 2 ist Absicht: Der einzige Teil, an dem eine Saison
 tatsächlich hängt, lässt sich vollständig prüfen, bevor die erste Tabelle

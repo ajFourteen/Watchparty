@@ -28,6 +28,15 @@ lässt sich nicht mehr am Schreibtisch klären: Die drei Parameter aus
 Anforderung 3.1 sind implementiert, aber nicht am echten Spielabend
 kalibriert.
 
+Seit dem 2026-08-17 entsteht daneben ein zweiter, unabhängiger Spielmodus,
+das Tippspiel über eine ganze Saison (`docs/features/005-tippspiel-liga.md`,
+ADR-034 bis ADR-039, Kapitel 13 in `anforderungen.md`). Gebaut wird
+stufenweise; Stufe 0 (Entscheidungen) und Stufe 1 (Wertung, `domain/*/league`)
+sind fertig, alles Weitere — Persistenz, Konten, Spieldaten, Tippen, Ligen,
+Oberfläche, Betrieb — steht noch aus (Tabelle im Feature-Dokument). Die
+Live-Wetten sind davon nicht betroffen: Beide Modi teilen sich die Anwendung
+und sonst nichts.
+
 ## Stack
 
 - Java 25, Spring Boot 3.5, rohe WebSocket (kein STOMP), Gradle (Kotlin DSL)
@@ -181,6 +190,24 @@ src/main/java/de/fourteen/watchparty/
                            Annullierung als Result. Zustandslosigkeit ist
                            eine geprüfte Regel, nicht nur eine Behauptung im
                            Javadoc
+
+  domain/model/league/     Eigener Zweig für das Tippspiel (ADR-034,
+                           Feature 005) — importiert nichts von oben und wird
+                           von dort auch nicht importiert (ArchitectureTest).
+                           Bislang nur Stufe 1 (Wertung):
+    GameScore.java         Value Object: ein Ergebnis (Heim/Gast-Punkte),
+                           trägt tendency() und margin() — Tipp und
+                           Endergebnis haben dieselbe Form
+    Tendency.java           Value Object (Enum): HEIM/GAST/UNENTSCHIEDEN
+    ScoreBucket.java        Value Object (Enum): die vier Abstands-Eimer
+                           (13.5-c) samt Grenzen als of(margin)
+    LeaguePoints.java       Value Object: Wertungspunkte — ausdrücklich nicht
+                           Points, eine Liga zahlt keinen Pool aus
+  domain/service/league/
+    Scoring.java            Domain Service: (Ergebnistipp, Endergebnis) ->
+                           LeaguePoints, reine Funktion wie Settlement,
+                           höchste erreichte Stufe zählt (13.5, ADR-038).
+                           Mutation Score 100 %
   application/             Orchestrierung. Kennt die Domäne und die Ports,
                            sonst nichts — insbesondere kein Spring.
     RoomActor.java         Eventloop und Zustandsautomat (ADR-020) für alle
