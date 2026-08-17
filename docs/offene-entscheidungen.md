@@ -42,8 +42,8 @@ umgesetzt.
 Damit diese Fragen nicht versehentlich wieder aufgemacht werden: aktiv aus
 dem Scope genommen, nicht (mehr) gebaut, und das soll so bleiben.
 
-- Kein Remote-Play über mehrere Orte.
-- Keine mehreren parallelen Räume.
+- Kein Remote-Play über mehrere Orte — das gilt je Watchparty (ADR-033),
+  nicht mehr für die Anwendung insgesamt.
 - Keine Persistenz über Spielabende hinweg, keine Datenbank. Innerhalb
   eines Abends dagegen schon: Ein Snapshot übersteht seit ADR-023 einen
   Neustart (entschieden am 2026-08-02, umgesetzt am selben Tag). Der

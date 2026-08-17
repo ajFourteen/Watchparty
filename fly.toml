@@ -2,7 +2,8 @@
 #
 # Die Werte hier sind keine Tuning-Parameter, sondern die Umsetzung von
 # ADR-005: genau eine Instanz. Wer sie aendert, aendert eine Architektur-
-# entscheidung — zwei Instanzen waeren zwei getrennte Raeume.
+# entscheidung — zwei Instanzen waeren zwei getrennte Mengen von Watchpartys,
+# mit Sitzungen, die zufaellig auf der falschen landen.
 #
 # ACHTUNG: Diese Datei allein reicht nicht. `fly deploy` legt beim ersten
 # Deploy von sich aus eine zweite Maschine fuer High Availability an — auch
@@ -20,8 +21,9 @@ primary_region = "fra"
 # (die Verfallszeit dafuer steckt im Code, nicht hier). Einmalig anlegen:
 #   fly volumes create watchparty_data -a watchparty-fourteen -r fra -s 1
 # Ein Volume haengt an einer Maschine -- das macht ADR-005 schaerfer statt
-# es aufzuweichen: Zwei Maschinen haetten jetzt nicht nur zwei Raeume,
-# sondern auch zwei Dateien. --ha=false und `fly machines list` bleiben
+# es aufzuweichen: Zwei Maschinen haetten jetzt nicht nur zwei getrennte
+# Mengen von Watchpartys, sondern auch zwei Dateien. --ha=false und
+# `fly machines list` bleiben
 # Pflicht, siehe oben. Und ehrlich: Ein Volume ueberlebt ein Deploy, aber
 # nicht das Ersetzen der Maschine (Hardware-Ausfall, Regionswechsel) --
 # eine deutliche Verbesserung, keine Garantie.

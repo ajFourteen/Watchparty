@@ -119,7 +119,10 @@ skalieren per Default horizontal.
 Autoscaling.
 
 **Konsequenzen:**
-- Zwingend für Korrektheit: Zwei Instanzen wären zwei getrennte Räume.
+- Zwingend für Korrektheit: Zwei Instanzen wären zwei getrennte Mengen von
+  Watchpartys, mit Sitzungen, die zufällig auf der falschen landen (seit
+  ADR-033: eine Instanz hält viele Watchpartys, nicht mehr genau einen Raum
+  — an dieser Konsequenz ändert das nichts, nur an ihrer Formulierung).
 - Muss in der Hosting-Konfiguration explizit festgenagelt werden.
 
 ## ADR-006: WebSocket für Echtzeit-Kommunikation
@@ -1235,3 +1238,64 @@ keine Punkteverrechnung betroffen) rechtfertigt.
 - Ob der Lock die Beobachtung aus ADR-021 tatsächlich entschärft, zeigt
   erst der erste Probelauf; bis dahin bleibt es eine unbestätigte Annahme,
   keine Zusage.
+
+## ADR-033: Mehrere Watchpartys gleichzeitig auf einer Instanz
+
+**Status:** Akzeptiert
+
+**Kontext:** `anforderungen.md` §11 und `offene-entscheidungen.md` schlossen
+mehrere parallele Räume bisher bewusst aus — der Server *war* der Raum, ein
+Prozess, ein Zustand. Der Wunsch, dass mehrere Freundesgruppen an
+unterschiedlichen Orten gleichzeitig, aber unabhängig voneinander spielen
+können, macht diesen Ausschluss rückgängig. Innerhalb einer Watchparty bleibt
+es bei genau einer Runde gleichzeitig (Anforderung 1-b) — das war nie die
+Frage, die zur Debatte stand.
+
+**Entscheidung:** Ein Server-Prozess hält mehrere Watchpartys gleichzeitig,
+jede mit eigenem Zustand, eigenem Snapshot und einem vierstelligen
+alphanumerischen Code als Adresse. Ein Beitritt ohne Code erzeugt eine neue
+Watchparty; ihr Ersteller wird ihr Host (ADR-016, unverändert). Ein Beitritt
+mit Code tritt einer bestehenden bei. Details, Akzeptanzkriterien und
+Szenarien stehen in `docs/features/004-mehrere-watchpartys.md`.
+
+Bewusst **nicht** angetastet:
+
+- **ADR-005 (genau eine Server-Instanz).** Die Instanz bleibt Singular, nur
+  das, was sie hält, wird zur Menge. Kein Sharding, kein Routing zwischen
+  Prozessen — genau die Eigenschaft, die ADR-005 sichert, macht diesen
+  Umbau ohne verteilten Zustand möglich.
+- **Invariante 1 (ein Thread, aller Zustand).** Ein gemeinsamer Raum-Thread
+  bedient alle Watchpartys über eine Zuordnung Code → Zustand, statt eines
+  Threads je Watchparty. Damit bleibt die Invariante wörtlich wahr, statt
+  durch eine zweite Nebenläufigkeitsstrategie ersetzt zu werden, und die
+  Threadzahl wächst nicht mit der Zahl gleichzeitiger Watchpartys.
+- **Die Kapazitätsgrenzen in `fly.toml`.** 512 MB und 200 Verbindungen
+  gelten weiter für die Instanz insgesamt, nicht neu je Watchparty. Bei
+  Ausschöpfung scheitert der Verbindungsaufbau für alle gleichermaßen —
+  akzeptiert für den erwarteten Gebrauch unter Freunden, siehe
+  `docs/features/004-mehrere-watchpartys.md`, Abschnitt „Bewusste
+  Festlegungen".
+
+**Konsequenzen:**
+- `anforderungen.md`: Anforderung 1-b umformuliert, §11 (out of scope) um
+  den Eintrag „keine mehreren parallelen Räume" gekürzt, Anhang A um 1-g
+  bis 1-l ergänzt. `offene-entscheidungen.md` verliert denselben Eintrag
+  unter „bewusst ausgeschlossen".
+- Die Formulierung „zwei Instanzen wären zwei getrennte Räume" (ADR-005,
+  CLAUDE.md, `fly.toml`) wird zu „zwei getrennte Mengen von Watchpartys,
+  mit Sitzungen, die zufällig auf der falschen landen" — das Argument
+  bleibt, nur der Gegenstand der Trennung ändert sich.
+- Neue Invariante in CLAUDE.md: Watchpartys sind vollständig voneinander
+  getrennt — keine Nachricht, kein Kommando, kein Token wirkt über die
+  Grenze einer Watchparty hinweg. Das ist die zentrale, geprüfte Zusicherung
+  dieses Umbaus (`docs/features/004-mehrere-watchpartys.md`, Kritikalität
+  HIGH), nicht ein Nebeneffekt der Mehrfachhaltung.
+- `RoomId` wird neues Value Object; `Room` bekommt ein `@Identity`-Feld, das
+  es zuvor mit ausdrücklicher Begründung nicht trug (ADR-025/027 blieben
+  unberührt, nur die Instanzzahl von `Room` ändert sich).
+- Der Snapshot-Pfad aus ADR-023 wird von einer Datei zu einem Verzeichnis,
+  eine Datei je Watchparty; die sechs Stunden Verfallszeit gelten fortan je
+  Watchparty und räumen zusätzlich leere, inaktive Watchpartys komplett ab
+  (vorher nur ein Filter beim Laden).
+- `/join/CODE` ist eine neue, dauerhafte URL-Form und verlangt eine
+  Weiterleitung auf `index.html` im Backend, die es bisher nur für `/` gibt.

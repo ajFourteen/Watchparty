@@ -6,7 +6,7 @@ Die App richtet sich an Freunde, die gemeinsam vor Ort ein Football-Spiel schaue
 
 **Rahmenbedingungen:**
 - Alle Teilnehmer sitzen vor demselben Fernseher (nur Vor-Ort-Nutzung, kein Remote-Play).
-- Es gibt genau einen Spielraum; immer nur eine Runde gleichzeitig.
+- Mehrere, voneinander getrennte Watchpartys können gleichzeitig laufen; innerhalb einer Watchparty läuft immer nur eine Runde gleichzeitig.
 - Keine Persistenz über Spielabende hinweg. Jeder Abend beginnt frisch. Ein
   Snapshot übersteht seit ADR-023 einen Neustart *innerhalb* desselben
   Abends (Deploy, Absturz) — das ändert an dieser Anforderung nichts, er
@@ -191,8 +191,7 @@ Die Rolle kann über den Abend zwischen den Runden mehrfach wandern, wenn Handys
 
 ## 11. Bewusst nicht enthalten (out of scope)
 
-- Kein Remote-/Online-Play über mehrere Orte hinweg.
-- Keine mehreren parallelen Räume.
+- Kein Remote-/Online-Play über mehrere Orte hinweg — jede Watchparty bleibt an einen Ort gebunden (1-a), auch wenn mehrere Watchpartys gleichzeitig laufen können (Feature 004).
 - Keine Persistenz / keine Saison über mehrere Abende (ADR-023 überbrückt nur einen Neustart innerhalb desselben Abends, mit Verfallszeit).
 - Keine automatische Ergebnis-Erkennung per Datenfeed; der Host löst manuell auf (bewusst, um die Broadcast-Verzögerung zu umgehen und synchron zum Fernsehbild im Raum zu bleiben).
 - Kein echtes Geld.
@@ -239,11 +238,17 @@ die Marke.
 | ID | Regel | Marke |
 |---|---|---|
 | 1-a | Alle Teilnehmer sitzen vor demselben Fernseher; nur Vor-Ort-Nutzung. | organisatorisch |
-| 1-b | Es gibt genau einen Spielraum, und immer nur eine Runde gleichzeitig. | backend |
+| 1-b | Innerhalb einer Watchparty läuft immer nur eine Runde gleichzeitig. | backend |
 | 1-c | Keine Persistenz über Spielabende hinweg; jeder Abend beginnt frisch. | backend |
 | 1-d | Ein Snapshot übersteht einen Neustart innerhalb desselben Abends und verfällt spätestens nach sechs Stunden. | backend |
-| 1-e | Der Beitritt verlangt nur einen Namen — kein Account, keine Anmeldung. | backend |
+| 1-e | Der Beitritt verlangt einen Namen und, wer einer bestehenden Watchparty beitritt, deren Code — kein Account, keine Anmeldung. | backend |
 | 1-f | Teilnahme ohne Installation: Link im Handy-Browser öffnen genügt. | frontend |
+| 1-g | Ein Beitritt ohne Code erzeugt eine neue Watchparty; wer sie erzeugt, ist ihr Host. | backend |
+| 1-h | Der Code einer Watchparty ist vierstellig alphanumerisch und wird unabhängig von Groß-/Kleinschreibung angenommen. | backend |
+| 1-i | Watchpartys sind vollständig getrennt: Keine Nachricht und kein Kommando einer Watchparty wirkt auf eine andere. | backend |
+| 1-j | Eine Watchparty ohne Aktivität wird nach sechs Stunden verworfen, samt ihrem Snapshot. | backend |
+| 1-k | Der Code der eigenen Watchparty ist ständig sichtbar. | frontend |
+| 1-l | `/join/CODE` füllt das Code-Feld vor. | frontend |
 
 ### 2. Wett-Grundprinzip
 

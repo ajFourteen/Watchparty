@@ -70,7 +70,14 @@ sie brechen würde, ist das ein Anlass nachzufragen, kein Detail.
    Summe aller Auszahlungen entspricht exakt dem Pool. Keine Fließkommazahlen
    für Punkte. Reste werden nach dem Größte-Reste-Verfahren verteilt.
 6. **Genau eine Server-Instanz.** Kein Autoscaling, kein Sharding. Zwei
-   Instanzen wären zwei getrennte Räume.
+   Instanzen wären zwei getrennte Mengen von Watchpartys, mit Sitzungen, die
+   zufällig auf der falschen landen.
+7. **Watchpartys sind vollständig voneinander getrennt** (ADR-033). Keine
+   Nachricht und kein Kommando einer Watchparty wirkt auf eine andere —
+   weder Zustand, noch Tipps, noch Host-Rechte, noch ein Token. Der
+   gemeinsame Raum-Thread aus Invariante 1 bedient dabei alle Watchpartys,
+   nicht mehr nur eine; die Trennung entsteht über die Zuordnung Sitzung →
+   Watchparty, nicht über getrennte Threads.
 
 Dazu kommt seit ADR-024 eine strukturelle Regel, die diese Invarianten
 ergänzt statt sie zu ersetzen: **Abhängigkeiten zeigen nur nach innen.**
