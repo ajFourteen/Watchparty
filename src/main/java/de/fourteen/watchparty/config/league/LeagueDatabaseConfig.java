@@ -5,9 +5,11 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import de.fourteen.watchparty.adapter.out.db.AccountRepositoryJdbc;
 import de.fourteen.watchparty.adapter.out.db.GameRepositoryJdbc;
+import de.fourteen.watchparty.adapter.out.db.LeagueRepositoryJdbc;
 import de.fourteen.watchparty.adapter.out.db.PredictionRepositoryJdbc;
 import de.fourteen.watchparty.application.league.port.out.AccountRepository;
 import de.fourteen.watchparty.application.league.port.out.GameRepository;
+import de.fourteen.watchparty.application.league.port.out.LeagueRepository;
 import de.fourteen.watchparty.application.league.port.out.PredictionRepository;
 
 import org.flywaydb.core.Flyway;
@@ -78,5 +80,10 @@ public class LeagueDatabaseConfig {
     @Bean
     public PredictionRepository predictionRepository(NamedParameterJdbcTemplate leagueJdbcTemplate) {
         return new PredictionRepositoryJdbc(leagueJdbcTemplate);
+    }
+
+    @Bean
+    public LeagueRepository leagueRepository(NamedParameterJdbcTemplate leagueJdbcTemplate) {
+        return new LeagueRepositoryJdbc(leagueJdbcTemplate);
     }
 }

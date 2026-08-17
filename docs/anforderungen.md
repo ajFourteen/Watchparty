@@ -294,7 +294,7 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 | 13.3 | Spielplan, Anstoßzeiten, Endergebnisse | **normativ seit Stufe 4** (2026-08-17), siehe unten |
 | 13.4 | Tippen und Abgabeschluss | **normativ seit Stufe 5** (2026-08-17), siehe unten |
 | 13.5 | Wertung (Tendenz, Abstand, exaktes Ergebnis) | **normativ seit Stufe 1** (2026-08-17), siehe unten |
-| 13.6 | Ligen, Mitgliedschaft, Rangliste | folgt mit Stufe 6 |
+| 13.6 | Ligen, Mitgliedschaft, Rangliste | **normativ seit Stufe 6** (2026-08-17), siehe unten |
 | 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | die Regeln selbst sind mit 13.3 seit Stufe 4 abgedeckt (dieselben Tatsachen, keine zweite Nummerierung); was daraus für die Rangliste folgt, erst mit Stufe 6 |
 | 13.8 | Datenschutz und Löschung | Löschen selbst normativ seit Stufe 3 (13.2-h); die volle Datenschutzerklärung bleibt Stufe 8 |
 
@@ -303,8 +303,9 @@ nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
 Postgres, Liga je Saison, keine Playoffs in der ersten Saison, gleichwertiger
 Moduswechsel — gelten bereits als Entscheidung; sie werden hier erst
 normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.2, 13.3,
-13.4 und 13.5 ist das seit Stufe 3, Stufe 4, Stufe 5 bzw. Stufe 1 der Fall,
-siehe unten; für die übrigen Abschnitte bleibt es bei den Verweisen oben.
+13.4, 13.5 und 13.6 ist das seit Stufe 3, Stufe 4, Stufe 5, Stufe 1 bzw.
+Stufe 6 der Fall, siehe unten; für die übrigen Abschnitte bleibt es bei den
+Verweisen oben.
 
 ### 13.2 Konto und Anmeldung
 
@@ -415,6 +416,38 @@ getroffen, auch ohne das exakte Ergebnis, und bekommt 5 Wertungspunkte.
 Wertungspunkte sind ganzzahlig und nie negativ. Die Wertung ist eine reine
 Funktion aus Ergebnistipp und Endergebnis: Zweimal dieselbe Eingabe ergibt
 zweimal dieselbe Punktzahl, ohne verstecktes Datum und ohne Seiteneffekt.
+
+### 13.6 Ligen, Mitgliedschaft, Rangliste
+
+Ein angemeldeter Tipper kann eine Liga anlegen; er ist ihr Verwalter und
+zugleich ihr erstes Mitglied. Eine Liga hat einen Beitrittscode, der sich
+weitergeben lässt — wer ihn hat, tritt bei. Ein Tipper kann in beliebig
+vielen Ligen Mitglied sein, ohne dass sich seine Ergebnistipps
+vervielfachen: Ein Tipp gehört dem Tipper und dem Spiel, nicht einer Liga
+(Kapitel 13.4), und zählt deshalb gleichzeitig in allen Ligen, denen der
+Tipper angehört — auch in solchen, denen er erst nach der Abgabe beitritt.
+Ein Mitglied kann eine Liga jederzeit wieder verlassen; seine Ergebnistipps
+bleiben davon unberührt und zählen unverändert in seinen übrigen Ligen
+weiter.
+
+Die Rangliste einer Liga zeigt ihre Mitglieder mit der Summe ihrer
+Wertungspunkte über die gewerteten Spiele der Saison, absteigend sortiert.
+Ein nicht getipptes Spiel bringt 0 Wertungspunkte, ohne Strafe — die
+Nicht-Tipper-Strafe der Live-Wetten (8.1) gilt für das Tippspiel nicht.
+Zusätzlich zur Saison-Rangliste gibt es eine Rangliste je Spieltag, die nur
+die Spiele dieses einen Spieltags zählt.
+
+Bei Punktgleichheit entscheidet zuerst die Zahl der exakten Ergebnisse,
+dann die Zahl der richtigen Tendenzen (ein exaktes Ergebnis trifft dabei
+zwangsläufig auch die Tendenz und zählt hier mit); bleibt es dabei gleich,
+teilen sich die betroffenen Tipper denselben Platz. Korrigiert sich ein
+Endergebnis nachträglich (13.3), wird die Rangliste bei der nächsten Abfrage
+aus dem aktuellen Stand neu gebildet — es gibt keinen eingefrorenen
+Punktestand, der von den Ergebnissen abweicht.
+
+Die Ranglisten zweier Ligen sind vollständig getrennt: Wer nicht Mitglied
+einer Liga ist, steht nicht in ihrer Rangliste, unabhängig davon, wie viele
+Wertungspunkte er in anderen Ligen oder insgesamt erzielt hat.
 
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
@@ -601,10 +634,10 @@ die Marke.
 
 ### 13. Tippspiel — Liga über die Saison
 
-*13.2 (Konto und Anmeldung), 13.3 (Spielplan und Ergebnisse), 13.4 (Tippen)
-und 13.5 (Wertung) sind mit Stufe 3, Stufe 4, Stufe 5 bzw. Stufe 1 gebaut;
-die übrigen Abschnitte kommen mit ihrer jeweiligen Baustufe dazu (siehe die
-Tabelle in Kapitel 13).*
+*13.2 (Konto und Anmeldung), 13.3 (Spielplan und Ergebnisse), 13.4 (Tippen),
+13.5 (Wertung) und 13.6 (Ligen) sind mit Stufe 3, Stufe 4, Stufe 5, Stufe 1
+bzw. Stufe 6 gebaut; die übrigen Abschnitte kommen mit ihrer jeweiligen
+Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 
 | ID | Regel | Geltung | Marke |
 |---|---|---|---|
@@ -633,3 +666,13 @@ Tabelle in Kapitel 13).*
 | 13.5-c | Die Abstands-Eimer sind 0 (Unentschieden) / 1–8 / 9–16 / ab 17. | Tippspiel | backend |
 | 13.5-d | Wertungspunkte sind ganzzahlig und nie negativ. | Tippspiel | backend |
 | 13.5-e | Die Wertung ist eine reine Funktion aus Ergebnistipp und Endergebnis: zustandslos, dieselbe Eingabe ergibt immer dieselbe Punktzahl. | Tippspiel | backend |
+| 13.6-a | Ein angemeldeter Tipper kann eine Liga anlegen; er ist ihr Verwalter und zugleich ihr erstes Mitglied. | Tippspiel | backend |
+| 13.6-b | Eine Liga hat einen Beitrittscode; wer ihn hat, tritt bei. | Tippspiel | backend |
+| 13.6-c | Ein Ergebnistipp gilt für alle Ligen des Tippers gleichzeitig, auch für Ligen, denen er erst später beitritt. | Tippspiel | backend |
+| 13.6-d | Ein Mitglied kann eine Liga verlassen; seine Ergebnistipps bleiben bestehen und zählen weiterhin in seinen übrigen Ligen. | Tippspiel | backend |
+| 13.6-e | Die Rangliste zeigt Mitglieder mit der Summe ihrer Wertungspunkte über die gewerteten Spiele, absteigend sortiert. | Tippspiel | backend |
+| 13.6-f | Ein nicht getipptes Spiel bringt 0 Wertungspunkte, ohne Strafe. | Tippspiel | backend |
+| 13.6-g | Bei Punktgleichheit entscheidet zuerst die Zahl der exakten Ergebnisse, dann die Zahl der richtigen Tendenzen; bleibt es gleich, teilen sich die Tipper den Platz. | Tippspiel | backend |
+| 13.6-h | Es gibt zusätzlich eine Rangliste je Spieltag, die nur dessen Spiele zählt. | Tippspiel | backend |
+| 13.6-i | Die Ranglisten zweier Ligen sind vollständig getrennt: Wer nicht Mitglied ist, steht nicht darin. | Tippspiel | backend |
+| 13.6-j | Eine Ergebniskorrektur wird bei der nächsten Abfrage der Rangliste berücksichtigt — kein eingefrorener Punktestand. | Tippspiel | backend |

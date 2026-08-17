@@ -36,10 +36,12 @@ Stufe 2 (Persistenz: Postgres/Flyway unter `adapter/out/db`, erster Baustein
 `Account`), Stufe 3 (Konten: Magic Link, Sitzung, Rate Limit, Löschung —
 Mailversand vorerst als Log-Adapter, ein echter Anbieter ist Stufe 8),
 Stufe 4 (Spieldaten: ESPN-Feed hinter `ScheduleFeed`, Nachführ-Job über den
-bestehenden `Scheduler`-Port, Handeintrag als Notweg) und Stufe 5 (Tippen:
+bestehenden `Scheduler`-Port, Handeintrag als Notweg), Stufe 5 (Tippen:
 `Prediction`, `PredictionView` als HIGH-kritische Sichtbarkeitsregel für
-Kriterium 19/20, Mutation Score 100 %) sind fertig, alles Weitere — Ligen,
-Oberfläche, Betrieb — steht noch aus (Tabelle im Feature-Dokument). Die
+Kriterium 19/20, Mutation Score 100 %) und Stufe 6 (Ligen: `League`,
+`Standings` mit Gleichstandsregel und geteiltem Platz) sind fertig, alles
+Weitere — Oberfläche, Betrieb — steht noch aus (Tabelle im
+Feature-Dokument). Die
 Live-Wetten sind davon nicht betroffen: Beide Modi teilen sich die Anwendung
 und sonst nichts.
 
@@ -247,11 +249,26 @@ src/main/java/de/fourteen/watchparty/
     Prediction.java           Aggregate Root: ein Ergebnistipp, unveränderlich
                            — ein neuer Tipp ersetzt per Upsert über dieselbe
                            PredictionId (Kriterium 16)
+    LeagueId.java, LeagueCode.java, LeagueName.java   Identität (UUID),
+                           Beitrittscode (sechs Zeichen, dieselbe Bauweise
+                           wie RoomCode, aber eigenständig implementiert)
+                           und Name einer Liga
+    Membership.java           Entity innerhalb von League: Konto +
+                           Beitrittszeitpunkt, unveränderlich
+    League.java               Aggregate Root: eine Liga für genau eine
+                           Saison. join/leave als benannte Übergänge; der
+                           Anlegende wird beim Erzeugen automatisch Mitglied
   domain/service/league/
     Scoring.java            Domain Service: (Ergebnistipp, Endergebnis) ->
                            LeaguePoints, reine Funktion wie Settlement,
                            höchste erreichte Stufe zählt (13.5, ADR-038).
                            Mutation Score 100 %
+    Standings.java           Domain Service: Mitglieder + gewertete Spiele +
+                           Ergebnistipps -> Rangliste (13.6), reine Funktion.
+                           Gleichstand: Gesamtpunktzahl, dann exakte
+                           Ergebnisse, dann richtige Tendenzen; bleibt es
+                           gleich, teilen sich die Tipper denselben Platz
+                           (Formel-1-Zählung: 1., 1., 3.). MEDIUM, nicht HIGH
   application/             Orchestrierung. Kennt die Domäne und die Ports,
                            sonst nichts — insbesondere kein Spring.
     RoomActor.java         Eventloop und Zustandsautomat (ADR-020) für alle
@@ -309,6 +326,11 @@ src/main/java/de/fourteen/watchparty/
                            Anstoß ist ein fremder Tipp nicht Teil des
                            zurückgegebenen Objekts, nicht nur unsichtbar in
                            der Oberfläche
+    LeagueService.java        Setzt LeagueCommands um; die Wertung selbst
+                           steckt in Standings, hier wird nur beschafft
+    port/in/LeagueCommands    createLeague/joinLeague/leaveLeague/
+                           seasonStandings/matchdayStandings
+    port/out/LeagueRepository   Ausgangs-Port für Ligen
   adapter/in/ws/
     GameWebSocketHandler   Frames -> Kommandos, ändert selbst nichts
     WebSocketClientGateway Hält die Verbindungen, serialisiert nach JSON
@@ -326,6 +348,9 @@ src/main/java/de/fourteen/watchparty/
                            save() ein Upsert über die E-Mail-Adresse
     LoginLinkRepositoryJdbc, AccountSessionRepositoryJdbc, GameRepositoryJdbc,
     PredictionRepositoryJdbc   Dieselbe Bauweise
+    LeagueRepositoryJdbc      League + Membership über zwei Tabellen;
+                           Mitgliedschaften bei save() vollständig ersetzt
+                           (löschen, neu einfügen) statt differenziert
   adapter/out/feed/
     EspnScheduleFeed        ScheduleFeed über die offenen, unbeauftragten
                            ESPN-Endpunkte (ADR-037); parse() paketsichtbar,
@@ -358,6 +383,8 @@ src/main/java/de/fourteen/watchparty/
                            und den ScheduleSyncJob; eigene Bedingung
                            watchparty.league.schedule.season-year
     LeagueTippingConfig      Verdrahtet PredictionService; dieselbe Bedingung
+                           wie LeagueDatabaseConfig
+    LeagueMembershipConfig   Verdrahtet LeagueService; dieselbe Bedingung
                            wie LeagueDatabaseConfig
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token je Watchparty-Code

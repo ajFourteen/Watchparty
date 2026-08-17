@@ -97,4 +97,12 @@ public class GameRepositoryJdbc implements GameRepository {
                 "SELECT * FROM game WHERE season_year = :seasonYear AND week = :week",
                 params, ROW_MAPPER);
     }
+
+    @Override
+    public List<Game> findBySeason(SeasonId season) {
+        return jdbc.query(
+                "SELECT * FROM game WHERE season_year = :seasonYear",
+                new MapSqlParameterSource("seasonYear", season.year()),
+                ROW_MAPPER);
+    }
 }

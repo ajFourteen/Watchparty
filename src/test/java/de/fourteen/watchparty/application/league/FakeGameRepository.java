@@ -4,6 +4,7 @@ import de.fourteen.watchparty.application.league.port.out.GameRepository;
 import de.fourteen.watchparty.domain.model.league.Game;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.Matchday;
+import de.fourteen.watchparty.domain.model.league.SeasonId;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,5 +29,10 @@ public class FakeGameRepository implements GameRepository {
     @Override
     public List<Game> findByMatchday(Matchday matchday) {
         return byId.values().stream().filter(g -> g.getMatchday().equals(matchday)).toList();
+    }
+
+    @Override
+    public List<Game> findBySeason(SeasonId season) {
+        return byId.values().stream().filter(g -> g.getMatchday().season().equals(season)).toList();
     }
 }
