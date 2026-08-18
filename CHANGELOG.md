@@ -1,3 +1,27 @@
+# [3.8.0](https://github.com/ajFourteen/Watchparty/compare/v3.7.1...v3.8.0) (2026-08-18)
+
+
+### Bug Fixes
+
+* CI-Blocker beheben — Flaky-Test und fehlende Feature-Abdeckung ([e4879b2](https://github.com/ajFourteen/Watchparty/commit/e4879b2a6c4100b577a0f0dcb49de14f43a9de4f))
+* docker in docker ([24fbb76](https://github.com/ajFourteen/Watchparty/commit/24fbb76ee4a5026fd65e88977e70bb6b4f616edf))
+
+
+### Features
+
+* Alarm-Mail bei andauerndem Feed-Ausfall (docs/betrieb-tippspiel.md) ([299d36c](https://github.com/ajFourteen/Watchparty/commit/299d36ccef16e5a1c60bd378c52bebc15058256a))
+* Handeintrag-Endpunkt für den Betreiber (Kriterium 14/13.3-h) ([793f15d](https://github.com/ajFourteen/Watchparty/commit/793f15d39aab5170127560343d5a8cf456931b60))
+* Impressum und Datenschutzerklärung ins Frontend einbinden ([071c36d](https://github.com/ajFourteen/Watchparty/commit/071c36dc599ed419132fbf35a653431bb4ca1472))
+* Mailversand über Strato-SMTP (Rückfrage vom 2026-08-18) ([bdd96a1](https://github.com/ajFourteen/Watchparty/commit/bdd96a165f7f5a8eab51d1522869ca2ee8e5eba4))
+* Tippspiel-Liga Stufe 1 — Wertung (Scoring, GameScore, ScoreBucket, LeaguePoints) ([aeb37f2](https://github.com/ajFourteen/Watchparty/commit/aeb37f2ed3be895f8364320b121a81486f9a5304))
+* Tippspiel-Liga Stufe 2 — Postgres-Anbindung, Flyway, Account-Repository ([a329d43](https://github.com/ajFourteen/Watchparty/commit/a329d43c5f1a04b5c6426bcb2aed1f9472175767))
+* Tippspiel-Liga Stufe 3 — Konten (Magic Link, Sitzung, Rate Limit, Löschung) ([8631c1b](https://github.com/ajFourteen/Watchparty/commit/8631c1b3a1e3322b020452c9054d60317153b41d))
+* Tippspiel-Liga Stufe 4 — Spieldaten (ESPN-Feed, Nachführ-Job, Handeintrag) ([b634c6b](https://github.com/ajFourteen/Watchparty/commit/b634c6b49a6855d25ec8a63c2382ed37d812c8c8))
+* Tippspiel-Liga Stufe 5 — Tippen (Ergebnistipp, Verdeckung bis Anstoß) ([940bd00](https://github.com/ajFourteen/Watchparty/commit/940bd00d12ab464dd44add9780b4b85303324c41))
+* Tippspiel-Liga Stufe 6 — Ligen (Anlegen, Beitreten, Rangliste) ([5a4517a](https://github.com/ajFourteen/Watchparty/commit/5a4517a22a3c8b73140cb3dd3a60a32c859c21c6))
+* Tippspiel-Liga Stufe 7a — HTTP-Adapter (Anmeldung, Tippen, Ligen) ([1305a30](https://github.com/ajFourteen/Watchparty/commit/1305a301696b41ae9940f3401b44baeadc87dbc0))
+* Tippspiel-Liga Stufe 7b — React-Frontend und Moduswechsel ([ffc3c4d](https://github.com/ajFourteen/Watchparty/commit/ffc3c4da6fc192f96b983fe6344d1aadee7149fc))
+
 ## [3.7.1](https://github.com/ajFourteen/Watchparty/compare/v3.7.0...v3.7.1) (2026-08-17)
 
 
