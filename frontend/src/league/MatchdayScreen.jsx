@@ -10,25 +10,18 @@ function currentSeasonYear() {
 }
 
 function PredictionForm({ game, onSubmit }) {
-  const [home, setHome] = useState(String(game.ownPrediction?.home ?? ""));
-  const [away, setAway] = useState(String(game.ownPrediction?.away ?? ""));
+  const initialHome = String(game.ownPrediction?.home ?? "");
+  const initialAway = String(game.ownPrediction?.away ?? "");
+  const [home, setHome] = useState(initialHome);
+  const [away, setAway] = useState(initialAway);
   const [saving, setSaving] = useState(false);
 
   const numeric = (value) => value.replace(/[^0-9]/g, "");
-  const canSubmit = home !== "" && away !== "" && !saving;
+  const edited = home !== initialHome || away !== initialAway;
+  const canSubmit = home !== "" && away !== "" && !saving && (!game.ownPrediction || edited);
 
   return (
     <div className="predict-form">
-      <label className="predict-field">
-        {game.homeTeamName}
-        <input
-          className="field score-field"
-          type="text"
-          inputMode="numeric"
-          value={home}
-          onChange={(event) => setHome(numeric(event.target.value))}
-        />
-      </label>
       <label className="predict-field">
         {game.awayTeamName}
         <input
@@ -37,6 +30,16 @@ function PredictionForm({ game, onSubmit }) {
           inputMode="numeric"
           value={away}
           onChange={(event) => setAway(numeric(event.target.value))}
+        />
+      </label>
+      <label className="predict-field">
+        {game.homeTeamName}
+        <input
+          className="field score-field"
+          type="text"
+          inputMode="numeric"
+          value={home}
+          onChange={(event) => setHome(numeric(event.target.value))}
         />
       </label>
       <button
@@ -65,7 +68,8 @@ function GameCard({ game, onSubmit }) {
     <li className="game-card">
       <div className="game-head">
         <span className="game-teams">
-          {game.awayTeamName} @ {game.homeTeamName}
+          {game.awayTeamName} @<br />
+          {game.homeTeamName}
         </span>
         <span className="game-kickoff">
           {kickoff.toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
@@ -134,7 +138,7 @@ export function MatchdayScreen() {
   };
 
   return (
-    <div className="league-card">
+    <div className="league-card matchday">
       <div className="week-switch">
         <button className="button ghost" disabled={week <= 1} onClick={() => setWeek((w) => w - 1)}>
           ‹
