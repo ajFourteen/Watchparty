@@ -62,37 +62,46 @@ technische.
 **Ausgangslage.** `ScheduleSyncJob` ruft `syncSeason` alle
 `watchparty.league.schedule.sync-interval-minutes` (Default 15) auf.
 Schlägt der Abruf eines Spieltags fehl, fängt `ScheduleSyncService` die
-Exception ab und loggt auf WARN-Niveau
+Exception ab, loggt auf WARN-Niveau
 („Feed nicht erreichbar für {} — letzter bekannter Stand bleibt stehen",
-Kriterium 11) — der Sync-Takt läuft unbeeinflusst weiter, kein Absturz, kein
+Kriterium 11) und meldet den Fehlschlag an `ScheduleSyncJob` zurück — der
+Sync-Takt selbst läuft unbeeinflusst weiter, kein Absturz, kein
 Datenverlust. Einzelne unlesbare Spiel-Einträge innerhalb einer Antwort
-werden in `EspnScheduleFeed.mapEvent` übersprungen und ebenfalls nur
-geloggt. Es gibt aktuell **keinen aktiven Alarm** — ein Ausfall ist im Log
-sichtbar, aber niemand wird benachrichtigt.
+werden in `EspnScheduleFeed.mapEvent` übersprungen und nur geloggt (dazu
+gleich mehr).
 
-**Was „Überwachung" hier bedeutet.** Zwei unterscheidbare Fehlerbilder, beide
-über den Log-Text zu erkennen:
-- *Feed nicht erreichbar* (Netzwerk/HTTP-Fehler, ESPN antwortet nicht) —
-  Log-Zeile beginnt mit „Feed nicht erreichbar fuer".
-- *Feed liefert Unsinn* (Format geändert, Pflichtfelder fehlen) — Log-Zeilen
-  beginnen mit „Ueberspringe" (`EspnScheduleFeed`). Einzelne übersprungene
-  Spiele sind unauffällig; viele auf einmal deuten auf eine geänderte
-  ESPN-Antwortstruktur hin (das angenommene Risiko aus ADR-037).
+**Alarm bei andauerndem Ausfall (seit 2026-08-18 umgesetzt).**
+`ScheduleSyncJob` zählt aufeinanderfolgende Läufe, in denen der Feed für
+mindestens einen Spieltag nicht erreichbar war. Ab drei Läufen in Folge
+(Default-Takt: 45 Minuten) ruft er `AlertSender.feedUnreachable` auf — genau
+einmal pro Ausfallserie, nicht bei jedem weiteren Lauf; ein erfolgreicher
+Lauf setzt den Zähler zurück und macht einen neuen Ausfall wieder alarmfähig.
+Produktiv (`AlertMailSender`, an dieselbe Strato-Konfiguration wie der
+Anmeldelink angehängt) geht die Mail an `watchparty.league.alert.email`
+(vorgesehen: `info@fourteen-it.de`); ohne gesetzte SMTP-Zugangsdaten
+übernimmt `LoggingAlertSender` und schreibt nur ins Log, dieselbe
+Rückfallebene wie beim Anmeldelink (`LoggingMailSender`).
 
-**Vorschlag für einen Alarm, ohne Produktivcode dafür zu bauen:** Ein
-log-basierter Alert auf Fly (`fly logs` lässt sich an einen externen
-Log-Drain weiterreichen, z. B. an einen Dienst mit Text-Matching/Grep-Alert)
-mit zwei Mustern:
-1. `"Feed nicht erreichbar"` mehrfach hintereinander (z. B. drei
-   aufeinanderfolgende Sync-Läufe = 45 Minuten) — der Feed ist wirklich
-   unten, nicht nur ein einzelner Netz-Hänger.
-2. `"Ueberspringe"` gehäuft innerhalb eines Sync-Laufs (Schwellwert grob:
-   mehr als die Hälfte eines Spieltags) — Format-Bruch statt Einzelfall.
+Wichtig für Invariante 2 (CLAUDE.md): `ScheduleSyncJob` läuft auf demselben
+geteilten Scheduler-Thread wie das Auto-Close der Live-Wetten. Der Aufruf
+von `AlertSender.feedUnreachable` darf diesen Thread deshalb nicht
+blockieren — `AlertMailSender` reiht den SMTP-Versand nur in einen eigenen
+Thread ein und kehrt sofort zurück, dieselbe Bauweise wie der Schreib-Thread
+in `SnapshotStore`.
+
+**Was der Alarm nicht abdeckt.** Das zweite Fehlerbild — der Feed liefert
+Daten, aber in kaputtem Format (`EspnScheduleFeed.mapEvent` überspringt
+Einträge, Log-Zeilen beginnen mit „Ueberspringe") — löst keinen Alarm aus.
+Ein Format-Bruch ist schwerer zuverlässig zu erkennen (wie viele
+übersprungene Spiele sind noch normal, z. B. durch Bye-Wochen?) und bleibt
+bewusst ein log-basiertes, manuelles Beobachtungsfeld: `fly logs` an einen
+externen Log-Drain mit Text-Matching auf „Ueberspringe", gehäuft innerhalb
+eines Sync-Laufs. Kein Produktivcode dafür — bei Bedarf ein eigenes, klein
+geschnittenes Feature mit einer belastbaren Schwelle.
 
 Ein eigener Health- oder Status-Endpunkt („wann war der letzte erfolgreiche
-Sync") wäre die sauberere Lösung, ist aber neuer Produktivcode und damit
-kein Bestandteil dieses Runbooks — bei Bedarf ein eigenes, klein
-geschnittenes Feature.
+Sync") bliebe darüber hinaus eine sinnvolle Ergänzung, ist aber ebenfalls
+kein Bestandteil dieser Umsetzung.
 
 **Handeintrag als Auffangnetz.** Auch ohne Alarm bleibt Kriterium 11 die
 Rückfallebene: Der letzte bekannte Stand steht, nichts wird stillschweigend

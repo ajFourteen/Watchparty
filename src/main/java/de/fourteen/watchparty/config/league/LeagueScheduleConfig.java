@@ -4,6 +4,7 @@ import de.fourteen.watchparty.adapter.out.feed.EspnScheduleFeed;
 import de.fourteen.watchparty.application.league.ScheduleSyncJob;
 import de.fourteen.watchparty.application.league.ScheduleSyncService;
 import de.fourteen.watchparty.application.league.port.in.ScheduleCommands;
+import de.fourteen.watchparty.application.league.port.out.AlertSender;
 import de.fourteen.watchparty.application.league.port.out.GameRepository;
 import de.fourteen.watchparty.application.league.port.out.ScheduleFeed;
 import de.fourteen.watchparty.application.port.out.Scheduler;
@@ -27,7 +28,10 @@ import java.time.Duration;
  * GameRepository} aus {@link LeagueDatabaseConfig} (also indirekt
  * {@code watchparty.league.db.url}); fehlt die Datenbank trotz gesetzter
  * Saison, scheitert der Start mit einer eindeutigen Fehlermeldung statt
- * eines still falschen Verhaltens.
+ * eines still falschen Verhaltens. {@link AlertSender} kommt aus {@link
+ * LeagueMailConfig} (dieselbe {@code db.url}-Bedingung, immer verfuegbar):
+ * ein echter Mailversand, wenn Strato-Zugangsdaten gesetzt sind, sonst die
+ * Log-Rueckfallebene.
  */
 @Configuration
 @ConditionalOnProperty(prefix = "watchparty.league.schedule", name = "season-year")
@@ -44,10 +48,10 @@ public class LeagueScheduleConfig {
     }
 
     @Bean(initMethod = "start", destroyMethod = "stop")
-    public ScheduleSyncJob scheduleSyncJob(ScheduleCommands scheduleCommands, Scheduler scheduler,
+    public ScheduleSyncJob scheduleSyncJob(ScheduleCommands scheduleCommands, Scheduler scheduler, AlertSender alerts,
             @Value("${watchparty.league.schedule.season-year}") int seasonYear,
             @Value("${watchparty.league.schedule.sync-interval-minutes:15}") long syncIntervalMinutes) {
-        return new ScheduleSyncJob(scheduleCommands, scheduler, SeasonId.of(seasonYear),
+        return new ScheduleSyncJob(scheduleCommands, scheduler, alerts, SeasonId.of(seasonYear),
                 Duration.ofMinutes(syncIntervalMinutes));
     }
 }

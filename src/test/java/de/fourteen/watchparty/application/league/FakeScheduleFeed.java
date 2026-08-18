@@ -24,6 +24,10 @@ public class FakeScheduleFeed implements ScheduleFeed {
         ausgefallen.add(matchday);
     }
 
+    public void istWiederErreichbarFuer(Matchday matchday) {
+        ausgefallen.remove(matchday);
+    }
+
     @Override
     public List<Game> fetchMatchday(Matchday matchday) {
         if (ausgefallen.contains(matchday)) {

@@ -39,7 +39,8 @@ class ScheduleSyncJobTest {
         feed.antworteMit(erstenSpieltag, Game.of(GameId.of("1"), erstenSpieltag, HOME, AWAY,
                 Instant.parse("2026-09-10T17:00:00Z"), GameStatus.SCHEDULED, null, false));
         FakeScheduler scheduler = new FakeScheduler();
-        ScheduleSyncJob job = new ScheduleSyncJob(new ScheduleSyncService(feed, games), scheduler, SEASON, Duration.ofMinutes(15));
+        ScheduleSyncJob job = new ScheduleSyncJob(new ScheduleSyncService(feed, games), scheduler, new FakeAlertSender(), SEASON,
+                Duration.ofMinutes(15));
 
         job.start();
 
@@ -53,7 +54,8 @@ class ScheduleSyncJobTest {
         FakeGameRepository games = new FakeGameRepository();
         FakeScheduleFeed feed = new FakeScheduleFeed();
         FakeScheduler scheduler = new FakeScheduler();
-        ScheduleSyncJob job = new ScheduleSyncJob(new ScheduleSyncService(feed, games), scheduler, SEASON, Duration.ofMinutes(15));
+        ScheduleSyncJob job = new ScheduleSyncJob(new ScheduleSyncService(feed, games), scheduler, new FakeAlertSender(), SEASON,
+                Duration.ofMinutes(15));
         job.start();
 
         scheduler.fireAll();
@@ -62,11 +64,58 @@ class ScheduleSyncJobTest {
     }
 
     @Test
+    void nachDreiFehlgeschlagenenLaeufenInFolgeWirdAlarmiert() {
+        FakeGameRepository games = new FakeGameRepository();
+        FakeScheduleFeed feed = new FakeScheduleFeed();
+        feed.falleAusFuer(Matchday.of(SEASON, 1));
+        FakeScheduler scheduler = new FakeScheduler();
+        FakeAlertSender alerts = new FakeAlertSender();
+        ScheduleSyncJob job = new ScheduleSyncJob(new ScheduleSyncService(feed, games), scheduler, alerts, SEASON,
+                Duration.ofMinutes(15));
+
+        job.start();
+        assertThat(alerts.alerts()).as("nach dem ersten fehlgeschlagenen Lauf noch kein Alarm").isEmpty();
+        scheduler.fireAll();
+        assertThat(alerts.alerts()).as("nach dem zweiten fehlgeschlagenen Lauf noch kein Alarm").isEmpty();
+        scheduler.fireAll();
+
+        assertThat(alerts.alerts()).hasSize(1);
+        assertThat(alerts.alerts().get(0).season()).isEqualTo(SEASON);
+        assertThat(alerts.alerts().get(0).consecutiveFailedRuns()).isEqualTo(3);
+    }
+
+    @Test
+    void nachEinemErneutErfolgreichenLaufFaelltDerZaehlerZurueckUndAlarmiertBeimNaechstenAusfallErneut() {
+        FakeGameRepository games = new FakeGameRepository();
+        FakeScheduleFeed feed = new FakeScheduleFeed();
+        Matchday spieltag = Matchday.of(SEASON, 1);
+        feed.falleAusFuer(spieltag);
+        FakeScheduler scheduler = new FakeScheduler();
+        FakeAlertSender alerts = new FakeAlertSender();
+        ScheduleSyncJob job = new ScheduleSyncJob(new ScheduleSyncService(feed, games), scheduler, alerts, SEASON,
+                Duration.ofMinutes(15));
+        job.start();
+        scheduler.fireAll();
+        scheduler.fireAll();
+        assertThat(alerts.alerts()).hasSize(1);
+
+        feed.istWiederErreichbarFuer(spieltag);
+        scheduler.fireAll();
+        feed.falleAusFuer(spieltag);
+        scheduler.fireAll();
+        scheduler.fireAll();
+        scheduler.fireAll();
+
+        assertThat(alerts.alerts()).as("ein neuer Ausfall alarmiert erneut, nachdem der Zaehler zurueckgesetzt wurde").hasSize(2);
+    }
+
+    @Test
     void stopBrichtDenNaechstenGeplantenLaufAb() {
         FakeGameRepository games = new FakeGameRepository();
         FakeScheduleFeed feed = new FakeScheduleFeed();
         FakeScheduler scheduler = new FakeScheduler();
-        ScheduleSyncJob job = new ScheduleSyncJob(new ScheduleSyncService(feed, games), scheduler, SEASON, Duration.ofMinutes(15));
+        ScheduleSyncJob job = new ScheduleSyncJob(new ScheduleSyncService(feed, games), scheduler, new FakeAlertSender(), SEASON,
+                Duration.ofMinutes(15));
         job.start();
 
         job.stop();

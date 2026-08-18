@@ -30,13 +30,29 @@ public class ScheduleSyncService implements ScheduleCommands {
 
     @Override
     public void syncMatchday(Matchday matchday) {
+        syncMatchdayReportingSuccess(matchday);
+    }
+
+    @Override
+    public int syncSeason(SeasonId season) {
+        int failedMatchdays = 0;
+        for (int week = 1; week <= Matchday.REGULAR_SEASON_WEEKS; week++) {
+            if (!syncMatchdayReportingSuccess(Matchday.of(season, week))) {
+                failedMatchdays++;
+            }
+        }
+        return failedMatchdays;
+    }
+
+    /** @return false, wenn der Feed fuer diesen Spieltag nicht erreichbar war. */
+    private boolean syncMatchdayReportingSuccess(Matchday matchday) {
         List<Game> fetched;
         try {
             fetched = feed.fetchMatchday(matchday);
         } catch (RuntimeException e) {
             log.warn("Feed nicht erreichbar fuer {} -- letzter bekannter Stand bleibt stehen (Kriterium 11)",
                     matchday, e);
-            return;
+            return false;
         }
 
         for (Game feedGame : fetched) {
@@ -47,13 +63,7 @@ public class ScheduleSyncService implements ScheduleCommands {
                     },
                     () -> games.save(feedGame));
         }
-    }
-
-    @Override
-    public void syncSeason(SeasonId season) {
-        for (int week = 1; week <= Matchday.REGULAR_SEASON_WEEKS; week++) {
-            syncMatchday(Matchday.of(season, week));
-        }
+        return true;
     }
 
     @Override

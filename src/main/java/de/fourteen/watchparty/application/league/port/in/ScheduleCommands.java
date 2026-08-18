@@ -11,8 +11,16 @@ public interface ScheduleCommands {
     /** Gleicht einen Spieltag mit dem Feed ab (Kriterium 9). Ein Ausfall des Feeds laesst den Stand unangetastet (Kriterium 11). */
     void syncMatchday(Matchday matchday);
 
-    /** Gleicht die gesamte Regular Season ab, Spieltag fuer Spieltag — ein einzelner ausgefallener Spieltag haelt die uebrigen nicht auf. */
-    void syncSeason(SeasonId season);
+    /**
+     * Gleicht die gesamte Regular Season ab, Spieltag fuer Spieltag — ein
+     * einzelner ausgefallener Spieltag haelt die uebrigen nicht auf.
+     *
+     * @return Anzahl der Spieltage, fuer die der Feed in diesem Lauf nicht
+     *         erreichbar war (0 bedeutet: der Lauf war vollstaendig
+     *         erfolgreich). Grundlage fuer die Ausfall-Erkennung in
+     *         {@code ScheduleSyncJob} (docs/betrieb-tippspiel.md).
+     */
+    int syncSeason(SeasonId season);
 
     /** Der Notweg aus Kriterium 14: der Betreiber setzt ein Endergebnis von Hand. */
     void setResultManually(GameId gameId, GameScore score);
