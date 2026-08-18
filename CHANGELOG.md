@@ -1,3 +1,15 @@
+# [3.9.0](https://github.com/ajFourteen/Watchparty/compare/v3.8.1...v3.9.0) (2026-08-18)
+
+
+### Bug Fixes
+
+* fehlende Änderungen zum Feed-Relay nachtragen ([7035741](https://github.com/ajFourteen/Watchparty/commit/7035741fecf57db54aaf9ba26345d11fd283aebb))
+
+
+### Features
+
+* Spielplan-Abgleich über täglichen GitHub-Actions-Relay statt Fly-internem Job ([383eab6](https://github.com/ajFourteen/Watchparty/commit/383eab6e8ff76241182f43966ed88f68aca1f8c7))
+
 ## [3.8.1](https://github.com/ajFourteen/Watchparty/compare/v3.8.0...v3.8.1) (2026-08-18)
 
 
