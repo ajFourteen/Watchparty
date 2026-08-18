@@ -8,6 +8,7 @@ import de.fourteen.watchparty.domain.model.league.Matchday;
 import de.fourteen.watchparty.domain.model.league.SeasonId;
 import de.fourteen.watchparty.domain.model.league.Team;
 import de.fourteen.watchparty.domain.model.league.TeamId;
+import de.fourteen.watchparty.teststrategy.Anforderung;
 import de.fourteen.watchparty.teststrategy.ApiTest;
 
 import org.junit.jupiter.api.Test;
@@ -128,6 +129,7 @@ class ScheduleControllerHttpTest {
     }
 
     @Test
+    @Anforderung("13.3-h")
     void einGewoehnlicherTipperDarfKeinenHandeintragSetzen() {
         String cookie = redeemAndGetCookie("anna@example.org", "Anna");
         GameId gameId = newGame();

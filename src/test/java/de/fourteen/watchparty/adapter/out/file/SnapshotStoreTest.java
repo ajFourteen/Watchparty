@@ -108,8 +108,15 @@ class SnapshotStoreTest {
 
     @Test
     void fehlendesVerzeichnisErgibtLeer(@TempDir Path dir) {
-        SnapshotStore store = new SnapshotStore(dir.resolve("nie-angelegt"));
+        Path nieAngelegt = dir.resolve("nie-angelegt");
+        SnapshotStore store = new SnapshotStore(nieAngelegt);
         assertThat(store.loadAll(NOW, TTL)).isEmpty();
+
+        // Der Schreib-Thread legt das Verzeichnis asynchron an (Invariante 2).
+        // Ohne diese Wartemarke rennt JUnits @TempDir-Aufraeumen manchmal
+        // gegen genau diese Anlage und scheitert mit
+        // DirectoryNotEmptyException, obwohl der Test selbst laengst gruen ist.
+        await().atMost(Duration.ofSeconds(2)).until(() -> Files.isDirectory(nieAngelegt));
     }
 
     @Test
