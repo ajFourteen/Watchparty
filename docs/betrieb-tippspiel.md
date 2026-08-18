@@ -16,10 +16,21 @@ angebundene Postgres-Instanz (`fly.toml` kennt bisher nur das
 Snapshot-Volume der Live-Wetten, ADR-023 — davon unberührt). Anders als
 dieses Volume ist die Ligadatenbank kein „Abzug", sondern der einzige
 Bestand einer ganzen Saison (Begründung in „Bewusste Festlegungen",
-005-tippspiel-liga.md): Verwaltetes Postgres statt SQLite auf dem Volume,
-ausdrücklich wegen der Sicherung.
+005-tippspiel-liga.md).
 
-**Einrichten (wenn es so weit ist).**
+**Anbieter: unmanaged Fly Postgres, nicht Managed Postgres (Rückfrage vom
+2026-08-18, ADR-035-Nachtrag).** Zwei Alternativen wurden geprüft und
+verworfen: Ein Postgres bei einem externen Anbieter (Neon/Supabase/Aiven)
+wäre eine zusätzliche Außenabhängigkeit; die in Stratos Hosting-Paket
+enthaltene Datenbank ist MySQL/MariaDB statt Postgres und ihr Hostname löst
+auf eine private IP auf — von Fly.io aus nicht erreichbar (getestet). Flys
+klassisches, selbst betriebenes Postgres (`fly postgres create`, ein
+Cluster aus gewöhnlichen Fly Machines) kostet für diese Größenordnung
+etwa **$2–3/Monat** (shared-cpu-1x mit 256 MB + 1 GB Volume) — deutlich
+günstiger als Flys separates Produkt „Managed Postgres" (MPG), das dafür
+eine höhere, eigene Preisstruktur hat.
+
+**Einrichten.**
 ```bash
 fly postgres create --name watchparty-league-db -r fra --vm-size shared-cpu-1x --volume-size 1
 fly postgres attach watchparty-league-db -a watchparty-fourteen
@@ -29,22 +40,27 @@ dasselbe Property wie `watchparty.league.db.url`; die Zuordnung
 (`WATCHPARTY_LEAGUE_DB_URL=$DATABASE_URL` o. ä.) gehört in die Secrets-Arbeit,
 nicht hierher.
 
-**Automatische Sicherung.** Flys verwaltetes Postgres sichert per
-WAL-Archivierung fortlaufend; der genaue Mechanismus und die Aufbewahrungs­
-frist stehen in der aktuellen Fly-Dokumentation und sind vor der Einrichtung
-zu prüfen, nicht hier festzuschreiben — das ändert sich außerhalb dieses
-Projekts. Wichtig ist nicht die Existenz der Sicherung, sondern:
+**Automatische Sicherung, und ihre Grenze.** Unmanaged Fly Postgres
+erzeugt täglich einen Snapshot des Datenbank-Volumes, aufbewahrt für 5
+Tage — automatisch, ohne Zutun. Das ist **kein georedundantes Backup**:
+Snapshot und Datenbank hängen am selben Fly-Volume, ein Verlust der
+zugrundeliegenden Maschine oder Region kann im ungünstigsten Fall beide
+gleichzeitig treffen. Für dieses Projekt bewusst akzeptiertes Risiko
+(ADR-035-Nachtrag) — wer das nicht will, braucht zusätzlich einen eigenen
+Offsite-Dump (z. B. ein periodischer `pg_dump`, weggeschrieben außerhalb
+von Fly) oder einen vollständig verwalteten Dienst.
 
 **Die Rückspielprobe.** Eine Sicherung, die nie zurückgespielt wurde, ist
 eine Vermutung (Feature-Dokument, „Was dieses Feature ins Projekt holt").
-Vorgehen für eine Probe, wiederholbar und ohne die Produktivdatenbank
-anzufassen:
+Die 5-Tage-Aufbewahrung bedeutet: Eine Probe kann nicht beliebig
+nachgeholt werden, sie gehört in einen festen Rhythmus, nicht auf „mach
+ich mal irgendwann". Vorgehen, wiederholbar und ohne die
+Produktivdatenbank anzufassen:
 
-1. Neue, temporäre Fly-Postgres-Instanz aus dem jüngsten Snapshot/Backup
-   erzeugen (`fly postgres create` mit Wiederherstellungsoption, oder
-   `pg_dump`/`pg_restore` gegen einen manuellen Dump — je nachdem, welchen
-   Mechanismus die konkrete Fly-Postgres-Variante zum Zeitpunkt der
-   Einrichtung anbietet).
+1. Neue, temporäre Fly-Postgres-Instanz aus dem jüngsten Snapshot
+   erzeugen (`fly postgres create` mit Wiederherstellungsoption, siehe
+   `fly postgres backup list`/`fly postgres backup restore` in der
+   aktuellen Fly-Dokumentation).
 2. Gegen die wiederhergestellte Instanz stichprobenartig prüfen: Anzahl
    Konten, Anzahl Ligen, ein bekannter Tipp mit erwarteter Punktzahl.
 3. Temporäre Instanz löschen.

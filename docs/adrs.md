@@ -1409,6 +1409,29 @@ Server selbst: Fly für das, was Fly gut kann, nicht selbst gebaut.
   unverändert und beziehen sich weiterhin auf den Anwendungsprozess, nicht
   auf die Datenbank, die ein eigener Dienst ist.
 
+**Nachtrag (Rückfrage vom 2026-08-18): unmanaged statt Managed Postgres.**
+„Verwaltet" oben meint das klassische, selbst betriebene Fly-Postgres
+(`fly postgres create`, ein Cluster aus gewöhnlichen Fly Machines), nicht
+Flys separates Produkt „Managed Postgres" (MPG) mit eigener, deutlich
+höherer Preisstruktur — für die Last dieses Projekts nicht gerechtfertigt.
+Ein Strato-Hosting-Postgres schied aus: Die enthaltene Datenbank ist
+MySQL/MariaDB (nicht Postgres) und ihr Hostname löst auf eine private
+IP-Adresse auf, von Fly.io aus grundsätzlich nicht erreichbar (getestet
+2026-08-18).
+
+Unmanaged Fly Postgres sichert taeglich automatisch (Volume-Snapshot der
+Datenbank, 5 Tage Aufbewahrung) — das erfüllt den in diesem ADR
+formulierten Mindestanspruch „kein Volume ohne eigene Sicherung", aber
+ausdrücklich ohne geografische Redundanz: Snapshot und Datenbank hängen am
+selben Fly-Volume, strukturell derselbe Risikotyp wie der
+Live-Wetten-Snapshot aus ADR-023, nur mit automatischer statt manueller
+Auslösung. Bewusst akzeptiertes Risiko für ein Freundeskreis-Hobbyprojekt,
+nicht die volle Georedundanz, die eine vollständig verwaltete Lösung böte
+— eine spätere Aufwertung auf Managed Postgres oder einen externen
+Anbieter (Neon, Supabase, Aiven) bleibt möglich, ist aber keine
+Konfigurationsänderung, sondern eine Datenwanderung (siehe Konsequenz
+oben zu SQLite).
+
 ## ADR-036: Konten mit Magic Link statt Kennwort
 
 **Status:** Akzeptiert
