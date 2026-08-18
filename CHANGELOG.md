@@ -1,3 +1,10 @@
+## [3.8.1](https://github.com/ajFourteen/Watchparty/compare/v3.8.0...v3.8.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* automatischen Rejoin-Fehlschlag beim Start nicht als Fehler zeigen ([fe385e9](https://github.com/ajFourteen/Watchparty/commit/fe385e90e54b30ac7b5cab71086678c7167ea296))
+
 # [3.8.0](https://github.com/ajFourteen/Watchparty/compare/v3.7.1...v3.8.0) (2026-08-18)
 
 
