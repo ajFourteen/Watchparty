@@ -49,14 +49,12 @@ export function League() {
 
   return (
     <main className="shell shell--league">
-      <header className="scorebug">
-        <span className="bug-stat">
-          <span className="bug-label">Angemeldet als</span>
-          <span className="bug-value league-account-name">{account.displayName}</span>
+      <header className="scorebug scorebug--league">
+        <span className="bug-inline">
+          Angemeldet als <strong className="league-account-name">{account.displayName}</strong>
         </span>
-        <span className="bug-stat">
-          <span className="bug-label">Punktestand</span>
-          <span className="bug-value">{account.totalPoints}</span>
+        <span className="bug-inline">
+          Punktestand <strong>{account.totalPoints}</strong>
         </span>
         <details className="account-menu">
           <summary className="button ghost" aria-label="Konto-Menü">

@@ -264,11 +264,33 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Der Tippspiel-Header hat keine Marke wie "Watchparty" im .scorebug zu
+ * tragen (der Moduswechsel-Tab darüber sagt schon "Tippspiel") — deshalb
+ * einzeilig statt Label-über-Wert (.bug-stat) und über die volle Breite
+ * verteilt statt links gedrängt mit ungenutztem Rest bis zum Konto-Menü.
+ */
+.scorebug--league {
+  justify-content: space-between;
+}
+
+.bug-inline {
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+
+.bug-inline strong {
+  color: var(--ink);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.35rem;
+}
+
 /* --- Konto-Menü im Tippspiel-Header (Abmelden, Konto löschen) ----------- */
 
 .account-menu {
   position: relative;
-  margin-left: auto;
 }
 
 .account-menu > summary {
