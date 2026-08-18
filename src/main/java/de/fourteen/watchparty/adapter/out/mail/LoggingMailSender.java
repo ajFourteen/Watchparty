@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
  * Fällt ein, solange kein echter Mailversand konfiguriert ist
  * (`watchparty.league.mail.smtp.username` fehlt, siehe {@code
  * LeagueLoginConfig}) — fürs lokale Entwickeln und für einen Betrieb ohne
- * Strato-Zugangsdaten. Der Port {@link MailSender} ist davon unberührt:
+ * IONOS-Zugangsdaten. Der Port {@link MailSender} ist davon unberührt:
  * {@link SmtpMailSender} tauscht nur diese Klasse aus, nichts, was von ihr
  * abhängt.
  */

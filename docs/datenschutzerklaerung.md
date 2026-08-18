@@ -95,8 +95,7 @@ derselben Liga oder dem Verwalter einer Liga.
 
 Wir setzen folgende Auftragsverarbeiter ein:
 
-- **Versand der Anmeldelinks:** Strato (SMTP), ausschließlich zum Versand
-  der Anmeldelink-E-Mail.
+- **Versand der Anmeldelinks und Betriebs-Alarme:** IONOS (SMTP).
 - **Hosting:** Fly.io, Region Frankfurt (`fra`).
 
 **Offen:** Für beide sind Auftragsverarbeitungsverträge (Art. 28 DSGVO)

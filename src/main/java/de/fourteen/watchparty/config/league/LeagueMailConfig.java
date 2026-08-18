@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Verdrahtet den Mailversand des Anmeldelinks (ADR-036). Zwei Beans um
  * dieselbe Bedingung herum: {@link SmtpMailSender} entsteht nur, wenn
- * Strato-Zugangsdaten gesetzt sind ({@code watchparty.league.mail.smtp.username}
+ * IONOS-Zugangsdaten gesetzt sind ({@code watchparty.league.mail.smtp.username}
  * als Signal, dass echt versendet werden soll); {@link LoggingMailSender}
  * springt sonst ein — {@code @ConditionalOnMissingBean} statt einer zweiten,
  * gespiegelten Bedingung, damit die beiden nie gleichzeitig oder nie greifen
@@ -33,7 +33,7 @@ public class LeagueMailConfig {
     @Bean
     @ConditionalOnProperty(prefix = "watchparty.league.mail.smtp", name = "username")
     public MailSender smtpMailSender(
-            @Value("${watchparty.league.mail.smtp.host:smtp.strato.de}") String host,
+            @Value("${watchparty.league.mail.smtp.host:smtp.ionos.de}") String host,
             @Value("${watchparty.league.mail.smtp.port:587}") int port,
             @Value("${watchparty.league.mail.smtp.username}") String username,
             @Value("${watchparty.league.mail.smtp.password}") String password,
@@ -50,14 +50,14 @@ public class LeagueMailConfig {
     }
 
     /**
-     * Derselbe Strato-Zugang wie fuer den Anmeldelink, andere Empfaengeradresse
+     * Derselbe IONOS-Zugang wie fuer den Anmeldelink, andere Empfaengeradresse
      * (docs/betrieb-tippspiel.md, Rueckfrage vom 2026-08-18: an
      * {@code watchparty.league.alert.email}, produktiv info@fourteen-it.de).
      */
     @Bean
     @ConditionalOnProperty(prefix = "watchparty.league.mail.smtp", name = "username")
     public AlertSender alertMailSender(
-            @Value("${watchparty.league.mail.smtp.host:smtp.strato.de}") String host,
+            @Value("${watchparty.league.mail.smtp.host:smtp.ionos.de}") String host,
             @Value("${watchparty.league.mail.smtp.port:587}") int port,
             @Value("${watchparty.league.mail.smtp.username}") String username,
             @Value("${watchparty.league.mail.smtp.password}") String password,

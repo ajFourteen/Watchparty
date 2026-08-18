@@ -9,8 +9,10 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import java.util.Properties;
 
 /**
- * Versendet den Anmeldelink per SMTP (ADR-036, Rueckfrage vom 2026-08-18:
- * Strato als Anbieter). {@link JavaMailSenderImpl} wird hier von Hand
+ * Versendet den Anmeldelink per SMTP (ADR-036, Rueckfrage vom 2026-08-18;
+ * IONOS als tatsaechlicher Anbieter, richtiggestellt am 2026-08-18 --
+ * die urspruengliche Ruecksprache hatte faelschlich Strato genannt).
+ * {@link JavaMailSenderImpl} wird hier von Hand
  * gebaut statt ueber Spring Boots {@code MailSenderAutoConfiguration} —
  * derselbe Stil wie {@code HikariDataSource} fuer die Datenbank
  * ({@code LeagueDatabaseConfig}): explizite Kontrolle statt impliziter

@@ -34,8 +34,10 @@ ADR-034 bis ADR-039, Kapitel 13 in `anforderungen.md`). Gebaut wird
 stufenweise; Stufe 0 (Entscheidungen), Stufe 1 (Wertung, `domain/*/league`),
 Stufe 2 (Persistenz: Postgres/Flyway unter `adapter/out/db`, erster Baustein
 `Account`), Stufe 3 (Konten: Magic Link, Sitzung, Rate Limit, Löschung —
-Mailversand über SMTP, wahlweise Strato oder als Log-Adapter ohne
-Zugangsdaten — die echten Zugangsdaten selbst sind Stufe 8),
+Mailversand über SMTP (IONOS, richtiggestellt am 2026-08-18 — die
+Rückfrage vom 2026-08-17 hatte fälschlich Strato genannt) oder als
+Log-Adapter ohne Zugangsdaten — die echten Zugangsdaten selbst sind
+Stufe 8),
 Stufe 4 (Spieldaten: ESPN-Feed hinter `ScheduleFeed`, Nachführ-Job über den
 bestehenden `Scheduler`-Port, Handeintrag als Notweg), Stufe 5 (Tippen:
 `Prediction`, `PredictionView` als HIGH-kritische Sichtbarkeitsregel für
@@ -46,9 +48,14 @@ Kriterium 19/20, Mutation Score 100 %), Stufe 6 (Ligen: `League`,
 REST-Schnittstelle end-to-end gegen echtes Postgres geprüft
 (`LeagueHttpFlowTest`), das Frontend nur bis `npm run build` und manuell
 per `curl` durch den ganzen Ablauf, nicht in einem echten Browser (dafür
-fehlt in dieser Umgebung ein Werkzeug). Was fehlt, ist Stufe 8
-(Betrieb) — genuin betrieblich, nicht am Schreibtisch zu erledigen
-(Tabelle im Feature-Dokument). Die
+fehlt in dieser Umgebung ein Werkzeug). Stufe 8 (Betrieb) ist seit
+2026-08-18 größtenteils erledigt: unmanaged Fly Postgres angelegt und
+produktiv angebunden, alle Secrets gesetzt (Datenbank, SMTP über IONOS,
+Admin-/Alarm-Adresse, Saison), Feed-Alarm bei andauerndem Ausfall
+umgesetzt, Datenschutzerklärung und Impressum ins Frontend eingebunden
+und live erreichbar (`/datenschutz`, `/impressum`) — Details im
+Feature-Dokument. Offen bleiben die Rückspielprobe der
+Datenbanksicherung und die rechtliche Prüfung der Rechtstexte. Die
 Live-Wetten sind davon nicht betroffen: Beide Modi teilen sich die Anwendung
 und sonst nichts.
 
@@ -348,6 +355,11 @@ src/main/java/de/fourteen/watchparty/
     LoginController, PredictionController, LeagueController
                            Je ein Controller pro Kommando-Port; DTOs als
                            verschachtelte Records, ohne Jackson-Annotationen
+    ScheduleController       Handeintrag-Notweg (Kriterium 14/13.3-h): nur
+                           das über watchparty.league.admin.email fest
+                           konfigurierte Konto darf ein Endergebnis von Hand
+                           setzen, meldet sich dafür wie jeder Tipper per
+                           Magic Link an — kein eigenes Berechtigungsmodell
     AuthenticatedAccount, AccountArgumentResolver   Löst das Sitzungscookie
                            zu einem Konto auf; fehlend/unbekannt/abgelaufen
                            wird bewusst nicht unterschieden (Kriterium 5)
@@ -355,8 +367,9 @@ src/main/java/de/fourteen/watchparty/
                            Stelle; secure konfigurierbar (lokale Entwicklung
                            ohne HTTPS)
     LeagueExceptionHandler   Übersetzt NotAuthenticatedException/
-                           NoSuchElementException/IllegalStateException/
-                           IllegalArgumentException in HTTP-Status
+                           NotAuthorizedException/NoSuchElementException/
+                           IllegalStateException/IllegalArgumentException in
+                           HTTP-Status
   adapter/out/file/
     SnapshotStore.java     Schreiben/Lesen auf Platte, eigener Thread; seit
                            ADR-033 ein Verzeichnis, eine Datei je Watchparty
@@ -378,14 +391,21 @@ src/main/java/de/fourteen/watchparty/
                            damit Adapter-Tests eine aufgezeichnete Antwort
                            einspeisen können statt echtes Netz zu brauchen
   adapter/out/mail/
-    SmtpMailSender          MailSender über Strato-SMTP (Rückfrage vom
-                           2026-08-18), JavaMailSenderImpl von Hand gebaut
-                           statt über Spring Boots MailSenderAutoConfiguration
-                           — echte Zugangsdaten sind trotzdem erst Stufe 8
+    SmtpMailSender          MailSender über IONOS-SMTP (Rückfrage vom
+                           2026-08-17, richtiggestellt am 2026-08-18 — der
+                           ursprüngliche Anbieter-Name war falsch),
+                           JavaMailSenderImpl von Hand gebaut statt über
+                           Spring Boots MailSenderAutoConfiguration
     LoggingMailSender       Springt ein, solange keine SMTP-Zugangsdaten
                            gesetzt sind (@ConditionalOnMissingBean in
                            LeagueMailConfig) — schreibt den Anmeldelink nur
                            strukturiert ins Log
+    AlertMailSender         AlertSender über dieselbe IONOS-Konfiguration,
+                           andere Empfängeradresse (watchparty.league.alert.email);
+                           versendet auf einem eigenen Thread, nicht auf dem
+                           geteilten Scheduler-Thread (Invariante 2)
+    LoggingAlertSender      Rückfallebene ohne SMTP-Zugangsdaten, analog
+                           LoggingMailSender
     LoginLinkUrl             Baut /league/login/TOKEN an einer Stelle für
                            beide Adapter — die Route, die das Frontend
                            abfängt (useLeagueAccount.js)

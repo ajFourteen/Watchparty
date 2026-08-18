@@ -92,7 +92,7 @@ mindestens einen Spieltag nicht erreichbar war. Ab drei Läufen in Folge
 (Default-Takt: 45 Minuten) ruft er `AlertSender.feedUnreachable` auf — genau
 einmal pro Ausfallserie, nicht bei jedem weiteren Lauf; ein erfolgreicher
 Lauf setzt den Zähler zurück und macht einen neuen Ausfall wieder alarmfähig.
-Produktiv (`AlertMailSender`, an dieselbe Strato-Konfiguration wie der
+Produktiv (`AlertMailSender`, an dieselbe IONOS-Konfiguration wie der
 Anmeldelink angehängt) geht die Mail an `watchparty.league.alert.email`
 (vorgesehen: `info@fourteen-it.de`); ohne gesetzte SMTP-Zugangsdaten
 übernimmt `LoggingAlertSender` und schreibt nur ins Log, dieselbe

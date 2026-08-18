@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
  *
  * Faellt ein, solange kein echter Mailversand konfiguriert ist (dieselbe
  * Bedingung wie {@link LoggingMailSender}) — fuers lokale Entwickeln und
- * fuer einen Betrieb ohne Strato-Zugangsdaten.
+ * fuer einen Betrieb ohne IONOS-Zugangsdaten.
  */
 public class LoggingAlertSender implements AlertSender {
 

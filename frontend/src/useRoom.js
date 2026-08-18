@@ -58,6 +58,16 @@ export function useRoom() {
   /** Spiegelt playerId, damit der onmessage-Handler nicht auf einem alten Wert haengt. */
   const playerIdRef = useRef(null);
 
+  /**
+   * Ob der gerade laufende JOIN-Versuch der stille, automatische beim
+   * Verbindungsaufbau ist (rejoin()) statt ein Klick im Beitrittsformular.
+   * Ein alter Watchparty-Code in localStorage kann inzwischen ungueltig
+   * geworden sein (Aufraeum-Sweep, Server-Neustart) -- dessen Fehlermeldung
+   * darf dann nicht wie ein fehlgeschlagener eigener Beitrittsversuch
+   * aussehen, obwohl noch gar keiner stattgefunden hat.
+   */
+  const autoRejoinRef = useRef(false);
+
   /** serverNow minus Date.now(); einmal pro STATE gebildet, lokal interpoliert (ADR-003). */
   const clockOffsetRef = useRef(0);
 
@@ -71,7 +81,8 @@ export function useRoom() {
   const rejoin = useCallback(() => {
     const name = window.localStorage.getItem(NAME_KEY);
     const currentRoom = window.localStorage.getItem(CURRENT_ROOM_KEY);
-    if (name) {
+    if (name && currentRoom) {
+      autoRejoinRef.current = true;
       send({ type: "JOIN", name, token: tokenFor(currentRoom), roomCode: currentRoom });
     }
   }, [send]);
@@ -90,6 +101,7 @@ export function useRoom() {
       socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === "WELCOME") {
+          autoRejoinRef.current = false;
           window.localStorage.setItem(tokenKey(message.roomCode), message.token);
           window.localStorage.setItem(CURRENT_ROOM_KEY, message.roomCode);
           setRoomCode(message.roomCode);
@@ -139,6 +151,20 @@ export function useRoom() {
         } else if (message.type === "YOUR_PICK") {
           setYourPick({ outcomeId: message.outcomeId, stake: message.stake });
         } else if (message.type === "ERROR") {
+          if (autoRejoinRef.current) {
+            // Der stille Rejoin-Versuch ist an einem inzwischen ungueltigen
+            // Code aus localStorage gescheitert (Aufraeum-Sweep,
+            // Server-Neustart) -- kein eigener Beitrittsversuch, also auch
+            // keine Fehlermeldung. Der veraltete Code wird verworfen, damit
+            // der naechste Verbindungsversuch es nicht wieder probiert.
+            autoRejoinRef.current = false;
+            const staleRoom = window.localStorage.getItem(CURRENT_ROOM_KEY);
+            if (staleRoom) {
+              window.localStorage.removeItem(tokenKey(staleRoom));
+            }
+            window.localStorage.removeItem(CURRENT_ROOM_KEY);
+            return;
+          }
           setError(message.message);
         }
       };
@@ -170,6 +196,7 @@ export function useRoom() {
    */
   const join = useCallback(
     (name, code) => {
+      autoRejoinRef.current = false;
       window.localStorage.setItem(NAME_KEY, name);
       const normalizedCode = code ? code.trim().toUpperCase() : "";
       if (normalizedCode) {

@@ -95,7 +95,7 @@ export function Datenschutz() {
       <p>Wir setzen folgende Auftragsverarbeiter ein:</p>
       <ul>
         <li>
-          <strong>Versand der Anmeldelinks und Betriebs-Alarme:</strong> Strato (SMTP).
+          <strong>Versand der Anmeldelinks und Betriebs-Alarme:</strong> IONOS (SMTP).
         </li>
         <li>
           <strong>Hosting:</strong> Fly.io, Region Frankfurt.

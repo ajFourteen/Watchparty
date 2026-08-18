@@ -30,7 +30,7 @@ import java.time.Duration;
  * Saison, scheitert der Start mit einer eindeutigen Fehlermeldung statt
  * eines still falschen Verhaltens. {@link AlertSender} kommt aus {@link
  * LeagueMailConfig} (dieselbe {@code db.url}-Bedingung, immer verfuegbar):
- * ein echter Mailversand, wenn Strato-Zugangsdaten gesetzt sind, sonst die
+ * ein echter Mailversand, wenn IONOS-Zugangsdaten gesetzt sind, sonst die
  * Log-Rueckfallebene.
  */
 @Configuration
