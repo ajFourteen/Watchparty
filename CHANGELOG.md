@@ -1,3 +1,11 @@
+## [3.9.1](https://github.com/ajFourteen/Watchparty/compare/v3.9.0...v3.9.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* Anmeldelink erst per Klick einlösen statt automatisch beim Laden ([0b6935a](https://github.com/ajFourteen/Watchparty/commit/0b6935a7bc1c47afccba8dbc6e53771f9c64c44a))
+* Tippspiel-Oberfläche vor Release nachbessern ([f895bb2](https://github.com/ajFourteen/Watchparty/commit/f895bb24434ee2d1c314685e3081b7d224556f2e))
+
 # [3.9.0](https://github.com/ajFourteen/Watchparty/compare/v3.8.1...v3.9.0) (2026-08-18)
 
 
