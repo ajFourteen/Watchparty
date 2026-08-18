@@ -9,12 +9,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Schreibt den Anmeldelink strukturiert ins Log statt ihn zu versenden.
  *
- * Bewusste Zwischenstufe (Rueckfrage vom 2026-08-17): Ein echter
- * Mailversand-Anbieter braucht ein Konto, Zugangsdaten und einen Vertrag —
- * das ist eine betriebliche Entscheidung fuer Stufe 8, kein Adapter, der
- * sich am Schreibtisch bauen laesst. Der Port {@link MailSender} ist davon
- * unberuehrt: Ein spaeterer Adapter (z. B. SMTP) tauscht nur diese Klasse
- * aus, nichts, was von ihr abhaengt.
+ * Fällt ein, solange kein echter Mailversand konfiguriert ist
+ * (`watchparty.league.mail.smtp.username` fehlt, siehe {@code
+ * LeagueLoginConfig}) — fürs lokale Entwickeln und für einen Betrieb ohne
+ * Strato-Zugangsdaten. Der Port {@link MailSender} ist davon unberührt:
+ * {@link SmtpMailSender} tauscht nur diese Klasse aus, nichts, was von ihr
+ * abhängt.
  */
 public class LoggingMailSender implements MailSender {
 
@@ -28,7 +28,7 @@ public class LoggingMailSender implements MailSender {
 
     @Override
     public void sendLoginLink(LoginLink link) {
-        String url = baseUrl + "/login/" + link.getToken().value();
-        log.info("Anmeldelink fuer {} (verfaellt {}): {}", link.getEmail(), link.getExpiresAt(), url);
+        log.info("Anmeldelink fuer {} (verfaellt {}): {}", link.getEmail(), link.getExpiresAt(),
+                LoginLinkUrl.of(baseUrl, link));
     }
 }

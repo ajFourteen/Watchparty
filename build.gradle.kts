@@ -44,6 +44,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
 
+    // Mailversand des Tippspiels (ADR-036): Jakarta Mail ueber Spring, aber
+    // ohne Spring Boots eigene MailSenderAutoConfiguration -- JavaMailSenderImpl
+    // wird in config/league von Hand gebaut, wie DataSource fuer die Datenbank.
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+
     // Persistenz des Tippspiels (ADR-035): Standard-JDBC-Weg von Spring Boot,
     // kein Spring Data -- Repository-Adapter sprechen JdbcTemplate direkt,
     // damit die Zugriffe so explizit bleiben wie der Rest dieser Codebasis.

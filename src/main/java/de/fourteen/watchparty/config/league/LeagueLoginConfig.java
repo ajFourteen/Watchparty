@@ -2,7 +2,6 @@ package de.fourteen.watchparty.config.league;
 
 import de.fourteen.watchparty.adapter.out.db.AccountSessionRepositoryJdbc;
 import de.fourteen.watchparty.adapter.out.db.LoginLinkRepositoryJdbc;
-import de.fourteen.watchparty.adapter.out.mail.LoggingMailSender;
 import de.fourteen.watchparty.adapter.out.ratelimit.InMemoryRateLimiter;
 import de.fourteen.watchparty.application.league.LoginService;
 import de.fourteen.watchparty.application.league.port.in.LoginCommands;
@@ -22,8 +21,10 @@ import java.time.Clock;
 import java.time.Duration;
 
 /**
- * Verdrahtet die Anmeldung (ADR-036): Repositories, Rate Limit, Mailversand
- * und {@link LoginService} als Umsetzung von {@link LoginCommands}.
+ * Verdrahtet die Anmeldung (ADR-036): Repositories, Rate Limit und
+ * {@link LoginService} als Umsetzung von {@link LoginCommands}. Der
+ * Mailversand selbst steht in {@link LeagueMailConfig}, injiziert hier nur
+ * als {@link MailSender}-Port.
  *
  * Dieselbe Bedingung wie {@link LeagueDatabaseConfig}: Ohne
  * {@code watchparty.league.db.url} entsteht hier kein einziger Bean — die
@@ -42,11 +43,6 @@ public class LeagueLoginConfig {
     @Bean
     public AccountSessionRepository accountSessionRepository(NamedParameterJdbcTemplate leagueJdbcTemplate) {
         return new AccountSessionRepositoryJdbc(leagueJdbcTemplate);
-    }
-
-    @Bean
-    public MailSender mailSender(@Value("${watchparty.league.login.base-url:http://localhost:5173}") String baseUrl) {
-        return new LoggingMailSender(baseUrl);
     }
 
     @Bean

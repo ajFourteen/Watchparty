@@ -34,7 +34,8 @@ ADR-034 bis ADR-039, Kapitel 13 in `anforderungen.md`). Gebaut wird
 stufenweise; Stufe 0 (Entscheidungen), Stufe 1 (Wertung, `domain/*/league`),
 Stufe 2 (Persistenz: Postgres/Flyway unter `adapter/out/db`, erster Baustein
 `Account`), Stufe 3 (Konten: Magic Link, Sitzung, Rate Limit, Löschung —
-Mailversand vorerst als Log-Adapter, ein echter Anbieter ist Stufe 8),
+Mailversand über SMTP, wahlweise Strato oder als Log-Adapter ohne
+Zugangsdaten — die echten Zugangsdaten selbst sind Stufe 8),
 Stufe 4 (Spieldaten: ESPN-Feed hinter `ScheduleFeed`, Nachführ-Job über den
 bestehenden `Scheduler`-Port, Handeintrag als Notweg), Stufe 5 (Tippen:
 `Prediction`, `PredictionView` als HIGH-kritische Sichtbarkeitsregel für
@@ -377,10 +378,17 @@ src/main/java/de/fourteen/watchparty/
                            damit Adapter-Tests eine aufgezeichnete Antwort
                            einspeisen können statt echtes Netz zu brauchen
   adapter/out/mail/
-    LoggingMailSender       MailSender, schreibt den Anmeldelink strukturiert
-                           ins Log statt ihn zu versenden — ein echter
-                           Anbieter (Konto, Zugangsdaten, Vertrag) ist eine
-                           betriebliche Entscheidung für Stufe 8
+    SmtpMailSender          MailSender über Strato-SMTP (Rückfrage vom
+                           2026-08-18), JavaMailSenderImpl von Hand gebaut
+                           statt über Spring Boots MailSenderAutoConfiguration
+                           — echte Zugangsdaten sind trotzdem erst Stufe 8
+    LoggingMailSender       Springt ein, solange keine SMTP-Zugangsdaten
+                           gesetzt sind (@ConditionalOnMissingBean in
+                           LeagueMailConfig) — schreibt den Anmeldelink nur
+                           strukturiert ins Log
+    LoginLinkUrl             Baut /league/login/TOKEN an einer Stelle für
+                           beide Adapter — die Route, die das Frontend
+                           abfängt (useLeagueAccount.js)
   adapter/out/ratelimit/
     InMemoryRateLimiter     Gleitendes Zeitfenster im Arbeitsspeicher
                            (Kriterium 4), synchronized statt Concurrent-
@@ -398,9 +406,12 @@ src/main/java/de/fourteen/watchparty/
                            (in WatchpartyApplication ausgeschaltet); fehlt
                            watchparty.league.db.url, entsteht kein Bean —
                            die Live-Wetten starten trotzdem (Kriterium 37)
-    LeagueLoginConfig       Verdrahtet Repositories, Rate Limit, Mailversand
-                           und LoginService; dieselbe Bedingung wie
+    LeagueLoginConfig       Verdrahtet Repositories, Rate Limit und
+                           LoginService; dieselbe Bedingung wie
                            LeagueDatabaseConfig
+    LeagueMailConfig         SmtpMailSender bei gesetzten
+                           watchparty.league.mail.smtp.*-Properties, sonst
+                           LoggingMailSender (@ConditionalOnMissingBean)
     LeagueScheduleConfig     Verdrahtet EspnScheduleFeed, ScheduleSyncService
                            und den ScheduleSyncJob; eigene Bedingung
                            watchparty.league.schedule.season-year
