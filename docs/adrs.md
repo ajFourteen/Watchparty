@@ -1450,6 +1450,14 @@ muss (Kriterium 5).
   (Szenario „Die Anmeldeantwort verrät nicht, wer ein Konto hat",
   `docs/features/005-tippspiel-liga.md`), keine Empfehlung — Kritikalität
   `HIGH` für „Konto und Anmeldung".
+- Der Handeintrag-Notweg (Kriterium 14, 13.7) nutzt denselben Mechanismus
+  statt eines eigenen Berechtigungsmodells: Ein fest konfiguriertes
+  Admin-Konto (E-Mail-Adresse aus `watchparty.league.admin.email`) meldet
+  sich wie jeder Tipper per Magic Link an; der Endpunkt für
+  `ScheduleCommands.setResultManually` prüft nur, ob die authentifizierte
+  Sitzung zu dieser Adresse gehört. Kein Admin-Flag in der Datenbank, kein
+  zweiter Login-Weg (Rückfrage vom 2026-08-18). Umsetzung folgt mit dem
+  Endpunkt selbst (`docs/features/005-tippspiel-liga.md`, Stufe 7).
 
 ## ADR-037: ESPN als Feed hinter dem Port `ScheduleFeed`
 

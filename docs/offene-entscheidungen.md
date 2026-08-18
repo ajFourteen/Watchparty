@@ -43,18 +43,6 @@ akzeptiert; falls es zu wild wird, wären eine Mindestteilnehmerzahl pro
 Ausgang oder ein kleiner Grundpool denkbare Stellschrauben. Aktuell nicht
 umgesetzt.
 
-**Handeintrag: wie meldet sich der Betreiber an?** (Tippspiel)
-Kriterium 14 sieht vor, dass der Betreiber ein Endergebnis von Hand setzen
-kann — der Notweg, wenn der ESPN-Feed ausfällt oder falsch liegt (13.7).
-`ScheduleCommands.setResultManually` ist gebaut und auf Port-Ebene getestet,
-aber es gibt noch keinen Weg von außen dahin (`docs/features/005-tippspiel-liga.md`,
-Stufe 7). Anders als die Live-Wetten kennt das Tippspiel keine Host-Rolle,
-die sich einfach auf „wer zuerst da war" abbildet — offen ist, wie sich der
-Betreiber ausweist: ein eigenes Konto mit einer Berechtigung, ein geteiltes
-Secret, oder vorerst nur ein Zugriff direkt auf den Server ohne eigenen
-HTTP-Endpunkt. Wird erst zusammen mit dem Endpunkt entschieden, wenn dieser
-Punkt umgesetzt wird.
-
 ## Nicht offen — bewusst ausgeschlossen
 
 Damit diese Fragen nicht versehentlich wieder aufgemacht werden: aktiv aus

@@ -156,6 +156,16 @@ der Vorrunde; das in `Matchday` vorzusehen, bevor überhaupt jemand getippt hat,
 ist Aufwand gegen eine Vermutung. Die Entscheidung fällt im Januar mit echten
 Daten neu — bis dahin bleibt `Matchday` auf die Regular Season beschränkt.
 
+**Handeintrag-Notweg über ein fest konfiguriertes Admin-Konto, nicht über ein
+eigenes Berechtigungsmodell** (Rückfrage vom 2026-08-18, siehe ADR-036).
+Anders als die Live-Wetten kennt das Tippspiel keine Host-Rolle, die sich auf
+„wer zuerst da war" abbildet. Statt eines Admin-Flags in der Datenbank oder
+eines zweiten Login-Wegs meldet sich der Betreiber wie jeder Tipper per
+Magic Link an; der Endpunkt für `ScheduleCommands.setResultManually` prüft
+nur, ob die authentifizierte Sitzung zur konfigurierten Adresse
+(`watchparty.league.admin.email`) gehört. Die Umsetzung selbst steht noch
+aus (Stufe 7, Rest).
+
 **Beide Spielmodi stehen gleichwertig nebeneinander, mit einem sichtbaren
 Wechsel.** Kein Auswahlschritt vor dem Beitritt (1-f: ein Link genügt) und
 keine getrennten Wege, bei denen das Tippspiel nur findet, wer den Pfad kennt.
