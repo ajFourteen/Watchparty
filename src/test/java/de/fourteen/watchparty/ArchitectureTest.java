@@ -68,6 +68,7 @@ class ArchitectureTest {
             .domainServices("de.fourteen.watchparty.domain.service..")
             .applicationServices("de.fourteen.watchparty.application..")
             .adapter("ws", "de.fourteen.watchparty.adapter.in.ws..")
+            .adapter("http", "de.fourteen.watchparty.adapter.in.http..")
             .adapter("file", "de.fourteen.watchparty.adapter.out.file..")
             .adapter("time", "de.fourteen.watchparty.adapter.out.time..")
             .adapter("db", "de.fourteen.watchparty.adapter.out.db..")

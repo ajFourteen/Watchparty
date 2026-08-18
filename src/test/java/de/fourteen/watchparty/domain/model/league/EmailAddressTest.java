@@ -44,4 +44,9 @@ class EmailAddressTest {
     void isValidLiefertFalseFuerNull() {
         assertThat(EmailAddress.isValid(null)).isFalse();
     }
+
+    @Test
+    void toStringZeigtDenKlartext() {
+        assertThat(EmailAddress.of("anna@example.org")).hasToString("anna@example.org");
+    }
 }

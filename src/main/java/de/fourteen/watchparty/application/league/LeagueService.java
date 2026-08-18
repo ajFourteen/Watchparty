@@ -81,6 +81,16 @@ public class LeagueService implements LeagueCommands {
         return standingsFor(league, games.findByMatchday(matchday));
     }
 
+    @Override
+    public List<League> myLeagues(EmailAddress account) {
+        return leagues.findByMember(account);
+    }
+
+    @Override
+    public Optional<League> league(EmailAddress requester, LeagueId leagueId) {
+        return leagues.findById(leagueId).filter(league -> league.isMember(requester));
+    }
+
     private League leagueOrThrow(LeagueId leagueId) {
         return leagues.findById(leagueId).orElseThrow(() -> new NoSuchElementException("Unbekannte Liga: " + leagueId));
     }

@@ -336,6 +336,20 @@ src/main/java/de/fourteen/watchparty/
     WebSocketClientGateway Hält die Verbindungen, serialisiert nach JSON
     ClientSession.java     Verbindung mit eigener Ausgangs-Queue (ADR-012)
     WebSocketConfig.java   Registriert den Handler auf /ws
+  adapter/in/http/         REST statt WebSocket fürs Tippspiel (ADR-039) —
+                           Anfrage/Antwort, kein Push
+    LoginController, PredictionController, LeagueController
+                           Je ein Controller pro Kommando-Port; DTOs als
+                           verschachtelte Records, ohne Jackson-Annotationen
+    AuthenticatedAccount, AccountArgumentResolver   Löst das Sitzungscookie
+                           zu einem Konto auf; fehlend/unbekannt/abgelaufen
+                           wird bewusst nicht unterschieden (Kriterium 5)
+    SessionCookie.java      Name und Bauweise des Sitzungscookies an einer
+                           Stelle; secure konfigurierbar (lokale Entwicklung
+                           ohne HTTPS)
+    LeagueExceptionHandler   Übersetzt NotAuthenticatedException/
+                           NoSuchElementException/IllegalStateException/
+                           IllegalArgumentException in HTTP-Status
   adapter/out/file/
     SnapshotStore.java     Schreiben/Lesen auf Platte, eigener Thread; seit
                            ADR-033 ein Verzeichnis, eine Datei je Watchparty
@@ -386,6 +400,8 @@ src/main/java/de/fourteen/watchparty/
                            wie LeagueDatabaseConfig
     LeagueMembershipConfig   Verdrahtet LeagueService; dieselbe Bedingung
                            wie LeagueDatabaseConfig
+    LeagueWebConfig          Registriert AccountArgumentResolver bei Spring
+                           MVC; dieselbe Bedingung wie LeagueDatabaseConfig
 frontend/src/
   useRoom.js               Verbindung, Reconnect, Token je Watchparty-Code
                            (ADR-033), Uhren-Offset

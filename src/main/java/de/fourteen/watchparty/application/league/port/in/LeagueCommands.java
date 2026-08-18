@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.application.league.port.in;
 
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.League;
 import de.fourteen.watchparty.domain.model.league.LeagueCode;
 import de.fourteen.watchparty.domain.model.league.LeagueId;
 import de.fourteen.watchparty.domain.model.league.LeagueName;
@@ -9,6 +10,7 @@ import de.fourteen.watchparty.domain.model.league.SeasonId;
 import de.fourteen.watchparty.domain.service.league.Standings;
 
 import java.util.List;
+import java.util.Optional;
 
 /** Was von aussen ausgeloest werden kann, um Ligen zu verwalten und ihre Rangliste abzurufen (Kapitel 13.6). */
 public interface LeagueCommands {
@@ -27,4 +29,10 @@ public interface LeagueCommands {
 
     /** Kriterium 33: Rangliste nur ueber einen einzelnen Spieltag. */
     List<Standings.Entry> matchdayStandings(LeagueId leagueId, Matchday matchday);
+
+    /** Kriterium 30: alle Ligen, denen das Konto angehoert. */
+    List<League> myLeagues(EmailAddress account);
+
+    /** Nur fuer Mitglieder sichtbar — Nichtmitglied und unbekannte Liga sind absichtlich nicht zu unterscheiden. */
+    Optional<League> league(EmailAddress requester, LeagueId leagueId);
 }
