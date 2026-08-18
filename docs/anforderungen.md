@@ -359,7 +359,11 @@ einzelner Eintrag überspringt nur sich selbst, nicht den restlichen
 Spieltag. Der Betreiber kann ein Endergebnis von Hand setzen (der Notweg
 aus 13.7, nicht der Regelfall); dieser Handeintrag überschreibt den Feed
 und bleibt bestehen, bis ihn ein neuer Handeintrag ersetzt — ein späterer
-Feed-Abgleich nimmt ihn nicht stillschweigend zurück.
+Feed-Abgleich nimmt ihn nicht stillschweigend zurück. Der Handeintrag ist
+nur einem fest konfigurierten Admin-Konto möglich: Es meldet sich wie jeder
+Tipper per Magic Link an (13.2), ohne ein eigenes Berechtigungsmodell —
+geprüft wird nur, ob die authentifizierte Sitzung zur konfigurierten Adresse
+gehört.
 
 Was das für Ergebnistipps und die Rangliste bedeutet — dass ein bereits
 abgegebener Tipp durch eine Verlegung nicht entwertet wird (13.4), und dass
@@ -656,6 +660,7 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.3-e | Ein Endergebnis kann sich nachträglich korrigieren (Feed oder Handeintrag); der gespeicherte Stand wird entsprechend aktualisiert. | Tippspiel | backend |
 | 13.3-f | Ein abgesagtes oder nicht gewertetes Spiel trägt einen eigenen Status statt eines Endergebnisses. | Tippspiel | backend |
 | 13.3-g | Der Betreiber kann ein Endergebnis von Hand setzen; dieser Handeintrag überschreibt den Feed und bleibt bestehen, bis ihn ein neuer Handeintrag ersetzt. | Tippspiel | backend |
+| 13.3-h | Der Handeintrag ist nur einem fest konfigurierten Admin-Konto möglich, das sich wie jeder Tipper per Magic Link anmeldet; jeder andere authentifizierte Zugriff wird abgelehnt. | Tippspiel | backend |
 | 13.4-a | Ein angemeldeter Tipper sieht die Spiele eines Spieltags mit Anstoßzeit. | Tippspiel | backend |
 | 13.4-b | Er kann zu jedem Spiel einen Ergebnistipp abgeben: zwei nicht-negative ganze Zahlen. | Tippspiel | backend |
 | 13.4-c | Ein Ergebnistipp ist bis zum Anstoß des jeweiligen Spiels änderbar, danach weder änderbar noch nachtragbar. | Tippspiel | backend |

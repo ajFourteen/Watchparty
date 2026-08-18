@@ -19,6 +19,12 @@ class LeagueExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
+    /** Kriterium 13.3-h: eine gueltige Sitzung, aber kein Admin-Konto. */
+    @ExceptionHandler(NotAuthorizedException.class)
+    ResponseEntity<Void> notAuthorized() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
     @ExceptionHandler(NoSuchElementException.class)
     ResponseEntity<Void> notFound() {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
