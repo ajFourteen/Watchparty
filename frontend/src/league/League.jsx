@@ -14,7 +14,7 @@ export function League() {
 
   if (status === "loading") {
     return (
-      <main className="shell shell--league">
+      <main className="shell">
         <p className="hint">Lädt …</p>
       </main>
     );
@@ -22,7 +22,7 @@ export function League() {
 
   if (status === "pendingLogin") {
     return (
-      <main className="shell shell--league">
+      <main className="shell">
         <div className="league-card">
           <p className="eyebrow">Tippspiel</p>
           <h1 className="display">Anmeldelink geöffnet</h1>
@@ -41,14 +41,14 @@ export function League() {
 
   if (status === "anonymous") {
     return (
-      <main className="shell shell--league">
+      <main className="shell">
         <LoginScreen onRequestLink={requestLink} error={error} />
       </main>
     );
   }
 
   return (
-    <main className="shell shell--league">
+    <main className="shell">
       <header className="scorebug scorebug--league">
         <span className="bug-inline">
           Angemeldet als <strong className="league-account-name">{account.displayName}</strong>

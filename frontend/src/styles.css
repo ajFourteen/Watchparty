@@ -65,7 +65,7 @@ body {
   max-width: 480px;
   width: 100%;
   margin: 0 auto;
-  padding: 1rem 1rem 4.5rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -73,17 +73,6 @@ body {
   min-height: 0;
   overflow-y: auto;
   box-sizing: border-box;
-}
-
-/*
- * Die 4.5rem Bodenabstand von .shell reservieren Platz fuer die fest
- * verankerte Statusleiste der Live-Wetten (.status, position: fixed) und
- * ueberlappen sie deshalb dort mit den Rechtstexte-Links darunter. Das
- * Tippspiel hat keine solche Leiste — ohne die Reservierung bliebe sonst
- * eine unbegruendete Luecke vor denselben Links.
- */
-.shell--league {
-  padding-bottom: 1rem;
 }
 
 /* --- Bausteine ---------------------------------------------------------- */
@@ -972,11 +961,19 @@ body {
 
 /* --- Statusleiste -------------------------------------------------------- */
 
+/*
+ * Immer sichtbar, auch waehrend .shell scrollt — aber sticky innerhalb von
+ * .shell statt fixed am Viewport: fixed lag exakt auf den Rechtstexte-
+ * Links darunter, weil beide am unteren Bildschirmrand verankert waren.
+ * Sticky bleibt innerhalb der eigenen Box, ueberlappt die Links deshalb
+ * nicht mehr. margin-top: auto schiebt sie ans Ende von .shell, wenn der
+ * Inhalt kuerzer als der Bildschirm ist (derselbe Trick wie ein
+ * Flexbox-Sticky-Footer).
+ */
 .status {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
+  margin-top: auto;
   text-align: center;
   padding: 0.4rem;
   font-size: 0.65rem;
