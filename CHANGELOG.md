@@ -1,3 +1,15 @@
+# [3.10.0](https://github.com/ajFourteen/Watchparty/compare/v3.9.1...v3.10.0) (2026-08-18)
+
+
+### Bug Fixes
+
+* Abstand zu Impressum/Datenschutz im Tippspiel verkleinern ([14c0f8f](https://github.com/ajFourteen/Watchparty/commit/14c0f8f2fbff720d82fdb312919009c6f98047cf))
+
+
+### Features
+
+* Tippspiel-Header neu gestalten und Punktestand ergänzen ([64a498f](https://github.com/ajFourteen/Watchparty/commit/64a498fdba50485935232c56ec3450a5abefe1bd))
+
 ## [3.9.1](https://github.com/ajFourteen/Watchparty/compare/v3.9.0...v3.9.1) (2026-08-18)
 
 
