@@ -1,5 +1,6 @@
 package de.fourteen.watchparty.application.league.port.out;
 
+import de.fourteen.watchparty.domain.model.league.EmailAddress;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.Prediction;
 
@@ -12,4 +13,7 @@ public interface PredictionRepository {
     void save(Prediction prediction);
 
     List<Prediction> findByGame(GameId gameId);
+
+    /** Alle Ergebnistipps eines Kontos, ueber alle Spiele und Ligen hinweg (13.6-c) — fuer den ligaunabhaengigen Punktestand. */
+    List<Prediction> findByAccount(EmailAddress account);
 }

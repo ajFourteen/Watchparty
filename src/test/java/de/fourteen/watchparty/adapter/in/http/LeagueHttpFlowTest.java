@@ -144,6 +144,11 @@ class LeagueHttpFlowTest {
         finished.applyManualResult(GameScore.of(24, 17));
         games.save(finished);
 
+        ResponseEntity<Map> totalPoints = rest.exchange(baseUrl() + "/api/league/predictions/total-points",
+                HttpMethod.GET, authenticated(cookie), Map.class);
+        assertThat(totalPoints.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(totalPoints.getBody()).containsEntry("totalPoints", 6);
+
         ResponseEntity<List> standings = rest.exchange(baseUrl() + "/api/league/leagues/" + leagueId + "/standings/season",
                 HttpMethod.GET, authenticated(cookie), List.class);
         assertThat(standings.getStatusCode()).isEqualTo(HttpStatus.OK);

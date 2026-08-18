@@ -42,6 +42,7 @@ export const leagueApi = {
   schedule: (year, week) => request(`/schedule/${year}/${week}`),
   submitPrediction: (gameId, home, away) =>
     request("/predictions", { method: "POST", body: JSON.stringify({ gameId, home, away }) }),
+  totalPoints: () => request("/predictions/total-points"),
 
   myLeagues: () => request("/leagues"),
   createLeague: (name, seasonYear) =>

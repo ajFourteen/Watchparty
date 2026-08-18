@@ -14,6 +14,7 @@ import de.fourteen.watchparty.domain.model.league.Game;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.GameScore;
 import de.fourteen.watchparty.domain.model.league.GameStatus;
+import de.fourteen.watchparty.domain.model.league.LeaguePoints;
 import de.fourteen.watchparty.domain.model.league.Matchday;
 import de.fourteen.watchparty.domain.model.league.SeasonId;
 import de.fourteen.watchparty.domain.model.league.Team;
@@ -45,10 +46,29 @@ public class TippenStufen extends DeutscheStufe<TippenStufen> {
 
     private Exception letzterFehler;
     private PredictionView.MatchdayView letzteAnsicht;
+    private LeaguePoints letzterPunktestand;
 
     public TippenStufen einSpielMitAnstossIn(String gameId, Duration abstand) {
         games.save(Game.of(GameId.of(gameId), MATCHDAY, HOME, AWAY, clock.instant().plus(abstand),
                 GameStatus.SCHEDULED, null, false));
+        return self();
+    }
+
+    /** Simuliert den Nachfuehr-Job (ADR-037): das Spiel geht von SCHEDULED auf FINAL mit dem genannten Endergebnis ueber. */
+    public TippenStufen dasSpielEndetMit(String gameId, int heim, int gast) {
+        Game bestehend = games.findById(GameId.of(gameId)).orElseThrow();
+        games.save(Game.of(bestehend.getId(), bestehend.getMatchday(), bestehend.getHomeTeam(), bestehend.getAwayTeam(),
+                bestehend.getKickoff(), GameStatus.FINAL, GameScore.of(heim, gast), false));
+        return self();
+    }
+
+    public TippenStufen ruftDenPunktestandAbFuer(String email) {
+        letzterPunktestand = tippen.totalPoints(EmailAddress.of(email));
+        return self();
+    }
+
+    public TippenStufen zeigtDenPunktestand(int erwartet) {
+        assertThat(letzterPunktestand).isEqualTo(new LeaguePoints(erwartet));
         return self();
     }
 

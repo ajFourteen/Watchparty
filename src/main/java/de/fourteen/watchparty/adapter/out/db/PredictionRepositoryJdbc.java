@@ -49,4 +49,12 @@ public class PredictionRepositoryJdbc implements PredictionRepository {
                 new MapSqlParameterSource("gameId", gameId.value()),
                 ROW_MAPPER);
     }
+
+    @Override
+    public List<Prediction> findByAccount(EmailAddress account) {
+        return jdbc.query(
+                "SELECT account_email, game_id, home_score, away_score FROM prediction WHERE account_email = :accountEmail",
+                new MapSqlParameterSource("accountEmail", account.value()),
+                ROW_MAPPER);
+    }
 }

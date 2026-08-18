@@ -453,6 +453,13 @@ Die Ranglisten zweier Ligen sind vollständig getrennt: Wer nicht Mitglied
 einer Liga ist, steht nicht in ihrer Rangliste, unabhängig davon, wie viele
 Wertungspunkte er in anderen Ligen oder insgesamt erzielt hat.
 
+Dieser Gesamtwert — die Summe der Wertungspunkte eines Kontos über alle
+bewerteten Spiele, unabhängig davon, in wie vielen oder welchen Ligen der
+Tipper Mitglied ist — ist der Punktestand des Kontos selbst. Er existiert
+auch ohne jede Liga, weil Tipps und Punkte laut Kapitel 13.4 dem Konto
+gehören, nicht einer Liga; die Rangliste vergleicht ihn nur zusätzlich mit
+anderen.
+
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
 Der Fließtext oben ist die fachliche Wahrheit; dieser Anhang zerlegt ihn in
@@ -681,3 +688,4 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.6-h | Es gibt zusätzlich eine Rangliste je Spieltag, die nur dessen Spiele zählt. | Tippspiel | backend |
 | 13.6-i | Die Ranglisten zweier Ligen sind vollständig getrennt: Wer nicht Mitglied ist, steht nicht darin. | Tippspiel | backend |
 | 13.6-j | Eine Ergebniskorrektur wird bei der nächsten Abfrage der Rangliste berücksichtigt — kein eingefrorener Punktestand. | Tippspiel | backend |
+| 13.6-k | Ein Konto hat einen eigenen Punktestand — die Summe seiner Wertungspunkte über alle bewerteten Spiele, unabhängig von einer Liga. | Tippspiel | backend |

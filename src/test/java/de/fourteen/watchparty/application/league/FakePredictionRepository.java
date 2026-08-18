@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.application.league;
 
 import de.fourteen.watchparty.application.league.port.out.PredictionRepository;
+import de.fourteen.watchparty.domain.model.league.EmailAddress;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.Prediction;
 import de.fourteen.watchparty.domain.model.league.PredictionId;
@@ -22,5 +23,10 @@ public class FakePredictionRepository implements PredictionRepository {
     @Override
     public List<Prediction> findByGame(GameId gameId) {
         return byId.values().stream().filter(p -> p.getId().gameId().equals(gameId)).toList();
+    }
+
+    @Override
+    public List<Prediction> findByAccount(EmailAddress account) {
+        return byId.values().stream().filter(p -> p.getId().accountEmail().equals(account)).toList();
     }
 }

@@ -31,8 +31,8 @@ export function useLeagueAccount() {
 
   const refresh = useCallback(async () => {
     try {
-      const me = await leagueApi.me();
-      setAccount(me);
+      const [me, points] = await Promise.all([leagueApi.me(), leagueApi.totalPoints()]);
+      setAccount({ ...me, totalPoints: points.totalPoints });
       setStatus("authenticated");
     } catch (e) {
       setAccount(null);

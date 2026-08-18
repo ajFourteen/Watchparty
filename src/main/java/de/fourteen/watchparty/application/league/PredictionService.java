@@ -11,15 +11,19 @@ import de.fourteen.watchparty.domain.model.league.EmailAddress;
 import de.fourteen.watchparty.domain.model.league.Game;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.GameScore;
+import de.fourteen.watchparty.domain.model.league.GameStatus;
+import de.fourteen.watchparty.domain.model.league.LeaguePoints;
 import de.fourteen.watchparty.domain.model.league.Matchday;
 import de.fourteen.watchparty.domain.model.league.Prediction;
 import de.fourteen.watchparty.domain.model.league.PredictionId;
+import de.fourteen.watchparty.domain.service.league.Scoring;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 /**
  * Setzt {@link PredictionCommands} um (Kapitel 13.4). Die eigentliche
@@ -58,6 +62,22 @@ public class PredictionService implements PredictionCommands {
             throw new IllegalStateException("Das Spiel hat bereits angestossen, ein Tipp ist nicht mehr moeglich");
         }
         predictions.save(Prediction.of(PredictionId.of(account, gameId), score));
+    }
+
+    @Override
+    public LeaguePoints totalPoints(EmailAddress account) {
+        int total = 0;
+        for (Prediction prediction : predictions.findByAccount(account)) {
+            GameId gameId = prediction.getId().gameId();
+            Game game = games.findById(gameId).orElseThrow(() -> new NoSuchElementException("Unbekanntes Spiel: " + gameId));
+            if (game.getStatus() != GameStatus.FINAL) {
+                continue;
+            }
+            // Als FINAL markierte Spiele haben laut Game-Konstruktor immer ein Ergebnis.
+            GameScore actual = Objects.requireNonNull(game.getScore());
+            total += Scoring.score(prediction.getScore(), actual).value();
+        }
+        return new LeaguePoints(total);
     }
 
     private DisplayName displayNameOf(EmailAddress email) {

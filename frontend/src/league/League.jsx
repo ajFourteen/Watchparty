@@ -50,14 +50,41 @@ export function League() {
   return (
     <main className="shell shell--league">
       <header className="scorebug">
-        <span className="brand">Tippspiel</span>
         <span className="bug-stat">
           <span className="bug-label">Angemeldet als</span>
           <span className="bug-value league-account-name">{account.displayName}</span>
         </span>
-        <button className="button ghost" onClick={logout} aria-label="Abmelden">
-          ⏻
-        </button>
+        <span className="bug-stat">
+          <span className="bug-label">Punktestand</span>
+          <span className="bug-value">{account.totalPoints}</span>
+        </span>
+        <details className="account-menu">
+          <summary className="button ghost" aria-label="Konto-Menü">
+            ⋮
+          </summary>
+          <div className="account-menu-panel">
+            <button className="button ghost wide" onClick={logout}>
+              Abmelden
+            </button>
+            <details className="danger-zone">
+              <summary className="button ghost wide">Konto löschen</summary>
+              <p className="hint">
+                Löscht E-Mail-Adresse und Anzeigenamen unwiderruflich. Bereits gewertete Tipps
+                verschwinden aus allen Ranglisten.
+              </p>
+              <button
+                className="button danger"
+                onClick={() => {
+                  if (window.confirm("Konto wirklich löschen? Das lässt sich nicht rückgängig machen.")) {
+                    deleteAccount();
+                  }
+                }}
+              >
+                Konto endgültig löschen
+              </button>
+            </details>
+          </div>
+        </details>
       </header>
 
       <nav className="league-tabs">
@@ -92,24 +119,6 @@ export function League() {
           onLeft={() => setOpenLeagueId(null)}
         />
       )}
-
-      <details className="danger-zone">
-        <summary className="button ghost wide">Konto löschen</summary>
-        <p className="hint">
-          Löscht E-Mail-Adresse und Anzeigenamen unwiderruflich. Bereits gewertete Tipps
-          verschwinden aus allen Ranglisten.
-        </p>
-        <button
-          className="button danger"
-          onClick={() => {
-            if (window.confirm("Konto wirklich löschen? Das lässt sich nicht rückgängig machen.")) {
-              deleteAccount();
-            }
-          }}
-        >
-          Konto endgültig löschen
-        </button>
-      </details>
     </main>
   );
 }

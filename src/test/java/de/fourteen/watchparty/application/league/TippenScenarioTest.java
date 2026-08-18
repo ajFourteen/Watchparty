@@ -85,4 +85,33 @@ class TippenScenarioTest extends DeutschesSzenario<TippenStufen, TippenStufen, T
 
         dann().zeigtFuerDasSpielDenFremdenTippVon("1", "Ben", 20, 10);
     }
+
+    @Test
+    @Anforderung("13.6-k")
+    void derPunktestandIstDieSummeDerWertungspunkteUeberAlleBewertetenSpiele() {
+        angenommen().einKontoMitNamenExistiertFuer("Anna", "anna@example.org")
+                .und().einSpielMitAnstossIn("1", Duration.ofHours(1))
+                .und().einSpielMitAnstossIn("2", Duration.ofHours(1))
+                .und().tipptFuerDasSpiel("anna@example.org", "1", 24, 17)
+                .und().tipptFuerDasSpiel("anna@example.org", "2", 30, 10)
+                .und().dasSpielEndetMit("1", 24, 17)
+                .und().dasSpielEndetMit("2", 20, 10);
+
+        wenn().ruftDenPunktestandAbFuer("anna@example.org");
+
+        // Spiel 1 exakt getroffen (6), Spiel 2 nur die Tendenz (3): 9 insgesamt.
+        dann().zeigtDenPunktestand(9);
+    }
+
+    @Test
+    @Anforderung("13.6-k")
+    void nochNichtAusgewerteteSpieleZaehlenNichtZumPunktestand() {
+        angenommen().einKontoMitNamenExistiertFuer("Anna", "anna@example.org")
+                .und().einSpielMitAnstossIn("1", Duration.ofHours(1))
+                .und().tipptFuerDasSpiel("anna@example.org", "1", 24, 17);
+
+        wenn().ruftDenPunktestandAbFuer("anna@example.org");
+
+        dann().zeigtDenPunktestand(0);
+    }
 }
