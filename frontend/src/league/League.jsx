@@ -7,7 +7,8 @@ import { LeagueDetailScreen } from "./LeagueDetailScreen.jsx";
 
 /** Das Tippspiel: Anmeldung, Spieltag, Ligen — unabhängig von den Live-Wetten (CLAUDE.md, "Beide Modi teilen sich die Anwendung und sonst nichts"). */
 export function League() {
-  const { status, account, error, requestLink, logout, deleteAccount } = useLeagueAccount();
+  const { status, account, error, requestLink, logout, deleteAccount, confirmLogin } =
+    useLeagueAccount();
   const [tab, setTab] = useState("schedule");
   const [openLeagueId, setOpenLeagueId] = useState(null);
 
@@ -15,6 +16,25 @@ export function League() {
     return (
       <main className="shell">
         <p className="hint">Lädt …</p>
+      </main>
+    );
+  }
+
+  if (status === "pendingLogin") {
+    return (
+      <main className="shell">
+        <div className="league-card">
+          <p className="eyebrow">Tippspiel</p>
+          <h1 className="display">Anmeldelink geöffnet</h1>
+          <p className="hint">
+            Falls das hier eine Vorschau deines Mail-Programms ist: Der Link bleibt
+            gültig, bis du wirklich auf "Jetzt anmelden" klickst — kopiere ihn also
+            ruhig erst in deinen Browser, bevor du klickst.
+          </p>
+          <button className="button primary wide" onClick={confirmLogin}>
+            Jetzt anmelden
+          </button>
+        </div>
       </main>
     );
   }

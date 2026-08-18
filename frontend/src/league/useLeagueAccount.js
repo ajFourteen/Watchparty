@@ -2,15 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import { leagueApi } from "./api.js";
 
 /**
- * `/league/login/TOKEN` kommt aus der Mail (Kriterium 1) — der Token wird
- * einmalig eingelöst, danach wird die URL bereinigt, damit ein Neuladen
- * nicht denselben (dann schon verbrauchten) Link erneut versucht.
+ * `/league/login/TOKEN` kommt aus der Mail (Kriterium 1). Der Token wird
+ * bewusst NICHT schon beim bloßen Laden dieser Seite eingelöst: Mail-
+ * Programme öffnen solche Links oft in einem eingebauten Vorschau-Browser
+ * (oder rendern ihn für eine Link-Vorschau) und führen dabei das Skript der
+ * Seite mit aus — ohne einen expliziten Klick würde das den einmal
+ * verwendbaren Link schon verbrauchen, bevor er im eigentlichen Browser
+ * geöffnet werden kann. Deshalb bleibt der Token bis zum Klick auf
+ * "Jetzt anmelden" unangetastet und auch in der URL stehen, damit sich der
+ * Link notfalls noch kopieren und anderswo öffnen lässt.
  */
-function redeemTokenFromLocation() {
+function tokenFromLocation() {
   const match = window.location.pathname.match(/^\/league\/login\/([^/]+)$/);
-  if (!match) return null;
-  window.history.replaceState(null, "", "/league");
-  return decodeURIComponent(match[1]);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 /**
@@ -23,6 +27,7 @@ export function useLeagueAccount() {
   const [status, setStatus] = useState("loading");
   const [account, setAccount] = useState(null);
   const [error, setError] = useState(null);
+  const [pendingToken, setPendingToken] = useState(() => tokenFromLocation());
 
   const refresh = useCallback(async () => {
     try {
@@ -37,19 +42,27 @@ export function useLeagueAccount() {
   }, []);
 
   useEffect(() => {
-    const token = redeemTokenFromLocation();
-    if (!token) {
-      refresh();
+    if (pendingToken) {
+      setStatus("pendingLogin");
       return;
     }
-    leagueApi
-      .redeem(token)
-      .then(refresh)
-      .catch(() => {
-        setStatus("anonymous");
-        setError("Der Anmeldelink ist ungültig oder schon verbraucht.");
-      });
-  }, [refresh]);
+    refresh();
+  }, [pendingToken, refresh]);
+
+  const confirmLogin = useCallback(async () => {
+    if (!pendingToken) return;
+    try {
+      await leagueApi.redeem(pendingToken);
+      window.history.replaceState(null, "", "/league");
+      setPendingToken(null);
+      await refresh();
+    } catch {
+      window.history.replaceState(null, "", "/league");
+      setPendingToken(null);
+      setStatus("anonymous");
+      setError("Der Anmeldelink ist ungültig oder schon verbraucht.");
+    }
+  }, [pendingToken, refresh]);
 
   const requestLink = useCallback(async (email, displayName) => {
     setError(null);
@@ -68,5 +81,5 @@ export function useLeagueAccount() {
     setStatus("anonymous");
   }, []);
 
-  return { status, account, error, requestLink, logout, deleteAccount };
+  return { status, account, error, requestLink, logout, deleteAccount, confirmLogin };
 }
