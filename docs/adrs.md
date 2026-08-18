@@ -1531,6 +1531,38 @@ Arten abgefedert:
   abgegebenen Tipp (Kriterium 10) — ein Tipp wird beim Abgeben gegen die
   damals gültige Zeit geprüft, nie rückwirkend gegen eine später verschobene.
 
+**Nachtrag (2026-08-18): das angenommene Risiko ist eingetreten.** ESPN
+blockiert Zugriffe aus Fly.ios IP-Bereich mit `403 Forbidden` (Akamai,
+vermutlich eine IP-Reputationssperre gegen Rechenzentrums-Adressen, kein
+Format- oder Header-Problem — von anderen Netzen aus liefert derselbe
+Endpunkt weiterhin `200`). Der interne, selbst nachplanende `ScheduleSyncJob`
+über den `Scheduler`-Port ist damit wirkungslos geworden: Er hätte nie einen
+erfolgreichen Abgleich mehr erzielt, nur wiederkehrend denselben Fehler
+geloggt. Entfernt statt belassen, weil ein dauerhaft scheiternder Job kein
+Rest-Nutzen ist, sondern nur Rauschen.
+
+**Ersetzt durch einen taeglichen GitHub-Actions-Workflow**
+(`.github/workflows/schedule-relay.yml`, ADR-019 liefert bereits die
+Infrastruktur dafuer): Er ruft ESPN von einem GitHub-Runner ab — anderes
+Netz, nicht blockiert — und liefert die rohe Antwort an einen neuen
+Endpunkt (`ScheduleController`, `POST /api/league/feed-relay/{season}/{week}`)
+weiter. Dieser nutzt dieselbe Parse- und Abgleichlogik wie zuvor
+(`ScheduleFeed.parseExternalResponse`, delegiert an die bestehende,
+weiterhin adaptergetestete `EspnScheduleFeed.parse`), nur ohne selbst eine
+Netzwerkverbindung zu ESPN aufzubauen. Authentifiziert über ein geteiltes
+Secret im Header (`X-Relay-Token`) statt eines Sitzungscookies — es ist
+keine Person, die sich anmeldet, sondern eine Maschine, dieselbe Idee wie
+`FLY_API_TOKEN` fuer den Deploy, nur fuer diesen einen Zweck. `fetchMatchday`
+(der Live-Abruf direkt aus der Anwendung) bleibt im Code bestehen, nur
+produktiv ungenutzt — falls sich die Sperre je aendert, ist es kein Umbau,
+nur ein neues Wiring.
+
+Der eigene Alarm-Mechanismus aus dem Feed-Betrieb (`AlertSender`,
+`AlertMailSender`, drei fehlgeschlagene Laeufe in Folge) ist mit dem Job
+entfernt worden: GitHubs eigene Benachrichtigung bei einem fehlgeschlagenen
+Scheduled Workflow deckt denselben Bedarf ab, ohne eine zweite,
+projekteigene Alarmkette zu pflegen.
+
 ## ADR-038: Wertung als reine Funktion, „höchste Stufe zählt", eigene Fachbegriffe
 
 **Status:** Akzeptiert

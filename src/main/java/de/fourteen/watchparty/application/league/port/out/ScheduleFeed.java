@@ -18,4 +18,13 @@ import java.util.List;
 public interface ScheduleFeed {
 
     List<Game> fetchMatchday(Matchday matchday);
+
+    /**
+     * Wertet eine bereits andernorts abgerufene Feed-Antwort aus, ohne
+     * selbst eine Netzwerkverbindung aufzubauen (ADR-037-Nachtrag vom
+     * 2026-08-18: ESPN blockiert Zugriffe aus Fly.ios IP-Bereich mit 403;
+     * ein taeglicher GitHub-Actions-Workflow ruft den Feed stattdessen von
+     * dort ab und liefert die rohe Antwort hierher weiter).
+     */
+    List<Game> parseExternalResponse(Matchday matchday, String rawResponse);
 }

@@ -54,7 +54,16 @@ public class ScheduleSyncService implements ScheduleCommands {
                     matchday, e);
             return false;
         }
+        merge(fetched);
+        return true;
+    }
 
+    @Override
+    public void ingestRelayedFeed(Matchday matchday, String rawResponse) {
+        merge(feed.parseExternalResponse(matchday, rawResponse));
+    }
+
+    private void merge(List<Game> fetched) {
         for (Game feedGame : fetched) {
             games.findById(feedGame.getId()).ifPresentOrElse(
                     bestehendesSpiel -> {
@@ -63,7 +72,6 @@ public class ScheduleSyncService implements ScheduleCommands {
                     },
                     () -> games.save(feedGame));
         }
-        return true;
     }
 
     @Override

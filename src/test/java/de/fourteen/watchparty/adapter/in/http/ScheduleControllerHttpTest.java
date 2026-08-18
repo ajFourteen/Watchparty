@@ -28,6 +28,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -35,16 +39,21 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Der Handeintrag-Notweg ueber die Leitung (Kriterium 13.3-g/13.3-h,
- * ADR-036): nur das konfigurierte Admin-Konto darf ein Endergebnis von Hand
- * setzen, jedes andere authentifizierte Konto wird abgelehnt.
+ * Zwei Wege ohne interaktiven Anmeldelink, ueber die Leitung geprueft:
+ *
+ * <p>Der Handeintrag-Notweg (Kriterium 13.3-g/13.3-h, ADR-036): nur das
+ * konfigurierte Admin-Konto darf ein Endergebnis von Hand setzen, jedes
+ * andere authentifizierte Konto wird abgelehnt.
+ *
+ * <p>Der Feed-Relay (ADR-037-Nachtrag vom 2026-08-18): ein taeglicher
+ * GitHub-Actions-Workflow liefert eine extern abgerufene ESPN-Antwort per
+ * geteiltem Token statt Sitzungscookie ein.
  *
  * {@code watchparty.league.feed.base-url} zeigt bewusst auf einen
- * unerreichbaren lokalen Port statt auf ESPN — der Nachfuehr-Job laeuft
- * beim Start trotzdem an (Kriterium 9), soll in Tests aber nicht wirklich
- * das Netz erreichen (derselbe Grundsatz wie in {@code LeagueHttpFlowTest}),
- * nur eben mit gesetztem {@code season-year}, weil {@code ScheduleController}
- * genau davon abhaengt.
+ * unerreichbaren lokalen Port statt auf ESPN — {@code ScheduleController}
+ * ruft ihn selbst nicht mehr auf (kein Job mehr), die Property muss trotzdem
+ * gesetzt sein, weil {@code LeagueScheduleConfig} den {@code ScheduleFeed}-Bean
+ * sonst gar nicht erst anlegt.
  */
 @ApiTest
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -52,6 +61,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ScheduleControllerHttpTest {
 
     private static final String ADMIN_EMAIL = "admin@example.org";
+    private static final String RELAY_TOKEN = "test-relay-token";
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
     static {
@@ -65,6 +75,7 @@ class ScheduleControllerHttpTest {
         registry.add("watchparty.league.db.password", POSTGRES::getPassword);
         registry.add("watchparty.league.admin.email", () -> ADMIN_EMAIL);
         registry.add("watchparty.league.schedule.season-year", () -> "2026");
+        registry.add("watchparty.league.schedule.relay-token", () -> RELAY_TOKEN);
         registry.add("watchparty.league.feed.base-url", () -> "http://127.0.0.1:1");
     }
 
@@ -114,6 +125,25 @@ class ScheduleControllerHttpTest {
         return GameId.of(gameId);
     }
 
+    /** Dieselbe Aufzeichnung wie EspnScheduleFeedTest — der Relay liefert dieselbe Antwortform. */
+    private static String aufgezeichneteFeedAntwort() {
+        try (InputStream in = ScheduleControllerHttpTest.class.getResourceAsStream("/feed/espn-scoreboard-sample.json")) {
+            if (in == null) {
+                throw new IllegalStateException("Testressource fehlt: feed/espn-scoreboard-sample.json");
+            }
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private HttpEntity<String> mitRelayToken(String token, String body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Relay-Token", token);
+        headers.setContentType(org.springframework.http.MediaType.TEXT_PLAIN);
+        return new HttpEntity<>(body, headers);
+    }
+
     @Test
     void dasAdminKontoKannEinErgebnisVonHandSetzen() {
         String cookie = redeemAndGetCookie(ADMIN_EMAIL, "Admin");
@@ -140,5 +170,26 @@ class ScheduleControllerHttpTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         Game unchanged = games.findById(gameId).orElseThrow();
         assertThat(unchanged.getStatus()).isEqualTo(GameStatus.SCHEDULED);
+    }
+
+    @Test
+    void derRelayMitGueltigemTokenSpieltDieFeedAntwortEin() {
+        ResponseEntity<Void> response = rest.exchange(baseUrl() + "/api/league/feed-relay/2026/1", HttpMethod.POST,
+                mitRelayToken(RELAY_TOKEN, aufgezeichneteFeedAntwort()), Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(games.findById(GameId.of("401872656"))).isPresent();
+    }
+
+    @Test
+    void derRelayMitFalschemTokenWirdAbgelehnt() {
+        Matchday matchday = Matchday.of(SeasonId.of(2026), 1);
+        int vorher = games.findByMatchday(matchday).size();
+
+        ResponseEntity<Void> response = rest.exchange(baseUrl() + "/api/league/feed-relay/2026/1", HttpMethod.POST,
+                mitRelayToken("falsches-token", aufgezeichneteFeedAntwort()), Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(games.findByMatchday(matchday)).hasSize(vorher);
     }
 }

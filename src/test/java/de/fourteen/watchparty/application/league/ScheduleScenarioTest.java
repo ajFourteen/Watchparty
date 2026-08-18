@@ -73,4 +73,14 @@ class ScheduleScenarioTest extends DeutschesSzenario<ScheduleStufen, ScheduleStu
 
         dann().kenntFuerDasSpielDasErgebnis("1", 30, 20);
     }
+
+    @Test
+    @Anforderung("13.3-b")
+    void eineExternAbgerufeneFeedAntwortWirdGenauSoUebernommenWieEinLiveAbgleich() {
+        angenommen().derFeedMeldetFuerEinGeplantesSpiel("1", MATCHDAY);
+
+        wenn().wirdEineExternAbgerufeneFeedAntwortEingespielt(MATCHDAY);
+
+        dann().kenntDasSpielMitDemStatus("1", GameStatus.SCHEDULED);
+    }
 }

@@ -31,6 +31,15 @@ import java.util.List;
  * einen Eintrag (Kriterium 11: der Rest des Spieltags bleibt unberuehrt),
  * niemals den ganzen Abgleich.
  *
+ * {@link #fetchMatchday} baut die Verbindung selbst auf und wird produktiv
+ * nicht mehr automatisch aufgerufen (ADR-037-Nachtrag vom 2026-08-18): ESPN
+ * blockiert Zugriffe aus Fly.ios IP-Bereich mit 403 (Akamai). Die eigentliche
+ * Abfrage macht seitdem ein taeglicher GitHub-Actions-Workflow von einem
+ * anderen Netz aus; die rohe Antwort kommt ueber {@link
+ * #parseExternalResponse} herein, dieselbe Parse-Logik wie zuvor. {@link
+ * #fetchMatchday} bleibt nutzbar (lokale Entwicklung, falls sich die Sperre
+ * je aendert), ist aber kein Bestandteil des produktiven Pfads mehr.
+ *
  * {@link #parse} ist paketsichtbar statt privat: Adapter-Tests fuettern es
  * direkt mit einer aufgezeichneten Antwort, ohne echtes Netz (ADR-037,
  * docs/teststrategie.md 2.3).
@@ -64,6 +73,11 @@ public class EspnScheduleFeed implements ScheduleFeed {
             throw new IllegalStateException("Leere Antwort vom Feed fuer " + matchday);
         }
         return parse(body, matchday);
+    }
+
+    @Override
+    public List<Game> parseExternalResponse(Matchday matchday, String rawResponse) {
+        return parse(rawResponse, matchday);
     }
 
     List<Game> parse(String responseBody, Matchday matchday) {

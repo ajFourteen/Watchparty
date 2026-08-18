@@ -59,8 +59,8 @@ class LeagueHttpFlowTest {
         registry.add("watchparty.league.db.url", POSTGRES::getJdbcUrl);
         registry.add("watchparty.league.db.username", POSTGRES::getUsername);
         registry.add("watchparty.league.db.password", POSTGRES::getPassword);
-        // watchparty.league.schedule.season-year bewusst NICHT gesetzt: der
-        // Nachfuehr-Job soll in Tests nicht wirklich das Netz erreichen.
+        // watchparty.league.schedule.season-year bewusst NICHT gesetzt: dieser
+        // Test prueft den Anmelde-/Liga-Weg, nicht den Spielplan-Abgleich.
     }
 
     @LocalServerPort

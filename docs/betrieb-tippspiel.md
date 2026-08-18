@@ -73,59 +73,56 @@ danach in einem Rhythmus, der zur Kritikalität passt (z. B. monatlich
 während der Saison) — die genaue Kadenz ist eine Betriebsentscheidung, keine
 technische.
 
-## Feed: Überwachung
+## Feed: Zugriff über einen Relay statt direkt aus der Anwendung
 
-**Ausgangslage.** `ScheduleSyncJob` ruft `syncSeason` alle
-`watchparty.league.schedule.sync-interval-minutes` (Default 15) auf.
-Schlägt der Abruf eines Spieltags fehl, fängt `ScheduleSyncService` die
-Exception ab, loggt auf WARN-Niveau
-(„Feed nicht erreichbar für {} — letzter bekannter Stand bleibt stehen",
-Kriterium 11) und meldet den Fehlschlag an `ScheduleSyncJob` zurück — der
-Sync-Takt selbst läuft unbeeinflusst weiter, kein Absturz, kein
-Datenverlust. Einzelne unlesbare Spiel-Einträge innerhalb einer Antwort
-werden in `EspnScheduleFeed.mapEvent` übersprungen und nur geloggt (dazu
-gleich mehr).
+**Warum.** ESPN blockiert Zugriffe aus Fly.ios IP-Bereich mit `403
+Forbidden` (Akamai, festgestellt am 2026-08-18) — der interne, alle 15
+Minuten selbst nachplanende `ScheduleSyncJob` schlug seitdem bei jedem
+einzelnen Spieltag fehl. Kein Format- oder Header-Problem: Von anderen
+Netzen aus liefert derselbe ESPN-Endpunkt weiterhin `200`. Das ist
+vermutlich eine IP-Reputationssperre gegen Rechenzentrums-Adressen, keine
+gezielte Sperre gegen dieses Projekt — und nicht zuverlässig durch
+Header-Tricks zu umgehen (das wäre ohnehin ein Wettlauf gegen Akamais
+Bot-Erkennung, den dieses Projekt nicht führen will). `ScheduleSyncJob` ist
+deshalb entfernt worden (ADR-037-Nachtrag), nicht nur pausiert.
 
-**Alarm bei andauerndem Ausfall (seit 2026-08-18 umgesetzt).**
-`ScheduleSyncJob` zählt aufeinanderfolgende Läufe, in denen der Feed für
-mindestens einen Spieltag nicht erreichbar war. Ab drei Läufen in Folge
-(Default-Takt: 45 Minuten) ruft er `AlertSender.feedUnreachable` auf — genau
-einmal pro Ausfallserie, nicht bei jedem weiteren Lauf; ein erfolgreicher
-Lauf setzt den Zähler zurück und macht einen neuen Ausfall wieder alarmfähig.
-Produktiv (`AlertMailSender`, an dieselbe IONOS-Konfiguration wie der
-Anmeldelink angehängt) geht die Mail an `watchparty.league.alert.email`
-(vorgesehen: `info@fourteen-it.de`); ohne gesetzte SMTP-Zugangsdaten
-übernimmt `LoggingAlertSender` und schreibt nur ins Log, dieselbe
-Rückfallebene wie beim Anmeldelink (`LoggingMailSender`).
+**Wie es jetzt läuft.** Ein täglicher GitHub-Actions-Workflow
+(`.github/workflows/schedule-relay.yml`, Cron 08:00 UTC) ruft ESPN direkt
+von einem GitHub-Runner ab — anderes Netz, nicht blockiert — für alle 18
+Spieltage der Regular Season. Die rohe Antwort schickt er per `POST` an
+`/api/league/feed-relay/{season}/{week}`, authentifiziert über den Header
+`X-Relay-Token` (geteiltes Secret, nicht der Admin-Magic-Link — hier meldet
+sich keine Person an, sondern eine Maschine). Der Endpunkt
+(`ScheduleController`) nutzt dieselbe Parse- und Abgleichlogik wie zuvor
+(`EspnScheduleFeed.parse`, jetzt über `ScheduleFeed.parseExternalResponse`
+erreichbar) — Kriterium 11 (letzter bekannter Stand bleibt bei Ausfall
+stehen) und das Überspringen einzelner kaputter Einträge gelten unverändert,
+nur ohne die eigene, blockierte Netzwerkverbindung.
 
-Wichtig für Invariante 2 (CLAUDE.md): `ScheduleSyncJob` läuft auf demselben
-geteilten Scheduler-Thread wie das Auto-Close der Live-Wetten. Der Aufruf
-von `AlertSender.feedUnreachable` darf diesen Thread deshalb nicht
-blockieren — `AlertMailSender` reiht den SMTP-Versand nur in einen eigenen
-Thread ein und kehrt sofort zurück, dieselbe Bauweise wie der Schreib-Thread
-in `SnapshotStore`.
+**Secrets, die dafür beidseitig gesetzt sein müssen** (derselbe Wert):
+- Fly: `WATCHPARTY_LEAGUE_SCHEDULE_RELAY_TOKEN`
+- GitHub-Actions-Repository-Secret: `SCHEDULE_RELAY_TOKEN`
 
-**Was der Alarm nicht abdeckt.** Das zweite Fehlerbild — der Feed liefert
-Daten, aber in kaputtem Format (`EspnScheduleFeed.mapEvent` überspringt
-Einträge, Log-Zeilen beginnen mit „Ueberspringe") — löst keinen Alarm aus.
-Ein Format-Bruch ist schwerer zuverlässig zu erkennen (wie viele
-übersprungene Spiele sind noch normal, z. B. durch Bye-Wochen?) und bleibt
-bewusst ein log-basiertes, manuelles Beobachtungsfeld: `fly logs` an einen
-externen Log-Drain mit Text-Matching auf „Ueberspringe", gehäuft innerhalb
-eines Sync-Laufs. Kein Produktivcode dafür — bei Bedarf ein eigenes, klein
-geschnittenes Feature mit einer belastbaren Schwelle.
+**Überwachung.** Kein eigener Alarm-Mechanismus mehr in der Anwendung (der
+`AlertSender`/`AlertMailSender`-Mechanismus vom selben Tag ist mit dem Job
+entfernt worden, siehe ADR-037-Nachtrag) — GitHub benachrichtigt bei einem
+fehlgeschlagenen Scheduled Workflow bereits von sich aus (Standard-Mail an
+Repo-Beobachter). Der Workflow selbst lässt einen einzelnen fehlgeschlagenen
+Spieltag die übrigen nicht aufhalten (derselbe Grundsatz wie Kriterium 11),
+meldet am Ende aber einen Fehler, wenn mindestens einer scheiterte — das
+reicht als Signal, um GitHubs Benachrichtigung auszulösen.
 
-Ein eigener Health- oder Status-Endpunkt („wann war der letzte erfolgreiche
-Sync") bliebe darüber hinaus eine sinnvolle Ergänzung, ist aber ebenfalls
-kein Bestandteil dieser Umsetzung.
+**Was weiterhin nicht abgedeckt ist.** Ein Format-Bruch bei ESPN (einzelne
+Einträge werden übersprungen, Log-Zeilen beginnen mit „Ueberspringe") löst
+weiterhin keinen aktiven Alarm aus — bleibt ein log-basiertes, manuelles
+Beobachtungsfeld (`fly logs`), aus denselben Gründen wie zuvor: schwer
+zuverlässig von normalen Bye-Wochen zu unterscheiden.
 
-**Handeintrag als Auffangnetz.** Auch ohne Alarm bleibt Kriterium 11 die
-Rückfallebene: Der letzte bekannte Stand steht, nichts wird stillschweigend
-falsch. Der Handeintrag-Notweg (Kriterium 14, `offene-entscheidungen.md`
-bzw. jetzt `005-tippspiel-liga.md`/ADR-036) fängt den Fall auf, in dem der
-Feed dauerhaft ausfällt oder falsch liegt — vorausgesetzt, jemand hat
-gemerkt, dass er ausgefallen ist. Deshalb ist ein Alarm kein „Nice-to-have",
-sondern die einzige Verbindung zwischen den beiden.
+**Handeintrag als Auffangnetz.** Auch wenn der tägliche Relay einmal
+ausfällt, bleibt Kriterium 11 die Rückfallebene: Der letzte bekannte Stand
+steht, nichts wird stillschweigend falsch. Der Handeintrag-Notweg
+(Kriterium 14, ADR-036) fängt den Fall auf, in dem Ergebnisse gebraucht
+werden, bevor der nächste Relay-Lauf sie nachträgt.
 
 ## Was hier bewusst fehlt
 

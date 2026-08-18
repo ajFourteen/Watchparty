@@ -38,8 +38,10 @@ Mailversand über SMTP (IONOS, richtiggestellt am 2026-08-18 — die
 Rückfrage vom 2026-08-17 hatte fälschlich Strato genannt) oder als
 Log-Adapter ohne Zugangsdaten — die echten Zugangsdaten selbst sind
 Stufe 8),
-Stufe 4 (Spieldaten: ESPN-Feed hinter `ScheduleFeed`, Nachführ-Job über den
-bestehenden `Scheduler`-Port, Handeintrag als Notweg), Stufe 5 (Tippen:
+Stufe 4 (Spieldaten: ESPN-Feed hinter `ScheduleFeed`, Handeintrag als
+Notweg — der ursprüngliche interne Nachführ-Job über den `Scheduler`-Port
+ist seit 2026-08-18 durch einen täglichen GitHub-Actions-Relay ersetzt,
+ADR-037-Nachtrag: ESPN blockiert Zugriffe aus Fly.ios IP-Bereich), Stufe 5 (Tippen:
 `Prediction`, `PredictionView` als HIGH-kritische Sichtbarkeitsregel für
 Kriterium 19/20, Mutation Score 100 %), Stufe 6 (Ligen: `League`,
 `Standings` mit Gleichstandsregel und geteiltem Platz) und Stufe 7
@@ -321,14 +323,14 @@ src/main/java/de/fourteen/watchparty/
     ScheduleSyncService.java   Setzt ScheduleCommands um: gleicht einen
                            Spieltag oder eine ganze Saison mit dem Feed ab,
                            ein ausgefallener Spieltag hält die übrigen
-                           nicht auf
-    ScheduleSyncJob.java       Stößt syncSeason regelmäßig an, über den
-                           geteilten Scheduler-Port (ADR-037) — die eine
-                           bewusste Ausnahme von der Anwendungsring-Trennung
-                           (ArchitectureTest), weil Scheduler ein reiner
-                           Zeitplanungs-Port ohne Live-Wetten-Begriff ist
-    port/in/ScheduleCommands   syncMatchday/syncSeason/setResultManually
-    port/out/GameRepository, ScheduleFeed   Ausgangs-Ports des Spielplans
+                           nicht auf. ingestRelayedFeed nutzt dieselbe
+                           Merge-Logik für eine extern abgerufene Antwort
+                           (ADR-037-Nachtrag, GitHub-Actions-Relay)
+    port/in/ScheduleCommands   syncMatchday/syncSeason/ingestRelayedFeed/
+                           setResultManually
+    port/out/GameRepository, ScheduleFeed   Ausgangs-Ports des Spielplans;
+                           ScheduleFeed trägt seit dem Relay zusätzlich
+                           parseExternalResponse neben fetchMatchday
     PredictionService.java     Setzt PredictionCommands um; die Kickoff-
                            Prüfung (Kriterium 16) sitzt hier, nicht im
                            Aggregat — Prediction kennt kein Game
@@ -355,11 +357,15 @@ src/main/java/de/fourteen/watchparty/
     LoginController, PredictionController, LeagueController
                            Je ein Controller pro Kommando-Port; DTOs als
                            verschachtelte Records, ohne Jackson-Annotationen
-    ScheduleController       Handeintrag-Notweg (Kriterium 14/13.3-h): nur
-                           das über watchparty.league.admin.email fest
-                           konfigurierte Konto darf ein Endergebnis von Hand
-                           setzen, meldet sich dafür wie jeder Tipper per
-                           Magic Link an — kein eigenes Berechtigungsmodell
+    ScheduleController       Zwei Wege ohne Anmeldelink: Handeintrag
+                           (Kriterium 14/13.3-h, nur das über
+                           watchparty.league.admin.email fest konfigurierte
+                           Konto, meldet sich wie jeder Tipper per Magic
+                           Link an) und der Feed-Relay (POST
+                           /api/league/feed-relay/{season}/{week}, geprüft
+                           über den Header X-Relay-Token statt eines
+                           Sitzungscookies — es meldet sich keine Person an,
+                           sondern der GitHub-Actions-Workflow)
     AuthenticatedAccount, AccountArgumentResolver   Löst das Sitzungscookie
                            zu einem Konto auf; fehlend/unbekannt/abgelaufen
                            wird bewusst nicht unterschieden (Kriterium 5)
@@ -389,7 +395,12 @@ src/main/java/de/fourteen/watchparty/
     EspnScheduleFeed        ScheduleFeed über die offenen, unbeauftragten
                            ESPN-Endpunkte (ADR-037); parse() paketsichtbar,
                            damit Adapter-Tests eine aufgezeichnete Antwort
-                           einspeisen können statt echtes Netz zu brauchen
+                           einspeisen können statt echtes Netz zu brauchen.
+                           fetchMatchday (Live-Abruf) ist produktiv seit dem
+                           ADR-037-Nachtrag ungenutzt — ESPN blockiert
+                           Fly.ios IP-Bereich, der tägliche
+                           GitHub-Actions-Relay liefert stattdessen über
+                           parseExternalResponse ein
   adapter/out/mail/
     SmtpMailSender          MailSender über IONOS-SMTP (Rückfrage vom
                            2026-08-17, richtiggestellt am 2026-08-18 — der
@@ -400,12 +411,6 @@ src/main/java/de/fourteen/watchparty/
                            gesetzt sind (@ConditionalOnMissingBean in
                            LeagueMailConfig) — schreibt den Anmeldelink nur
                            strukturiert ins Log
-    AlertMailSender         AlertSender über dieselbe IONOS-Konfiguration,
-                           andere Empfängeradresse (watchparty.league.alert.email);
-                           versendet auf einem eigenen Thread, nicht auf dem
-                           geteilten Scheduler-Thread (Invariante 2)
-    LoggingAlertSender      Rückfallebene ohne SMTP-Zugangsdaten, analog
-                           LoggingMailSender
     LoginLinkUrl             Baut /league/login/TOKEN an einer Stelle für
                            beide Adapter — die Route, die das Frontend
                            abfängt (useLeagueAccount.js)
@@ -432,9 +437,12 @@ src/main/java/de/fourteen/watchparty/
     LeagueMailConfig         SmtpMailSender bei gesetzten
                            watchparty.league.mail.smtp.*-Properties, sonst
                            LoggingMailSender (@ConditionalOnMissingBean)
-    LeagueScheduleConfig     Verdrahtet EspnScheduleFeed, ScheduleSyncService
-                           und den ScheduleSyncJob; eigene Bedingung
-                           watchparty.league.schedule.season-year
+    LeagueScheduleConfig     Verdrahtet EspnScheduleFeed und
+                           ScheduleSyncService; eigene Bedingung
+                           watchparty.league.schedule.season-year. Kein
+                           selbst nachplanender Job mehr seit dem
+                           ADR-037-Nachtrag — der tägliche
+                           GitHub-Actions-Relay ersetzt ihn
     LeagueTippingConfig      Verdrahtet PredictionService; dieselbe Bedingung
                            wie LeagueDatabaseConfig
     LeagueMembershipConfig   Verdrahtet LeagueService; dieselbe Bedingung

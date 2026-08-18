@@ -35,4 +35,10 @@ public class FakeScheduleFeed implements ScheduleFeed {
         }
         return antworten.getOrDefault(matchday, List.of());
     }
+
+    /** Ignoriert rawResponse bewusst -- das Test Double simuliert die Zuordnung ueber {@link #antworteMit}. */
+    @Override
+    public List<Game> parseExternalResponse(Matchday matchday, String rawResponse) {
+        return antworten.getOrDefault(matchday, List.of());
+    }
 }

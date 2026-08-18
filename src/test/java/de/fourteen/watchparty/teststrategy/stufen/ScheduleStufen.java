@@ -63,6 +63,11 @@ public class ScheduleStufen extends DeutscheStufe<ScheduleStufen> {
         return self();
     }
 
+    public ScheduleStufen wirdEineExternAbgerufeneFeedAntwortEingespielt(Matchday matchday) {
+        schedule.ingestRelayedFeed(matchday, "vom-relay-mitgebracht");
+        return self();
+    }
+
     public ScheduleStufen wirdEinErgebnisVonHandGesetzt(String gameId, int heim, int gast) {
         schedule.setResultManually(GameId.of(gameId), GameScore.of(heim, gast));
         return self();
