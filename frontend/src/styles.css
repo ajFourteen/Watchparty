@@ -75,6 +75,17 @@ body {
   box-sizing: border-box;
 }
 
+/*
+ * Die 4.5rem Bodenabstand von .shell reservieren Platz fuer die fest
+ * verankerte Statusleiste der Live-Wetten (.status, position: fixed) und
+ * ueberlappen sie deshalb dort mit den Rechtstexte-Links darunter. Das
+ * Tippspiel hat keine solche Leiste — ohne die Reservierung bliebe sonst
+ * eine unbegruendete Luecke vor denselben Links.
+ */
+.shell--league {
+  padding-bottom: 1rem;
+}
+
 /* --- Bausteine ---------------------------------------------------------- */
 
 .eyebrow {
