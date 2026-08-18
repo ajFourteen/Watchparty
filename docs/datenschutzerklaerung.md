@@ -3,23 +3,20 @@
 **Entwurf, Stand 2026-08-18.** Kein Ersatz für eine rechtliche Prüfung —
 vor der Veröffentlichung durch eine sachkundige Person gegenlesen lassen,
 insbesondere die Punkte, die unten ausdrücklich als offen markiert sind
-(Anschrift, Auftragsverarbeitungsverträge, Drittlandtransfer). Dieser Text
-ist Teil von Stufe 8 aus `docs/features/005-tippspiel-liga.md` und noch
-nicht in die Anwendung eingebunden.
+(Auftragsverarbeitungsverträge, Drittlandtransfer). Dieser Text ist Teil
+von Stufe 8 aus `docs/features/005-tippspiel-liga.md` und noch nicht in
+die Anwendung eingebunden.
 
 ---
 
 ## Verantwortlicher
 
-Andreas Jürgensen
-[ANSCHRIFT EINFÜGEN — Pflichtangabe, siehe Hinweis unten]
+FOURTEEN IT UG (haftungsbeschränkt), vertreten durch Andreas Jürgensen
+Salomon-Petri-Ring 27, 22117 Hamburg
 E-Mail: info@fourteen-it.de
 
-**Offen:** Für diese Datenschutzerklärung reicht eine Kontaktmöglichkeit
-(E-Mail genügt nach Art. 13 DSGVO). Für das ebenfalls noch fehlende
-Impressum (§ 5 DDG, vormals TMG) ist eine ladungsfähige Anschrift dagegen
-Pflicht — das ist ein eigener rechtlicher Baustein neben dieser Erklärung
-und in `docs/features/005-tippspiel-liga.md` (Stufe 8) separat vermerkt.
+Weitere Angaben (Registereintrag, USt-ID) siehe
+[Impressum](impressum.md).
 
 ## Um welche Anwendung es geht
 
