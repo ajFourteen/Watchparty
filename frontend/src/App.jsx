@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Watchparty } from "./Watchparty.jsx";
 import { League } from "./league/League.jsx";
+import { Impressum } from "./legal/Impressum.jsx";
+import { Datenschutz } from "./legal/Datenschutz.jsx";
 
 const MODE_KEY = "watchparty.mode";
 
@@ -19,6 +21,12 @@ function initialMode() {
 
 export default function App() {
   const [mode, setMode] = useState(initialMode);
+
+  // /impressum und /datenschutz sind eigenständige Seiten (WebConfig leitet
+  // sie auf index.html weiter) statt Teil des Moduswechsels — Rechtstexte
+  // gelten für die ganze Anwendung, nicht für einen der beiden Spielmodi.
+  if (window.location.pathname === "/impressum") return <Impressum />;
+  if (window.location.pathname === "/datenschutz") return <Datenschutz />;
 
   const switchTo = (nextMode) => {
     setMode(nextMode);
@@ -42,6 +50,10 @@ export default function App() {
         </button>
       </nav>
       {mode === "watchparty" ? <Watchparty /> : <League />}
+      <footer className="legal-footer">
+        <a href="/impressum">Impressum</a>
+        <a href="/datenschutz">Datenschutz</a>
+      </footer>
     </>
   );
 }

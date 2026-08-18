@@ -947,6 +947,51 @@ body {
   border-color: var(--accent);
 }
 
+.legal-footer {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 0;
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  font-size: 0.75rem;
+  box-sizing: border-box;
+}
+
+.legal-footer a {
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+
+.legal-footer a:hover {
+  text-decoration: underline;
+}
+
+/* --- Rechtstexte (Impressum, Datenschutzerklärung) ---------------------- */
+
+.legal-body h3 {
+  margin: 0.4rem 0 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.legal-body p,
+.legal-body ul {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.legal-body ul {
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.legal-body a {
+  color: var(--accent);
+}
+
 /* --- Tippspiel: gemeinsame Bausteine ------------------------------------ */
 
 .league-card {
