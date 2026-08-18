@@ -1,0 +1,64 @@
+name: Spielplan-Relay
+
+# ESPN blockiert Zugriffe aus Fly.ios IP-Bereich mit 403 -- Akamai, offenbar
+# eine IP-basierte Bot-Sperre gegen Rechenzentrums-Adressen (ADR-037-Nachtrag
+# vom 2026-08-18). Dieser Workflow ruft den Feed stattdessen von einem
+# GitHub-Actions-Runner ab (anderes Netz) und liefert die rohe Antwort an
+# den Relay-Endpunkt der App weiter, der dieselbe Parse- und Abgleichlogik
+# nutzt wie der fruehere, jetzt entfernte interne Nachfuehr-Job.
+#
+# Ein einzelner Spieltag, der fehlschlaegt, haelt die uebrigen nicht auf
+# (Kriterium 11) -- der Job meldet am Ende trotzdem einen Fehler, wenn
+# mindestens einer scheiterte, damit GitHub die Standard-Benachrichtigung
+# bei fehlgeschlagenen Scheduled Workflows ausloest. Das ist die gesamte
+# Ueberwachung: kein eigener Alarm-Mechanismus mehr in der App (der alte,
+# ScheduleSyncJob-basierte, ist damit hinfaellig geworden).
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # taeglich 08:00 UTC
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Saison (Startjahr)"
+        required: false
+        default: "2026"
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    env:
+      SEASON: ${{ github.event.inputs.season || '2026' }}
+      APP_BASE_URL: https://watchparty.fourteen-it.de
+      RELAY_TOKEN: ${{ secrets.SCHEDULE_RELAY_TOKEN }}
+    steps:
+      - name: Alle Spieltage der Regular Season abrufen und weiterleiten
+        run: |
+          set -uo pipefail
+          fehler=0
+          for week in $(seq 1 18); do
+            if ! curl -fsS -o "/tmp/espn-week-${week}.json" \
+                "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${SEASON}"; then
+              echo "::warning::Woche ${week}: ESPN nicht erreichbar"
+              fehler=$((fehler + 1))
+              continue
+            fi
+
+            status="$(curl -sS -o /tmp/relay-response.txt -w "%{http_code}" \
+                -X POST "${APP_BASE_URL}/api/league/feed-relay/${SEASON}/${week}" \
+                -H "X-Relay-Token: ${RELAY_TOKEN}" \
+                -H "Content-Type: text/plain" \
+                --data-binary "@/tmp/espn-week-${week}.json")"
+            if [ "$status" != "200" ]; then
+              echo "::warning::Woche ${week}: Relay antwortete mit HTTP ${status}"
+              cat /tmp/relay-response.txt
+              fehler=$((fehler + 1))
+              continue
+            fi
+            echo "Woche ${week}: OK"
+          done
+
+          if [ "$fehler" -gt 0 ]; then
+            echo "::error::${fehler} von 18 Spieltagen fehlgeschlagen"
+            exit 1
+          fi
