@@ -913,3 +913,182 @@ body {
 .status.connecting {
   color: var(--ink-dim);
 }
+
+/* --- Moduswechsel (CLAUDE.md, "Beide Modi teilen sich die Anwendung und
+   sonst nichts") --------------------------------------------------------- */
+
+.mode-switch {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0.6rem 1rem 0;
+  display: flex;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: inherit;
+  background: var(--panel);
+  color: var(--ink-dim);
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.mode-tab.active {
+  background: var(--panel-high);
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+/* --- Tippspiel: gemeinsame Bausteine ------------------------------------ */
+
+.league-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.league-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.league-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.league-tab {
+  flex: 1;
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  background: var(--panel);
+  color: var(--ink-dim);
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.league-tab.active {
+  background: var(--panel-high);
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.league-row-button {
+  all: unset;
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: baseline;
+  cursor: pointer;
+}
+
+.league-account-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* --- Tippspiel: Spieltag -------------------------------------------------- */
+
+.week-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.games {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem;
+  background: var(--panel);
+  border-radius: 0.25rem;
+  border: 1px solid var(--line);
+}
+
+.game-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.game-teams {
+  font-weight: 700;
+}
+
+.game-kickoff {
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.game-final {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--good);
+}
+
+.predict-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.predict-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+}
+
+.score-field {
+  text-align: center;
+}
+
+.other-predictions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.other-predictions li {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-dim);
+}
+
+.other-predictions .points {
+  font-variant-numeric: tabular-nums;
+}

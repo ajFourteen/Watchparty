@@ -38,10 +38,16 @@ Mailversand vorerst als Log-Adapter, ein echter Anbieter ist Stufe 8),
 Stufe 4 (Spieldaten: ESPN-Feed hinter `ScheduleFeed`, Nachführ-Job über den
 bestehenden `Scheduler`-Port, Handeintrag als Notweg), Stufe 5 (Tippen:
 `Prediction`, `PredictionView` als HIGH-kritische Sichtbarkeitsregel für
-Kriterium 19/20, Mutation Score 100 %) und Stufe 6 (Ligen: `League`,
-`Standings` mit Gleichstandsregel und geteiltem Platz) sind fertig, alles
-Weitere — Oberfläche, Betrieb — steht noch aus (Tabelle im
-Feature-Dokument). Die
+Kriterium 19/20, Mutation Score 100 %), Stufe 6 (Ligen: `League`,
+`Standings` mit Gleichstandsregel und geteiltem Platz) und Stufe 7
+(Oberfläche: REST-Adapter unter `adapter/in/http`, React-App unter
+`frontend/src/league`, Moduswechsel in der Hülle) sind fertig — die
+REST-Schnittstelle end-to-end gegen echtes Postgres geprüft
+(`LeagueHttpFlowTest`), das Frontend nur bis `npm run build` und manuell
+per `curl` durch den ganzen Ablauf, nicht in einem echten Browser (dafür
+fehlt in dieser Umgebung ein Werkzeug). Was fehlt, ist Stufe 8
+(Betrieb) — genuin betrieblich, nicht am Schreibtisch zu erledigen
+(Tabelle im Feature-Dokument). Die
 Live-Wetten sind davon nicht betroffen: Beide Modi teilen sich die Anwendung
 und sonst nichts.
 
@@ -383,7 +389,9 @@ src/main/java/de/fourteen/watchparty/
   config/                  Sämtliche Spring-Beans: RoomConfig verdrahtet den
                            Actor, TimeConfig Uhr und Scheduler, SnapshotConfig
                            den Pfad watchparty.snapshot.path, WebConfig
-                           leitet /join/{code} auf index.html weiter (1-l)
+                           leitet /join/{code} (1-l) und /league(/login/…)
+                           auf index.html weiter — Letzteres ungated, die
+                           Seite soll auch ohne Datenbank laden
   config/league/
     LeagueDatabaseConfig    DataSource (Hikari) + Flyway-Migration von Hand,
                            bewusst ohne Spring-Boot-Autoconfiguration
@@ -403,14 +411,33 @@ src/main/java/de/fourteen/watchparty/
     LeagueWebConfig          Registriert AccountArgumentResolver bei Spring
                            MVC; dieselbe Bedingung wie LeagueDatabaseConfig
 frontend/src/
+  App.jsx                  Die Hülle: Moduswechsel Live-Wetten/Tippspiel,
+                           gemerkt in localStorage, /league(/…) entscheidet
+                           beim ersten Aufruf vor (kein Auswahlschritt vor
+                           dem Beitritt, 1-f)
+  Watchparty.jsx           Die Live-Wetten-App (vormals App.jsx, unverändert
+                           umbenannt): Beitrittsformular mit optionalem
+                           Code-Feld, /join/CODE-Vorbefüllung, ständige
+                           Code-Anzeige, Phasen-Ansichten: Tippen, Countdown,
+                           Aufdeckung, Ergebnis, Leaderboard
   useRoom.js               Verbindung, Reconnect, Token je Watchparty-Code
                            (ADR-033), Uhren-Offset
-  App.jsx                  Beitrittsformular mit optionalem Code-Feld,
-                           /join/CODE-Vorbefüllung, ständige Code-Anzeige,
-                           Phasen-Ansichten: Tippen, Countdown, Aufdeckung,
-                           Ergebnis, Leaderboard
   Guide.jsx                Kurzanleitung als Overlay, baut den Wettkatalog
                            aus den Serverdaten auf
+  league/                  Die Tippspiel-App (ADR-039, HTTP statt WebSocket)
+    api.js                  Fetch-Wrapper auf /api/league/*,
+                           credentials: "include" fürs Sitzungscookie
+    useLeagueAccount.js      Anmeldestatus; löst /league/login/TOKEN beim
+                           Laden ein (Kriterium 1), Wahrheit bleibt GET /me
+    LoginScreen.jsx          E-Mail + Anzeigename; nach dem Absenden nur
+                           noch ein einziger Folgezustand, unabhängig vom
+                           tatsächlichen Ausgang (Kriterium 3)
+    MatchdayScreen.jsx       Spieltag mit Wochenumschalter, Tippformular je
+                           Spiel, fremde Tipps kommen vom Server erst ab
+                           Anstoß überhaupt an (Kriterium 19/20)
+    LeaguesScreen.jsx        Meine Ligen, anlegen, per Code beitreten
+    LeagueDetailScreen.jsx   Beitrittscode zum Weitergeben, Mitglieder,
+                           Saison- und Spieltagsrangliste (Kriterium 33/35)
 docs/                      Anforderungen, ADRs, offene Entscheidungen,
                            Beobachtungsbogen für den Probelauf,
                            Teststrategie und Feature-Vorlage
