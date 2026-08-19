@@ -1,3 +1,10 @@
+## [3.10.2](https://github.com/ajFourteen/Watchparty/compare/v3.10.1...v3.10.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* Verbindungsstatus ganz unten platzieren statt sticky im Inhalt ([aa34fe5](https://github.com/ajFourteen/Watchparty/commit/aa34fe5f1407cbdf2b86d178c7c4d1c35e94e265))
+
 ## [3.10.1](https://github.com/ajFourteen/Watchparty/compare/v3.10.0...v3.10.1) (2026-08-18)
 
 
