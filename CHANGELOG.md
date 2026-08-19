@@ -1,3 +1,11 @@
+## [3.10.1](https://github.com/ajFourteen/Watchparty/compare/v3.10.0...v3.10.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* Tippspiel-Header einzeilig und über volle Breite anzeigen ([b12b42a](https://github.com/ajFourteen/Watchparty/commit/b12b42af81638f7af7a241cd4b07831bdfbaf2d9))
+* Verbindungsstatus nicht mehr über Impressum/Datenschutz legen ([4fb9875](https://github.com/ajFourteen/Watchparty/commit/4fb9875f3958753710cacff2b7e0c21525ac9067))
+
 # [3.10.0](https://github.com/ajFourteen/Watchparty/compare/v3.9.1...v3.10.0) (2026-08-18)
 
 
