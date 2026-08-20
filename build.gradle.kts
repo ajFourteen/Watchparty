@@ -579,6 +579,105 @@ tasks.named("check") {
     dependsOn("abdeckung")
 }
 
+// --- CLAUDE.md gegen den Baum halten --------------------------------------
+//
+// Der Aufbau-Abschnitt in CLAUDE.md beschreibt rund 120 Zeilen Struktur und
+// wird bei jeder Sitzung gelesen. Geprueft hat ihn nichts -- er war damit die
+// Stelle im Projekt, die am sichersten als Erste veraltet, und zwar
+// unbemerkt: Eine geloeschte Klasse steht dort einfach weiter.
+//
+// Gebunden wird nur, was sich eindeutig binden laesst. Die Prosa daneben
+// ("Der Kern. Kein Spring, kein Jackson") bleibt handgeschrieben; sie ist der
+// Grund, warum dieser Abschnitt ueberhaupt existiert, und liesse sich nicht
+// erzeugen, ohne ihren Wert zu verlieren.
+tasks.register("aufbaudoku") {
+    group = "verification"
+    description = "Prueft, dass CLAUDE.md keine verschwundenen Dateien nennt und keinen Domaenentyp verschweigt."
+
+    val claudeDatei = layout.projectDirectory.file("CLAUDE.md")
+    val modellVerzeichnis = layout.projectDirectory.dir("src/main/java/de/fourteen/watchparty/domain/model")
+    val projektWurzel = layout.projectDirectory.asFile
+    val berichtsDatei = layout.buildDirectory.file("reports/aufbaudoku.txt")
+
+    inputs.file(claudeDatei)
+    inputs.dir(modellVerzeichnis)
+    outputs.file(berichtsDatei)
+
+    doLast {
+        val text = claudeDatei.asFile.readText()
+
+        // Zwei Nennungen sind absichtlich ohne Datei dahinter. Sie stehen hier
+        // und nicht als Sonderfall im Text, damit jede weitere Ausnahme im Diff
+        // auffaellt statt sich stillschweigend anzusammeln.
+        val bewussteNennungenOhneDatei = setOf(
+            // Der Platzhalter der Feature-Vorlage, kein Dateiname.
+            "NNN-kurzname.md",
+            // Der Arbeitsplan der Teststrategie-Umsetzung: ausdruecklich
+            // voruebergehend und mit Abschluss der letzten Phase geloescht.
+            // CLAUDE.md nennt ihn genau deshalb -- als Hinweis, dass er weg ist.
+            "teststrategie-umsetzung.md")
+
+        val genannteDateien = Regex("""\b(\w[\w.-]*\.(?:java|jsx|js|kts|md|toml|yml))\b""")
+            .findAll(text).map { it.groupValues[1] }.toSortedSet()
+
+        val vorhandeneNamen = projektWurzel.walkTopDown()
+            .onEnter { verzeichnis ->
+                verzeichnis.name !in setOf("node_modules", "build", ".git", ".gradle", "bin")
+            }
+            .filter { it.isFile }
+            .map { it.name }
+            .toSet()
+
+        val verschwunden = (genannteDateien - vorhandeneNamen - bewussteNennungenOhneDatei).sorted()
+
+        // Umgekehrte Richtung: Jeder Domaenentyp steht im Baum. Das ist die
+        // Konvention "ein neuer Domaenentyp bekommt sofort seinen Platz",
+        // nur eben geprueft statt verabredet.
+        val domaenentypen = modellVerzeichnis.asFile.walkTopDown()
+            .filter { it.isFile && it.extension == "java" && it.nameWithoutExtension != "package-info" }
+            .map { it.nameWithoutExtension }
+            .toSortedSet()
+        val verschwiegen = domaenentypen.filter { typ ->
+            !Regex("\\b${Regex.escape(typ)}\\b").containsMatchIn(text)
+        }.sorted()
+
+        val bericht = buildString {
+            appendLine("Aufbaudoku: ${genannteDateien.size} Datei(en) in CLAUDE.md genannt, " +
+                "${domaenentypen.size} Typ(en) in domain/model.")
+            if (verschwunden.isEmpty() && verschwiegen.isEmpty()) {
+                appendLine("CLAUDE.md und der Baum stimmen ueberein.")
+            }
+            if (verschwunden.isNotEmpty()) {
+                appendLine("In CLAUDE.md genannt, im Projekt nicht vorhanden (${verschwunden.size}):")
+                verschwunden.forEach { appendLine("  - $it") }
+            }
+            if (verschwiegen.isNotEmpty()) {
+                appendLine("Domaenentyp ohne Erwaehnung in CLAUDE.md (${verschwiegen.size}):")
+                verschwiegen.forEach { appendLine("  - $it") }
+            }
+        }
+        println(bericht)
+        val datei = berichtsDatei.get().asFile
+        datei.parentFile.mkdirs()
+        datei.writeText(bericht)
+
+        val fehler = mutableListOf<String>()
+        if (verschwunden.isNotEmpty()) {
+            fehler += "CLAUDE.md nennt Dateien, die es nicht gibt: ${verschwunden.joinToString(", ")}"
+        }
+        if (verschwiegen.isNotEmpty()) {
+            fehler += "Domaenentyp fehlt im Aufbau-Abschnitt: ${verschwiegen.joinToString(", ")}"
+        }
+        if (fehler.isNotEmpty()) {
+            throw GradleException(fehler.joinToString("; "))
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("aufbaudoku")
+}
+
 // --- Protokollvertrag Frontend <-> Backend --------------------------------
 //
 // Abschnitt 11 der Teststrategie nennt diese Luecke beim Namen: "Die
