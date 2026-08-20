@@ -39,52 +39,6 @@ maschinell ablesbar:
 Rot heißt nicht „Build kaputt", sondern „hier liegt beschlossene, unerledigte
 Arbeit".
 
-## Skills
-
-Ein Skill ist erst dann etwas wert, wenn er den Ablauf **erzwingt** statt ihn
-zu beschreiben. Gute Skills sind Übergänge zwischen Stufen, keine Tätigkeiten
-— deshalb `/feature` und nicht `/tests-schreiben`.
-
-### Von der Idee zur Entscheidung
-
-- **`/triage`** — ordnet eine rohe Idee genau einem von vier Orten zu: offene
-  Entscheidung, Beobachtung für den Spielabend, ADR oder Feature. Die
-  Abgrenzung ist in den Dokumenten bereits scharf definiert, es fehlt nur das
-  Ritual, das sie anwendet.
-- **`/entscheidung`** — führt die Vier-Dokumente-Kette, wenn eine offene Frage
-  beantwortet ist: Eintrag aus `offene-entscheidungen.md` streichen, ADR
-  schreiben, `anforderungen.md` nachziehen, atomare Regel in Anhang A
-  ergänzen. Endet damit, dass `abdeckung` **rot** läuft — die neue Regel ist
-  beschlossen und noch unbelegt, und genau das soll die Metrik sagen.
-- **`/probelauf`** — arbeitet den Beobachtungsbogen nach dem Spielabend ab:
-  Was ist beantwortet, was wird gestrichen, was wird ADR, was Anforderung?
-
-### Von der Entscheidung zum grünen Code
-
-- **`/feature`** — Abschnitt 9.1 der Teststrategie, erzwungen statt
-  beschrieben. Kern ist der Zwischenschritt, den man am leichtesten
-  überspringt: Szenarien werden zu JGiven-Stufen, die **rot laufen**, bevor
-  eine Zeile Produktivcode entsteht.
-- **`/domaenentyp`** — die vier Dinge, die die Konventionen für einen neuen Typ
-  in `domain/model` fordern und die man einzeln vergisst: jMolecules-Stereotyp,
-  Nullness, JGiven-Szenario, Gegenprobe gegen den Begriff in
-  `anforderungen.md`.
-- **`/pruefen`** — gestufte Rückkopplung statt Blindflug: `compileJava`
-  (NullAway, Sekunden) → `test` (unit/port) → `archTest` → voller `check`,
-  Abbruch beim ersten Rot. Kein neuer Prüfumfang, nur eine andere Reihenfolge.
-- **`/invarianten-review`** — prüft eine Änderung gegen die sieben harten
-  Invarianten aus `CLAUDE.md`. Der wertvollste der Reihe: Ein generischer
-  Code-Review kennt diese Regeln nicht, und die gefährlichsten davon sind
-  gerade die, die kein Test prüfen kann.
-- **`/adr`** — nächste Nummer, Vorlage, Rückverweis aus `CLAUDE.md` nachziehen.
-
-### Vor dem Commit
-
-- **`/freigabe`** — macht sichtbar, was der gewählte Commit-Typ auslöst. Die
-  unterschätzte Stelle des Ablaufs: **Die Commit-Message ist eine
-  Deployment-Entscheidung, keine Beschriftung.** `feat:` und `fix:` gehen nach
-  Produktion, `chore:` und `docs:` nicht.
-
 ## Hooks
 
 Sparsam einsetzen; alles Weitere ist in Gradle besser aufgehoben.
@@ -114,6 +68,40 @@ Sitzung unbenutzbar. Dafür ist `/pruefen` da.
   gehindert. Ein `pre-commit`/`pre-push`-Hook könnte dasselbe Skript
   wiederverwenden, braucht aber `core.hooksPath` auf ein Verzeichnis im Repo
   plus einen einmaligen Einrichtungsschritt.
+
+### Audit vom 2026-08-20: welche Pipeline-Stufen noch einen harten Check vertragen
+
+Ausgangspunkt war die Pipeline-Grafik (Artifact „Watchparty-Pipeline") —
+für jeden Übergang darin geprüft, ob er wirklich Urteilssache ist (→ Skill)
+oder sich am Ergebnis ablesen ließe (→ Gradle-Task). Die neun Skills aus
+diesem Dokument sind daraus entstanden und liegen jetzt unter
+`.claude/skills/`. Was an Gates übrig bleibt:
+
+- **ArchUnit-Regel gegen Invariante 1.** Bislang prüft nichts automatisch,
+  dass `domain` und `application` frei von `synchronized`, `volatile` und
+  `java.util.concurrent.*` bleiben — CLAUDE.md sagt es nur in Prosa
+  („darf auch keine bekommen, weil das die Regel verschleiern würde"). Eine
+  ArchUnit-Regel dafür ist mechanisch dieselbe Art Prüfung wie die
+  bestehenden Ringe/Stereotyp-Regeln in `ArchitectureTest` — der stärkste
+  Einzelfund dieses Audits, weil er eine der gefährlichsten Invarianten
+  von reiner Erinnerung auf einen roten Test umstellt. Bis dahin deckt
+  `/invarianten-review` die Lücke ab.
+- **Feature-Dokument-Vollständigkeit.** Kein Task prüft, dass ein
+  `docs/features/NNN-*.md` alle sieben Vorlagen-Abschnitte trägt oder dass
+  „Umgesetzt in" tatsächlich existierende Klassen nennt — mechanisch
+  dieselbe Art Prüfung wie `aufbaudoku` (Reflection/Textabgleich gegen den
+  Baum), nur auf die Feature-Vorlage statt auf `CLAUDE.md` angewendet.
+- **ADR-Nummern lückenlos.** Trivial zu prüfen, aber auch trivial von Hand
+  zu sehen — geringer Nutzen, hier nur der Vollständigkeit halber notiert.
+- **Erwogen und verworfen: Commit-Typ passt zum Diff.** Ob `fix:` wirklich
+  nur Verhalten ändert und `docs:` wirklich nur Prosa — als Gate zu
+  störanfällig (zu viele legitime Mischfälle), deshalb bewusst nicht
+  automatisiert und stattdessen Skill `/freigabe`.
+- **Schwächerer Kandidat: Invariante 2 (kein I/O im Raum-Thread).** Ein
+  Verbot von `java.io`/`java.nio`/Netzwerk-Importen in `domain`/
+  `application` wäre technisch möglich, aber ein schwächeres Signal als bei
+  Invariante 1 — mehr Näherung als Beweis. Zurückgestellt, bis sich zeigt,
+  ob die Lücke in der Praxis überhaupt ausgenutzt wird.
 
 ## Kontext-Ökonomie
 
