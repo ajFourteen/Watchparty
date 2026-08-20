@@ -1,3 +1,10 @@
+## [3.11.1](https://github.com/ajFourteen/Watchparty/compare/v3.11.0...v3.11.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* JDT-Nullanalyse in VS Code deaktivieren ([5357ec9](https://github.com/ajFourteen/Watchparty/commit/5357ec970aa69515e530d0569ac345560c5acddd))
+
 # [3.11.0](https://github.com/ajFourteen/Watchparty/compare/v3.10.3...v3.11.0) (2026-08-20)
 
 
