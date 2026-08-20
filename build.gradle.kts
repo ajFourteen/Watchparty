@@ -375,14 +375,57 @@ tasks.named("check") {
 // Mutant). includedGroups reicht bis zur JUnit5Configuration des
 // PIT-Plugins durch und filtert dort per Tag, genau wie unser eigener
 // test-Task.
+//
+// Welche Klassen HIGH sind, steht seit ADR-030/ADR-031 als @Criticality am
+// Code selbst. Diese Liste wird deshalb daraus *abgeleitet* und nicht daneben
+// gefuehrt: Eine zweite, handgepflegte Aufzaehlung waere genau die zweite
+// Wahrheit, die still veraltet -- eine neu als HIGH eingestufte Klasse bliebe
+// unmutiert, und der Mutation Score bliebe gruen, obwohl er sie nie angefasst
+// hat. Dasselbe Verfahren wie beim `abdeckung`-Task weiter oben: Reflection
+// ueber die kompilierten Klassen, keine Textsuche im Quelltext.
+val highKritikalitaetsKlassen = provider {
+    val klassenVerzeichnisse = sourceSets.main.get().output.classesDirs
+    val urls = sourceSets.main.get().runtimeClasspath.files.map { it.toURI().toURL() }.toTypedArray()
+    val classLoader = URLClassLoader(urls, javaClass.classLoader)
+    val criticalityKlasse = classLoader.loadClass("de.fourteen.watchparty.criticality.Criticality")
+    @Suppress("UNCHECKED_CAST")
+    val annotationKlasse = criticalityKlasse as Class<out Annotation>
+    val levelMethode = criticalityKlasse.getMethod("level")
+
+    val gefunden = sortedSetOf<String>()
+    klassenVerzeichnisse.forEach { wurzelVerzeichnis ->
+        wurzelVerzeichnis.walkTopDown()
+            .filter { it.isFile && it.extension == "class" && !it.name.contains("$") }
+            .forEach { classFile ->
+                val klassenname = classFile.relativeTo(wurzelVerzeichnis).path
+                    .removeSuffix(".class").replace(File.separatorChar, '.')
+                val klasse = try {
+                    classLoader.loadClass(klassenname)
+                } catch (e: Throwable) {
+                    return@forEach
+                }
+                val annotation = klasse.getAnnotation(annotationKlasse) ?: return@forEach
+                if (levelMethode.invoke(annotation).toString() == "HIGH") {
+                    gefunden += klassenname
+                }
+            }
+    }
+
+    // Eine leere Zielmenge waere der gefaehrlichste Ausgang: PIT liefe durch,
+    // mutierte nichts und meldete Erfolg -- ununterscheidbar von einem echten
+    // Lauf. Genau dieser Fehlermodus hat schon einmal die ArchUnit-Regeln
+    // stillgelegt (siehe Kommentar am archTest-Task).
+    if (gefunden.isEmpty()) {
+        throw GradleException(
+            "Keine @Criticality(HIGH)-Klasse gefunden -- die Mutationstests haetten kein Ziel. " +
+                "Entweder ist die Einstufung verschwunden oder das Einsammeln ist kaputt.")
+    }
+    logger.lifecycle("Mutationstests auf ${gefunden.size} HIGH-Klasse(n): ${gefunden.joinToString(", ")}")
+    gefunden.toSet()
+}
+
 pitest {
-    targetClasses.set(setOf(
-            "de.fourteen.watchparty.domain.service.Settlement",
-            "de.fourteen.watchparty.application.RoomView",
-            "de.fourteen.watchparty.domain.service.league.Scoring",
-            "de.fourteen.watchparty.domain.model.league.GameScore",
-            "de.fourteen.watchparty.domain.model.league.ScoreBucket",
-            "de.fourteen.watchparty.application.league.view.PredictionView"))
+    targetClasses.set(highKritikalitaetsKlassen)
     targetTests.set(setOf("de.fourteen.watchparty.*"))
     includedGroups.set(setOf("unit", "port"))
     testPlugin.set("junit5")

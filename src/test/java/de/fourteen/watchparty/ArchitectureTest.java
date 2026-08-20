@@ -2,7 +2,6 @@ package de.fourteen.watchparty;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
-import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -24,14 +23,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.onionArchitecture;
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Haelt zwei zusammengehoerige Regelwerke nach: die Ringstruktur aus ADR-024
@@ -377,37 +374,14 @@ class ArchitectureTest {
             .should(nurAnforderungsIdsAusAnhangATragen())
             .because("eine @Criticality-Anforderungs-ID ohne Beleg in Anhang A ist eine Begruendung ins Leere (Abschnitt 6.2)");
 
-    /**
-     * Der PIT-Mutationstest (build.gradle.kts, {@code pitest.targetClasses})
-     * zielt auf eine feste Klassenliste -- Gradle-Konfiguration und
-     * {@code @Criticality}-Annotationen koennen einander nicht automatisch
-     * nachziehen, deshalb haelt dieser Test beide von Hand synchron
-     * (docs/teststrategie.md, Abschnitt 7.2: "Test, der die Menge der
-     * HIGH-annotierten Klassen gegen die PIT-Konfiguration abgleicht"). Wer
-     * eine neue HIGH-Klasse einfuehrt oder eine bestehende umbenennt, muss
-     * beide Stellen pflegen -- ein roter Test statt eines stillschweigend zu
-     * klein gewordenen Mutationstests.
-     */
-    @ArchTest
-    static void highKritikalitaetsKlassenStimmenMitDerPitKonfigurationUeberein(JavaClasses classes) {
-        Set<String> ausBuildGradleKts = Set.of(
-                "de.fourteen.watchparty.domain.service.Settlement",
-                "de.fourteen.watchparty.application.RoomView",
-                "de.fourteen.watchparty.domain.service.league.Scoring",
-                "de.fourteen.watchparty.domain.model.league.GameScore",
-                "de.fourteen.watchparty.domain.model.league.ScoreBucket",
-                "de.fourteen.watchparty.application.league.view.PredictionView");
-
-        Set<String> tatsaechlicheHighKlassen = classes.stream()
-                .filter(javaClass -> javaClass.isAnnotatedWith(Criticality.class))
-                .filter(javaClass -> javaClass.reflect().getAnnotation(Criticality.class).level() == Criticality.Level.HIGH)
-                .map(JavaClass::getName)
-                .collect(Collectors.toSet());
-
-        assertThat(tatsaechlicheHighKlassen)
-                .as("@Criticality(HIGH)-Klassen muessen mit pitest.targetClasses in build.gradle.kts uebereinstimmen")
-                .isEqualTo(ausBuildGradleKts);
-    }
+    // Frueher stand hier ein Test, der die @Criticality(HIGH)-Klassen gegen
+    // eine handgepflegte Kopie von pitest.targetClasses abglich. Diese Kopie
+    // gibt es nicht mehr: build.gradle.kts leitet targetClasses inzwischen per
+    // Reflection aus der Annotation selbst ab. Damit ist der Test gegenstands-
+    // los geworden -- er koennte die Liste nur noch ein drittes Mal aufschreiben
+    // und genau die zweite Wahrheit wiederherstellen, die die Ableitung
+    // beseitigt hat. Dass die abgeleitete Menge nicht still leer laufen kann,
+    // sichert der Build selbst ab (GradleException bei leerer Zielmenge).
 
     /**
      * Fuer jede {@code package-info}-Klasse: welche der vier Ring-Annotationen

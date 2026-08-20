@@ -387,9 +387,13 @@ sind — semantisch identische Änderungen, die kein Test töten kann. Wo ein
 solcher Mutant auftritt, wird er **benannt und begründet** ausgeschlossen
 (Abschnitt 10), nicht durch einen Test bekämpft, der nichts prüft.
 
-Damit die Konfiguration nicht von der Einstufung abdriftet, prüft ein Test,
-dass die Menge der `HIGH`-annotierten Klassen genau der Menge der
-mutierten Klassen entspricht.
+Die Konfiguration kann von der Einstufung nicht abdriften, weil es keine
+zweite Liste mehr gibt: `build.gradle.kts` leitet `pitest.targetClasses` per
+Reflection aus den `@Criticality(HIGH)`-Annotationen selbst ab. Eine neu
+eingestufte Klasse ist damit ab dem nächsten Lauf im Mutations-Scope, ohne
+dass jemand daran denken muss. Läuft das Einsammeln ins Leere, bricht der
+Build ab — eine leere Zielmenge wäre der gefährlichste Ausgang, weil PIT
+dann durchliefe, nichts mutierte und Erfolg meldete.
 
 ### 7.3 Zeilen- und Zweigabdeckung: erhoben, kein Ziel
 
