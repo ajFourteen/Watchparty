@@ -3,6 +3,7 @@ package de.fourteen.watchparty;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -223,6 +224,53 @@ class ArchitectureTest {
             .that().resideInAPackage("..domain..")
             .should().dependOnClassesThat().resideInAnyPackage("java.util.concurrent..")
             .because("Invariante 1: der Raum-Thread ist die Synchronisierung, nicht die Datenstruktur");
+
+    /**
+     * Der Anwendungsring blockiert nicht.
+     *
+     * Invariante 2 sagt, dass der Raum-Thread nie wartet: Er berechnet Zustand
+     * und Nachrichten, das Schreiben auf Sockets laeuft ueber die Ausgangs-Queue
+     * der {@code ClientSession}, das Schreiben des Snapshots ueber den eigenen
+     * Thread in {@code SnapshotStore}. Ein eingeschlafenes Handy darf das Spiel
+     * nicht anhalten.
+     *
+     * Anders als Invariante 1, die {@link #domaeneOhneNebenlaeufigkeit} in der
+     * Domaene abdeckt, war Invariante 2 bislang strukturell ungeschuetzt: Der
+     * {@code RoomActor} liegt im Anwendungsring, und genau dort -- nicht in der
+     * Domaene -- kann sie gebrochen werden. Ein Pauschalverbot auf
+     * {@code java.util.concurrent} scheidet hier aus, weil der Actor seinen
+     * {@code ExecutorService} braucht; verboten sind deshalb gezielt die
+     * blockierenden Aufrufe, nicht die Werkzeuge.
+     *
+     * Die eine Ausnahme ist {@code RoomActor.awaitIdle()} -- ein als solcher
+     * dokumentierter Testzugang, der den *aufrufenden* Thread blockiert, nicht
+     * den Raum-Thread. Dass ihn kein Produktivcode aufruft, sichert
+     * {@link #awaitIdleNurAusTestcode} von der anderen Seite.
+     */
+    @ArchTest
+    static final ArchRule anwendungsringBlockiertNicht = noClasses()
+            .that().resideInAPackage("..application..")
+            .should().callMethodWhere(blockierenderAufrufAusserhalbVonAwaitIdle())
+            .because("Invariante 2: der Raum-Thread berechnet, er wartet nicht");
+
+    /**
+     * {@code RoomActor.awaitIdle()} wird von keinem Produktivcode aufgerufen.
+     *
+     * Die Methode ist {@code public} und blockiert den aufrufenden Thread, bis
+     * der Raum-Thread leer ist -- noetig, damit Port-to-Port-Szenarien nicht
+     * race-behaftet sind (die JGiven-Stufen liegen in einem anderen Paket).
+     * Genau diese Sichtbarkeit macht sie aber auch aus einem WebSocket-Handler
+     * oder einem Controller erreichbar, und dort wuerde sie einen Request-Thread
+     * auf den Raum-Thread warten lassen -- Invariante 2 von aussen gebrochen.
+     *
+     * Testcode ist ueber {@code ImportOption.DoNotIncludeTests} gar nicht erst
+     * Teil der geprueften Klassen; diese Regel bindet deshalb ausschliesslich
+     * den Produktivcode, ohne den Testzugang selbst einzuschraenken.
+     */
+    @ArchTest
+    static final ArchRule awaitIdleNurAusTestcode = noClasses()
+            .should().callMethodWhere(zielIst("de.fourteen.watchparty.application.RoomActor", "awaitIdle"))
+            .because("awaitIdle blockiert den Aufrufer und ist ein Testzugang, kein Produktivweg (Invariante 2)");
 
     // --- DDD-Bausteine (ADR-025/ADR-027) ---------------------------------------
 
@@ -503,5 +551,56 @@ class ArchitectureTest {
                 }
             }
         };
+    }
+
+    /**
+     * Die blockierenden Aufrufe, die Invariante 2 brechen wuerden -- als Paare
+     * aus Zieltyp und Methodenname. Aufgezaehlt statt ueber den Paketnamen
+     * erschlagen, weil der Anwendungsring {@code java.util.concurrent}
+     * durchaus benutzen darf: Der {@code RoomActor} lebt von seinem
+     * {@code ExecutorService}. Verboten ist das Warten, nicht das Werkzeug.
+     *
+     * {@code RoomActor.awaitIdle()} ist ausgenommen: Der Aufruf blockiert dort
+     * bewusst den aufrufenden Testthread, nicht den Raum-Thread (siehe
+     * {@link #awaitIdleNurAusTestcode}).
+     */
+    private static DescribedPredicate<JavaMethodCall> blockierenderAufrufAusserhalbVonAwaitIdle() {
+        record BlockierenderAufruf(String typ, String methode) {
+        }
+        Set<BlockierenderAufruf> verboten = Set.of(
+                new BlockierenderAufruf("java.util.concurrent.Future", "get"),
+                new BlockierenderAufruf("java.util.concurrent.CompletableFuture", "get"),
+                new BlockierenderAufruf("java.util.concurrent.CompletableFuture", "join"),
+                new BlockierenderAufruf("java.util.concurrent.CountDownLatch", "await"),
+                new BlockierenderAufruf("java.util.concurrent.CyclicBarrier", "await"),
+                new BlockierenderAufruf("java.util.concurrent.Semaphore", "acquire"),
+                new BlockierenderAufruf("java.util.concurrent.BlockingQueue", "take"),
+                new BlockierenderAufruf("java.util.concurrent.BlockingQueue", "put"),
+                new BlockierenderAufruf("java.util.concurrent.ExecutorService", "awaitTermination"),
+                new BlockierenderAufruf("java.util.concurrent.ExecutorService", "invokeAll"),
+                new BlockierenderAufruf("java.util.concurrent.ExecutorService", "invokeAny"),
+                new BlockierenderAufruf("java.lang.Thread", "sleep"),
+                new BlockierenderAufruf("java.lang.Thread", "join"),
+                new BlockierenderAufruf("java.lang.Object", "wait"));
+
+        String awaitIdle = "de.fourteen.watchparty.application.RoomActor.awaitIdle";
+
+        return DescribedPredicate.describe(
+                "ein blockierender Aufruf ausserhalb von RoomActor.awaitIdle",
+                aufruf -> {
+                    String herkunft = aufruf.getOrigin().getOwner().getName() + "." + aufruf.getOrigin().getName();
+                    if (herkunft.equals(awaitIdle)) {
+                        return false;
+                    }
+                    return verboten.contains(new BlockierenderAufruf(
+                            aufruf.getTargetOwner().getName(), aufruf.getName()));
+                });
+    }
+
+    /** Ein Methodenaufruf auf genau diesen Typ mit genau diesem Namen. */
+    private static DescribedPredicate<JavaMethodCall> zielIst(String typ, String methode) {
+        return DescribedPredicate.describe(
+                typ + "." + methode + " aufrufen",
+                aufruf -> aufruf.getTargetOwner().getName().equals(typ) && aufruf.getName().equals(methode));
     }
 }
