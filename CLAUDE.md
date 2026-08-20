@@ -6,7 +6,9 @@ entschieden ist, steht in `docs/offene-entscheidungen.md` — dort bitte nichts
 stillschweigend festlegen, sondern nachfragen. Was am ersten echten Spielabend
 zu beobachten ist, steht in `docs/probelauf.md`. Wie getestet wird — Ebenen,
 Kritikalität, Metriken, Vorgehen bei neuen Features — steht in
-`docs/teststrategie.md`.
+`docs/teststrategie.md`. Ideen zum Entwicklungsprozess selbst, die noch nicht
+umgesetzt sind, sammelt `docs/prozess-optimierung.md` — auch dort gilt:
+vorgeschlagen, nicht beschlossen.
 
 ## Was das ist
 
@@ -479,7 +481,8 @@ frontend/src/
                            Saison- und Spieltagsrangliste (Kriterium 33/35)
 docs/                      Anforderungen, ADRs, offene Entscheidungen,
                            Beobachtungsbogen für den Probelauf,
-                           Teststrategie und Feature-Vorlage
+                           Teststrategie, Feature-Vorlage und die
+                           Ideensammlung prozess-optimierung.md
 ```
 
 ## Nächster Schritt
