@@ -536,9 +536,14 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
   Das betrifft echte Anforderungen — dass die Anmerkungen zu den Ausgängen
   sichtbar sind (4), dass das Leaderboard die Kontostände zeigt (3). Sie
   tragen die Marke `frontend` und zählen nicht zur Feature-Abdeckung.
-- **Die Verträglichkeit zwischen Frontend und Protokoll.** Das Frontend wird
-  getrennt gebaut; eine Änderung am Frame-Format ist ein Bruch, den kein
-  Backend-Test sieht.
+- **Das Verhalten des Frontends am Protokoll.** Die *Namen* gleicht der
+  Gradle-Task `protokollvertrag` seit 2026-08-20 ab: Frame-Typen, Phasen,
+  Annullierungsgründe und die Feldnamen der Nachrichtentypen müssen auf
+  beiden Seiten dieselben sein, sonst bricht der Build. Was er nicht sieht,
+  ist die *Bedeutung* — ob das Frontend ein korrekt benanntes Feld auch
+  richtig interpretiert, bleibt außerhalb. Geprüft wird nur die
+  Live-Wetten-App; das Tippspiel spricht REST mit eigenem Vertrag
+  (ADR-039).
 - **Was nur am Spielabend sichtbar wird.** Tab-Suspend auf dem Handy, Wake
   Lock, das Verhalten des Fly-Volumes, die Kalibrierung der drei Parameter
   aus 3.1. Dafür ist `probelauf.md` da. Diese Punkte gelten als *beobachtet*,

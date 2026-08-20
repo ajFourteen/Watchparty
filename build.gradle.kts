@@ -579,6 +579,151 @@ tasks.named("check") {
     dependsOn("abdeckung")
 }
 
+// --- Protokollvertrag Frontend <-> Backend --------------------------------
+//
+// Abschnitt 11 der Teststrategie nennt diese Luecke beim Namen: "Die
+// Vertraeglichkeit zwischen Frontend und Protokoll. Das Frontend wird getrennt
+// gebaut; eine Aenderung am Frame-Format ist ein Bruch, den kein Backend-Test
+// sieht." Genau dieser Bruch wird hier gefangen -- nicht durch Frontend-Tests
+// (das waere ein eigenes Programm), sondern durch den Abgleich der *einen*
+// Grenze, an der beide Seiten sich auf dieselben Namen einigen muessen.
+//
+// Geprueft wird nur die Live-Wetten-App (frontend/src/*.jsx|js). Das Tippspiel
+// unter frontend/src/league spricht REST statt WebSocket (ADR-039) und hat
+// einen eigenen Vertrag; seine Literale ("POST", "DELETE") sind HTTP-Verben
+// und gehoeren nicht in dieses Vokabular.
+tasks.register("protokollvertrag") {
+    group = "verification"
+    description = "Gleicht Frame-Typen und Feldnamen des WebSocket-Protokolls mit der Live-Wetten-App ab."
+    dependsOn(tasks.named("classes"))
+
+    val messagesQuelle = layout.projectDirectory.file("src/main/java/de/fourteen/watchparty/application/message/Messages.java")
+    val handlerQuelle = layout.projectDirectory.file("src/main/java/de/fourteen/watchparty/adapter/in/ws/GameWebSocketHandler.java")
+    val roomViewQuelle = layout.projectDirectory.file("src/main/java/de/fourteen/watchparty/application/RoomView.java")
+    val phaseQuelle = layout.projectDirectory.file("src/main/java/de/fourteen/watchparty/domain/model/Phase.java")
+    val frontendVerzeichnis = layout.projectDirectory.dir("frontend/src")
+    val klassenpfad = sourceSets.main.get().runtimeClasspath
+    val berichtsDatei = layout.buildDirectory.file("reports/protokollvertrag.txt")
+
+    inputs.file(messagesQuelle)
+    inputs.file(handlerQuelle)
+    inputs.file(roomViewQuelle)
+    inputs.file(phaseQuelle)
+    inputs.dir(frontendVerzeichnis)
+    outputs.file(berichtsDatei)
+
+    doLast {
+        // Ein Frame-Typ oder Phasenwert sieht so aus: mindestens drei Zeichen,
+        // Grossbuchstaben und Unterstriche. Das trennt "WELCOME" und
+        // "PLACE_PICK" zuverlaessig von gewoehnlichen Texten.
+        val protokollToken = Regex("\"([A-Z][A-Z_]{2,})\"")
+
+        fun literaleAus(datei: java.io.File): Set<String> =
+            protokollToken.findAll(datei.readText()).map { it.groupValues[1] }.toSet()
+
+        // Server -> Client: die type()-Literale der Nachrichtentypen.
+        val ausgehendeFrames = Regex("""return "([A-Z][A-Z_]{2,})";""")
+            .findAll(messagesQuelle.asFile.readText()).map { it.groupValues[1] }.toSet()
+
+        // Client -> Server: die Faelle des Handler-switch.
+        val eingehendeFrames = Regex("""case "([A-Z][A-Z_]{2,})"""")
+            .findAll(handlerQuelle.asFile.readText()).map { it.groupValues[1] }.toSet()
+
+        // Werte, die zwar keine Frame-Typen sind, aber ueber die Leitung gehen:
+        // die Phasen und die Annullierungsgruende aus RoomView ("HOST",
+        // "NO_PICKS").
+        val phasen = Regex("""\b(IDLE|OPEN|CLOSED|RESOLVED)\b""")
+            .findAll(phaseQuelle.asFile.readText()).map { it.groupValues[1] }.toSet()
+        val weitereWerte = literaleAus(roomViewQuelle.asFile)
+
+        val serverVokabular = ausgehendeFrames + eingehendeFrames + phasen + weitereWerte
+
+        // Nur die Live-Wetten-App, ohne league/ und legal/ (siehe Kommentar oben).
+        val liveWettenDateien = frontendVerzeichnis.asFile.listFiles { f ->
+            f.isFile && (f.extension == "js" || f.extension == "jsx")
+        }?.toList() ?: emptyList()
+        val frontendText = liveWettenDateien.joinToString("\n") { it.readText() }
+        val frontendLiterale = protokollToken.findAll(frontendText).map { it.groupValues[1] }.toSet()
+
+        // Feldnamen: die Record-Komponenten der Nachrichtentypen, ueber
+        // Reflection statt per Regex -- ein Record kennt seine Komponenten
+        // selbst, das ist belastbarer als das Auseinandernehmen einer
+        // Parameterliste mit Javadoc darin.
+        val urls = klassenpfad.files.map { it.toURI().toURL() }.toTypedArray()
+        val classLoader = URLClassLoader(urls, javaClass.classLoader)
+        val messagesKlasse = classLoader.loadClass("de.fourteen.watchparty.application.message.Messages")
+        val felder = sortedSetOf<String>()
+        fun sammleFelder(klasse: Class<*>) {
+            if (klasse.isRecord) {
+                klasse.recordComponents.forEach { felder += it.name }
+            }
+            klasse.declaredClasses.forEach { sammleFelder(it) }
+        }
+        sammleFelder(messagesKlasse)
+
+        // --- Die drei Pruefungen ------------------------------------------
+        //
+        // Ausnahmen stehen hier, nicht in einer Datei nebenan: Sie sind heute
+        // leer, und eine leere Liste im Build ist ehrlicher als eine leere
+        // Datei, die niemand findet. Wer eine Ausnahme braucht, traegt sie hier
+        // mit Begruendung ein -- sichtbar im Diff, nicht stillschweigend.
+        val bekannteNichtProtokollLiterale = emptySet<String>()
+        val felderOhneFrontend = emptySet<String>()
+
+        val unbekannteLiterale = (frontendLiterale - serverVokabular - bekannteNichtProtokollLiterale).sorted()
+        val frames = ausgehendeFrames + eingehendeFrames
+        val ungenutzteFrames = (frames - frontendLiterale).sorted()
+        val unbekannteFelder = felder.filter { feld ->
+            feld !in felderOhneFrontend && !Regex("\\b${Regex.escape(feld)}\\b").containsMatchIn(frontendText)
+        }.sorted()
+
+        val bericht = buildString {
+            appendLine("Protokollvertrag: ${frames.size} Frame-Typ(en), ${felder.size} Feld(er), " +
+                "${frontendLiterale.size} Literal(e) in der Live-Wetten-App.")
+            if (unbekannteLiterale.isEmpty() && ungenutzteFrames.isEmpty() && unbekannteFelder.isEmpty()) {
+                appendLine("Beide Seiten sprechen dasselbe Protokoll.")
+            }
+            if (unbekannteLiterale.isNotEmpty()) {
+                appendLine("Frontend nennt Token, die der Server nicht kennt (${unbekannteLiterale.size}):")
+                unbekannteLiterale.forEach { appendLine("  - $it") }
+            }
+            if (ungenutzteFrames.isNotEmpty()) {
+                appendLine("Frame-Typen, die im Frontend nicht vorkommen (${ungenutzteFrames.size}):")
+                ungenutzteFrames.forEach { appendLine("  - $it") }
+            }
+            if (unbekannteFelder.isNotEmpty()) {
+                appendLine("Nachrichtenfelder, die im Frontend nicht vorkommen (${unbekannteFelder.size}):")
+                unbekannteFelder.forEach { appendLine("  - $it") }
+            }
+        }
+        println(bericht)
+        val datei = berichtsDatei.get().asFile
+        datei.parentFile.mkdirs()
+        datei.writeText(bericht)
+
+        val fehler = mutableListOf<String>()
+        if (unbekannteLiterale.isNotEmpty()) {
+            fehler += "Frontend nennt unbekannte Token: ${unbekannteLiterale.joinToString(", ")} " +
+                "(Tippfehler, oder serverseitig umbenannt)"
+        }
+        if (ungenutzteFrames.isNotEmpty()) {
+            fehler += "Frame-Typen ohne Entsprechung im Frontend: ${ungenutzteFrames.joinToString(", ")} " +
+                "(umbenannt, ohne das Frontend nachzuziehen)"
+        }
+        if (unbekannteFelder.isNotEmpty()) {
+            fehler += "Nachrichtenfelder ohne Entsprechung im Frontend: ${unbekannteFelder.joinToString(", ")} " +
+                "(umbenannt, oder das Frontend liest sie noch nicht)"
+        }
+        if (fehler.isNotEmpty()) {
+            throw GradleException("Protokollvertrag verletzt -- " + fehler.joinToString("; "))
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("protokollvertrag")
+}
+
 // --- Ausnahmenregister (docs/test-ausnahmen.md, Abschnitt 10) -------------
 //
 // "Eine Unterdrueckung ohne Eintrag ist ein Fehler" -- so steht die Regel in
