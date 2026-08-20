@@ -7,7 +7,13 @@ node_modules/
 frontend/dist/
 *.log
 .DS_Store
-.claude/
+# Claude-Code-Konfiguration: .claude/settings.json ist Projektkonfiguration
+# und gehoert ins Repo -- dort haengen die Hooks, die die Arbeitsregeln
+# durchsetzen (nur auf main arbeiten, vor jedem Commit pullen). Ohne
+# Versionierung gaelten sie nur auf der Maschine, auf der sie zufaellig
+# eingetragen wurden. Persoenliches (erlaubte Befehle, lokale Pfade) bleibt
+# in settings.local.json und damit draussen.
+.claude/settings.local.json
 
 # jqwik legt hier Zufalls-Seeds fehlgeschlagener Property-Tests ab (Abschnitt 4
 # der Teststrategie) -- lokaler Laufzustand, kein Quelltext.
