@@ -688,6 +688,81 @@ tasks.named("check") {
     dependsOn("aufbaudoku")
 }
 
+// --- Feature-Dokumente gegen die Vorlage halten ---------------------------
+//
+// docs/features/_vorlage.md nennt sieben Pflichtabschnitte (Teststrategie
+// Abschnitt 9.1). Bislang stand das nur in der Vorlage selbst -- ein
+// Feature-Dokument, dem ein Abschnitt fehlt, fiel niemandem auf, der es
+// nicht von Hand neben die Vorlage legt.
+//
+// Geprueft wird nur die Vollstaendigkeit der Abschnitte als Ueberschriften,
+// nicht ihr Inhalt: Ob "Umgesetzt in" wirklich existierende Klassen nennt,
+// laesst sich wegen der vielen anderen Backtick-Woerter im Fliesstext
+// (Konstanten wie SCHEMA_VERSION, Kommandonamen wie CREATE_ROOM,
+// Annotationen wie @ValueObject) nicht ohne haeufige Fehlalarme
+// automatisieren (Prozess-Audit vom 2026-08-20) -- das bleibt Aufgabe des
+// Reviews, nicht dieses Tasks. Zusaetzliche, ueber die Vorlage
+// hinausgehende Abschnitte (wie "Bewusste Festlegungen" in 004 und 005)
+// sind ausdruecklich erlaubt: Geprueft wird nur, was fehlt, nicht, was zu
+// viel ist.
+tasks.register("featuredoku") {
+    group = "verification"
+    description = "Prueft, dass jedes Feature-Dokument alle sieben Pflichtabschnitte der Vorlage traegt."
+
+    val featuresVerzeichnis = layout.projectDirectory.dir("docs/features")
+    val berichtsDatei = layout.buildDirectory.file("reports/featuredoku.txt")
+
+    inputs.dir(featuresVerzeichnis)
+    outputs.file(berichtsDatei)
+
+    doLast {
+        val pflichtabschnitte = listOf(
+            "Anlass", "Betroffene Anforderungen", "Akzeptanzkriterien",
+            "Szenarien", "Kritikalität", "Umgesetzt in", "Offene Fragen")
+
+        val dateien = featuresVerzeichnis.asFile.listFiles { f ->
+            f.isFile && f.extension == "md" && f.name != "_vorlage.md"
+        }?.sortedBy { it.name } ?: emptyList()
+
+        val fehlend = linkedMapOf<String, List<String>>()
+        dateien.forEach { datei ->
+            val ueberschriften = datei.readLines()
+                .filter { it.startsWith("## ") }
+                .map { it.removePrefix("## ").trim() }
+                .toSet()
+            val fehlendeAbschnitte = pflichtabschnitte.filter { it !in ueberschriften }
+            if (fehlendeAbschnitte.isNotEmpty()) {
+                fehlend[datei.name] = fehlendeAbschnitte
+            }
+        }
+
+        val bericht = buildString {
+            appendLine("Feature-Dokumente: ${dateien.size} geprueft.")
+            if (fehlend.isEmpty()) {
+                appendLine("Jedes Feature-Dokument traegt alle sieben Pflichtabschnitte.")
+            } else {
+                appendLine("Unvollstaendig (${fehlend.size}):")
+                fehlend.forEach { (name, abschnitte) ->
+                    appendLine("  - $name: fehlt ${abschnitte.joinToString(", ")}")
+                }
+            }
+        }
+        println(bericht)
+        val datei = berichtsDatei.get().asFile
+        datei.parentFile.mkdirs()
+        datei.writeText(bericht)
+
+        if (fehlend.isNotEmpty()) {
+            throw GradleException(
+                "Feature-Dokument(e) ohne alle Pflichtabschnitte: ${fehlend.keys.joinToString(", ")}")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("featuredoku")
+}
+
 // --- Protokollvertrag Frontend <-> Backend --------------------------------
 //
 // Abschnitt 11 der Teststrategie nennt diese Luecke beim Namen: "Die

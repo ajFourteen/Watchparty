@@ -3,6 +3,7 @@ package de.fourteen.watchparty;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
+import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -28,6 +29,8 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyP
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static com.tngtech.archunit.library.Architectures.onionArchitecture;
 
 /**
@@ -215,12 +218,40 @@ class ArchitectureTest {
      * dass aller Zustand auf dem Raum-Thread liegt; ein {@code synchronized}
      * oder eine Concurrent-Collection im Kern wuerde diese Regel verschleiern
      * statt sie zu stuetzen (CLAUDE.md, ADR-009).
+     *
+     * Deckt nur den Import ab, nicht das Schluesselwort selbst -- dafuer
+     * {@link #domaeneOhneSynchronisierteMethoden} und
+     * {@link #domaeneOhneVolatileFelder}, seit dem Prozess-Audit vom
+     * 2026-08-20 ergaenzt: Der Javadoc hier nannte {@code synchronized}
+     * schon immer, geprueft hat es bis dahin niemand.
      */
     @ArchTest
     static final ArchRule domaeneOhneNebenlaeufigkeit = noClasses()
             .that().resideInAPackage("..domain..")
             .should().dependOnClassesThat().resideInAnyPackage("java.util.concurrent..")
             .because("Invariante 1: der Raum-Thread ist die Synchronisierung, nicht die Datenstruktur");
+
+    /**
+     * Ergaenzt {@link #domaeneOhneNebenlaeufigkeit} um das Schluesselwort
+     * selbst: {@code synchronized} ist kein Import und faellt durch eine
+     * reine Abhaengigkeitsregel hindurch.
+     */
+    @ArchTest
+    static final ArchRule domaeneOhneSynchronisierteMethoden = noMethods()
+            .that().areDeclaredInClassesThat().resideInAPackage("..domain..")
+            .should().haveModifier(JavaModifier.SYNCHRONIZED)
+            .because("Invariante 1: der Raum-Thread ist die Synchronisierung, kein synchronized im Kern");
+
+    /**
+     * Dasselbe fuer Felder: {@code volatile} waere ein zweiter, stillerer Weg,
+     * Nebenlaeufigkeit in die Domaene zu tragen, ohne dass
+     * {@link #domaeneOhneNebenlaeufigkeit} es saehe.
+     */
+    @ArchTest
+    static final ArchRule domaeneOhneVolatileFelder = noFields()
+            .that().areDeclaredInClassesThat().resideInAPackage("..domain..")
+            .should().haveModifier(JavaModifier.VOLATILE)
+            .because("Invariante 1: der Raum-Thread ist die Synchronisierung, kein volatile im Kern");
 
     /**
      * Der Anwendungsring blockiert nicht.

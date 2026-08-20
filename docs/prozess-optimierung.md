@@ -75,33 +75,37 @@ Ausgangspunkt war die Pipeline-Grafik (Artifact „Watchparty-Pipeline") —
 für jeden Übergang darin geprüft, ob er wirklich Urteilssache ist (→ Skill)
 oder sich am Ergebnis ablesen ließe (→ Gradle-Task). Die neun Skills aus
 diesem Dokument sind daraus entstanden und liegen jetzt unter
-`.claude/skills/`. Was an Gates übrig bleibt:
+`.claude/skills/`.
 
-- **ArchUnit-Regel gegen Invariante 1.** Bislang prüft nichts automatisch,
-  dass `domain` und `application` frei von `synchronized`, `volatile` und
-  `java.util.concurrent.*` bleiben — CLAUDE.md sagt es nur in Prosa
-  („darf auch keine bekommen, weil das die Regel verschleiern würde"). Eine
-  ArchUnit-Regel dafür ist mechanisch dieselbe Art Prüfung wie die
-  bestehenden Ringe/Stereotyp-Regeln in `ArchitectureTest` — der stärkste
-  Einzelfund dieses Audits, weil er eine der gefährlichsten Invarianten
-  von reiner Erinnerung auf einen roten Test umstellt. Bis dahin deckt
-  `/invarianten-review` die Lücke ab.
-- **Feature-Dokument-Vollständigkeit.** Kein Task prüft, dass ein
-  `docs/features/NNN-*.md` alle sieben Vorlagen-Abschnitte trägt oder dass
-  „Umgesetzt in" tatsächlich existierende Klassen nennt — mechanisch
-  dieselbe Art Prüfung wie `aufbaudoku` (Reflection/Textabgleich gegen den
-  Baum), nur auf die Feature-Vorlage statt auf `CLAUDE.md` angewendet.
-- **ADR-Nummern lückenlos.** Trivial zu prüfen, aber auch trivial von Hand
-  zu sehen — geringer Nutzen, hier nur der Vollständigkeit halber notiert.
+Umgesetzt, noch am selben Tag: zwei neue ArchUnit-Regeln
+(`domaeneOhneSynchronisierteMethoden`, `domaeneOhneVolatileFelder`) und der
+Task `featuredoku` (Vollständigkeit der Feature-Dokumente, siehe
+`docs/teststrategie.md` Abschnitt 10).
+
+**Korrektur zum ersten Entwurf dieses Audits:** Der damalige Befund,
+Invariante 1 und 2 seien komplett ungeprüft, war falsch.
+`domaeneOhneNebenlaeufigkeit` und `anwendungsringBlockiertNicht` deckten in
+`ArchitectureTest.java` schon vorher den größten Teil ab — nur das
+Schlüsselwort `synchronized`/`volatile` selbst fiel durch eine reine
+Abhängigkeitsregel (Verbot von `java.util.concurrent`-*Importen*) hindurch.
+Der Fehler im ersten Durchgang: nur nach Abschnittsüberschriften gegrept,
+nicht die Regelkörper gelesen. Deshalb jetzt hier festgehalten, nicht nur
+im Commit — ein Audit, das sich selbst falsch zitiert, ist schlimmer als
+keins.
+
+Offen geblieben, mit Begründung:
+
+- **ADR-Nummern lückenlos.** Weiterhin nicht umgesetzt: trivial zu prüfen,
+  aber auch trivial von Hand zu sehen — kein eigener Task wert.
 - **Erwogen und verworfen: Commit-Typ passt zum Diff.** Ob `fix:` wirklich
   nur Verhalten ändert und `docs:` wirklich nur Prosa — als Gate zu
   störanfällig (zu viele legitime Mischfälle), deshalb bewusst nicht
   automatisiert und stattdessen Skill `/freigabe`.
-- **Schwächerer Kandidat: Invariante 2 (kein I/O im Raum-Thread).** Ein
-  Verbot von `java.io`/`java.nio`/Netzwerk-Importen in `domain`/
-  `application` wäre technisch möglich, aber ein schwächeres Signal als bei
-  Invariante 1 — mehr Näherung als Beweis. Zurückgestellt, bis sich zeigt,
-  ob die Lücke in der Praxis überhaupt ausgenutzt wird.
+- **Invariante 2 über `anwendungsringBlockiertNicht` hinaus.** Das
+  bestehende Muster verbietet gezielt blockierende Aufrufe (mit der
+  begründeten Ausnahme `awaitIdle`), nicht pauschal `java.io`/`java.nio`.
+  Ein zusätzliches Import-Verbot wäre redundant dazu und ein schwächeres
+  Signal als die gezielte Regel — zurückgestellt.
 
 ## Kontext-Ökonomie
 

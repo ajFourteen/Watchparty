@@ -162,7 +162,11 @@ fachliche Abdeckung** hinzu. Sie prüft dreierlei:
 ArchUnit prüft, was kein Szenario sehen kann und was auch keine
 Zeilenabdeckung findet: die Ringregel (ADR-024), die DDD-Bausteine
 (ADR-027), die Framework-Freiheit des Kerns, `java.util.concurrent`-Verbot
-in der Domäne (Invariante 1), keine öffentlichen Setter. Dazu kommen mit
+in der Domäne (Invariante 1), keine öffentlichen Setter. Seit 2026-08-20
+zusätzlich `synchronized` und `volatile` selbst (Prozess-Audit desselben
+Tages): Die Domäne kennt Nebenläufigkeits-*Werkzeuge* schon länger nicht,
+die Schlüsselwörter fielen aber durch eine reine Abhängigkeitsregel
+hindurch — ein Import-Verbot sieht kein Sprachkonstrukt. Dazu kommen mit
 dieser Strategie:
 
 - Das Kritikalitäts-Paket enthält ausschließlich Annotationen und hängt von
@@ -525,8 +529,14 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
 - **Der Bau prüft mehr als Tests.** An `check` hängen außerdem die Gates,
   die Verabredungen zu Regeln machen: `abdeckung` (Feature-Abdeckung),
   `ebenenDisjunktheit`, `ausnahmenregister` (Abschnitt 10),
-  `protokollvertrag` (Abschnitt 11) und `aufbaudoku` (CLAUDE.md gegen den
-  Baum). Alle brechen den Build ab, statt nur zu berichten.
+  `protokollvertrag` (Abschnitt 11), `aufbaudoku` (CLAUDE.md gegen den
+  Baum) und seit 2026-08-20 `featuredoku` (jedes Feature-Dokument trägt
+  alle sieben Pflichtabschnitte der Vorlage — nur die Struktur, nicht der
+  Inhalt: Ob „Umgesetzt in" wirklich existierende Klassen nennt, ließe sich
+  wegen der vielen anderen Backtick-Wörter im Fließtext — Konstanten,
+  Kommandonamen, Annotationen — nicht ohne häufige Fehlalarme
+  automatisieren, das bleibt Aufgabe des Reviews). Alle brechen den Build
+  ab, statt nur zu berichten.
 - **Zeitbudget: 10 Minuten** für den vollständigen Lauf einschließlich
   Mutationstests. Wird es enger, wird zuerst der Mutations-Scope
   hinterfragt, nicht die Feature-Abdeckung.

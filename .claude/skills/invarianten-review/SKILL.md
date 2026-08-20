@@ -14,16 +14,21 @@ stehen nur in `CLAUDE.md`.
 ## Die sieben Fragen an den Diff
 
 1. **Zustand nur auf dem Raum-Thread.** Fasst der Diff `Room`/`Player`/
-   `Round` außerhalb von `RoomActor`/`RoomCommands` an? Taucht
-   `synchronized`, `volatile` oder eine Klasse aus `java.util.concurrent`
-   in `domain` oder `application` auf? (Stand 2026-08-20 noch **nicht**
-   durch `ArchitectureTest` erzwungen — bis dahin ist das hier die einzige
-   Prüfung dagegen. Siehe Prozess-Audit unten in
-   `docs/prozess-optimierung.md`.)
+   `Round` außerhalb von `RoomActor`/`RoomCommands` an? Seit 2026-08-20
+   durch `ArchitectureTest` erzwungen (`domaeneOhneNebenlaeufigkeit`,
+   `domaeneOhneSynchronisierteMethoden`, `domaeneOhneVolatileFelder` —
+   `synchronized`, `volatile` und `java.util.concurrent` in `domain` sind
+   damit ein roter `archTest`, kein Diff-Lesen mehr). Diese Frage bleibt
+   trotzdem hier stehen, weil `application` (der `RoomActor` selbst) davon
+   ausdrücklich nicht erfasst ist — er braucht seinen `ExecutorService`.
 
 2. **Der Raum-Thread blockiert nie.** Läuft Datei- oder Netz-I/O direkt im
    `RoomActor` statt über `ClientGateway`s Ausgangs-Queue oder
-   `SnapshotStore`s eigenen Thread?
+   `SnapshotStore`s eigenen Thread? Teilweise durch `ArchitectureTest`
+   (`anwendungsringBlockiertNicht`) erzwungen — die dort gelisteten
+   blockierenden Aufrufe, mit der begründeten Ausnahme `awaitIdle`. Ein neu
+   eingeführter blockierender Aufruf, der (noch) nicht auf dieser Liste
+   steht, fällt trotzdem nur hier auf.
 
 3. **Der Server ist die einzige Quelle der Wahrheit.** Rechnet das
    Frontend etwas selbst aus, das der Server entscheiden sollte (Punkte,
