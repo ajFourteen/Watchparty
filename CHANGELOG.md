@@ -1,3 +1,11 @@
+# [3.11.0](https://github.com/ajFourteen/Watchparty/compare/v3.10.3...v3.11.0) (2026-08-20)
+
+
+### Features
+
+* Pipeline nach dem Push im Hintergrund beobachten ([4d61551](https://github.com/ajFourteen/Watchparty/commit/4d615514b7f30aaef420a06cc6c9582c2cd356be))
+* Stop-Hook committet und pusht bei sauber abgeschlossener Aenderung ([458e7a1](https://github.com/ajFourteen/Watchparty/commit/458e7a1f77caca0365203ea84602cd7c3c764fdb))
+
 ## [3.10.3](https://github.com/ajFourteen/Watchparty/compare/v3.10.2...v3.10.3) (2026-08-20)
 
 
