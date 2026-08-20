@@ -579,6 +579,140 @@ tasks.named("check") {
     dependsOn("abdeckung")
 }
 
+// --- Ausnahmenregister (docs/test-ausnahmen.md, Abschnitt 10) -------------
+//
+// "Eine Unterdrueckung ohne Eintrag ist ein Fehler" -- so steht die Regel in
+// der Teststrategie, geprueft hat sie bisher niemand. Die Datei wurde von
+// keinem Task gelesen, sie stand nur in Kommentaren.
+//
+// Erfasst werden beide Formen der Unterdrueckung: @AequivalenterMutant
+// (ein Mutant, den PIT gar nicht erst erzeugt) und @Disabled (ein Test, der
+// nicht laeuft). Beides entzieht dem Bau etwas, ohne dass der Bau rot wird --
+// genau deshalb braucht es den Eintrag mit Begruendung und Datum.
+//
+// Der Abgleich laeuft in beide Richtungen: eine Unterdrueckung ohne Eintrag
+// ist ein Fehler, ein Eintrag ohne Unterdrueckung ebenso. Ein Register, in dem
+// Karteileichen stehen bleiben, verliert seinen Zweck genauso wie eines, in
+// dem Eintraege fehlen.
+tasks.register("ausnahmenregister") {
+    group = "verification"
+    description = "Prueft, dass jede @AequivalenterMutant- und @Disabled-Unterdrueckung in docs/test-ausnahmen.md steht."
+    dependsOn(tasks.named("classes"), tasks.named("testClasses"))
+
+    val registerDatei = layout.projectDirectory.file("docs/test-ausnahmen.md")
+    val hauptKlassen = sourceSets.main.get().output.classesDirs
+    val testKlassen = sourceSets.test.get().output.classesDirs
+    val klassenpfad = sourceSets.test.get().runtimeClasspath
+    val berichtsDatei = layout.buildDirectory.file("reports/ausnahmenregister.txt")
+
+    inputs.file(registerDatei)
+    inputs.files(hauptKlassen)
+    inputs.files(testKlassen)
+    outputs.file(berichtsDatei)
+
+    doLast {
+        val urls = klassenpfad.files.map { it.toURI().toURL() }.toTypedArray()
+        val classLoader = URLClassLoader(urls, javaClass.classLoader)
+
+        fun annotationsKlasse(name: String): Class<out Annotation>? {
+            @Suppress("UNCHECKED_CAST")
+            return try {
+                classLoader.loadClass(name) as Class<out Annotation>
+            } catch (e: Throwable) {
+                null
+            }
+        }
+
+        val aequivalenterMutant = annotationsKlasse("de.fourteen.watchparty.mutationtest.AequivalenterMutant")
+        val disabled = annotationsKlasse("org.junit.jupiter.api.Disabled")
+
+        // Bezeichner wie in der Doku: einfacher Klassenname, bei einer Methode
+        // zusaetzlich ".methodenname". Voll qualifiziert waere eindeutiger,
+        // aber die Tabelle soll lesbar bleiben -- sie wird von Menschen
+        // gepflegt, nicht von einem Werkzeug.
+        fun sammle(verzeichnisse: FileCollection, annotation: Class<out Annotation>?): Set<String> {
+            if (annotation == null) return emptySet()
+            val gefunden = sortedSetOf<String>()
+            verzeichnisse.forEach { wurzelVerzeichnis ->
+                wurzelVerzeichnis.walkTopDown()
+                    .filter { it.isFile && it.extension == "class" }
+                    .forEach { classFile ->
+                        val klassenname = classFile.relativeTo(wurzelVerzeichnis).path
+                            .removeSuffix(".class").replace(File.separatorChar, '.')
+                        val klasse = try {
+                            classLoader.loadClass(klassenname)
+                        } catch (e: Throwable) {
+                            return@forEach
+                        }
+                        val einfacherName = klasse.simpleName
+                        if (klasse.getAnnotation(annotation) != null) {
+                            gefunden += einfacherName
+                        }
+                        for (methode in klasse.declaredMethods) {
+                            if (methode.getAnnotation(annotation) != null) {
+                                gefunden += "$einfacherName.${methode.name}"
+                            }
+                        }
+                    }
+            }
+            return gefunden
+        }
+
+        val unterdrueckungen = sammle(hauptKlassen, aequivalenterMutant) + sammle(testKlassen, disabled)
+
+        // Erste Spalte jeder Tabellenzeile, ohne Backticks und ohne die
+        // Platzhalterzeile "(keine Eintraege)".
+        val eintraege = sortedSetOf<String>()
+        registerDatei.asFile.forEachLine { zeile ->
+            val getrimmt = zeile.trim()
+            if (!getrimmt.startsWith("|")) return@forEachLine
+            val ersteSpalte = getrimmt.trim('|').split("|").firstOrNull()?.trim()?.trim('`') ?: return@forEachLine
+            if (ersteSpalte.isEmpty()) return@forEachLine
+            if (ersteSpalte.startsWith("---")) return@forEachLine
+            if (ersteSpalte == "Klasse/Methode" || ersteSpalte == "Test") return@forEachLine
+            if (ersteSpalte.startsWith("_(")) return@forEachLine
+            eintraege += ersteSpalte
+        }
+
+        val ohneEintrag = (unterdrueckungen - eintraege).sorted()
+        val ohneUnterdrueckung = (eintraege - unterdrueckungen).sorted()
+
+        val bericht = buildString {
+            appendLine("Ausnahmenregister: ${unterdrueckungen.size} Unterdrueckung(en) im Code, ${eintraege.size} Eintrag/Eintraege in docs/test-ausnahmen.md.")
+            if (ohneEintrag.isEmpty() && ohneUnterdrueckung.isEmpty()) {
+                appendLine("Code und Register stimmen ueberein.")
+            }
+            if (ohneEintrag.isNotEmpty()) {
+                appendLine("Ohne Eintrag im Register (${ohneEintrag.size}):")
+                ohneEintrag.forEach { appendLine("  - $it") }
+            }
+            if (ohneUnterdrueckung.isNotEmpty()) {
+                appendLine("Eintrag ohne Entsprechung im Code (${ohneUnterdrueckung.size}):")
+                ohneUnterdrueckung.forEach { appendLine("  - $it") }
+            }
+        }
+        println(bericht)
+        val datei = berichtsDatei.get().asFile
+        datei.parentFile.mkdirs()
+        datei.writeText(bericht)
+
+        if (ohneEintrag.isNotEmpty()) {
+            throw GradleException(
+                "Unterdrueckung ohne Eintrag in docs/test-ausnahmen.md: ${ohneEintrag.joinToString(", ")} " +
+                    "-- jede Ausnahme wird dort mit Begruendung und Datum benannt (Teststrategie, Abschnitt 10).")
+        }
+        if (ohneUnterdrueckung.isNotEmpty()) {
+            throw GradleException(
+                "Karteileiche in docs/test-ausnahmen.md: ${ohneUnterdrueckung.joinToString(", ")} " +
+                    "-- im Code gibt es dazu keine Unterdrueckung mehr, der Eintrag gehoert entfernt.")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("ausnahmenregister")
+}
+
 // --- Null-Sicherheit (ADR-026) ---------------------------------------------
 //
 // NullAway prueft im JSpecify-Modus nur Code, der explizit @NullMarked ist

@@ -1,4 +1,10 @@
-# Ausnahmenregister für Mutationstests
+# Ausnahmenregister
+
+Hier stehen alle bewussten Unterdrückungen an einer Stelle, mit Begründung
+und Datum (`docs/teststrategie.md`, Abschnitt 10) — äquivalente Mutanten
+unten im ersten Abschnitt, übersprungene Tests im zweiten.
+
+## Äquivalente Mutanten
 
 Der Mutationstest (`docs/teststrategie.md`, Abschnitt 7.2) verlangt 99 %
 statt 100 %, weil äquivalente Mutanten unvermeidbar sind — semantisch
@@ -55,3 +61,37 @@ hier.
 | Klasse/Methode | Mutator | Begründung | Datum |
 |---|---|---|---|
 | _(keine Einträge)_ | | | |
+
+## Übersprungene Tests
+
+Ein `@Disabled`-Test ist die zweite Form der Unterdrückung: Er entzieht dem
+Bau eine Prüfung, ohne ihn rot zu machen. Deshalb gilt für ihn dieselbe
+Regel wie für einen äquivalenten Mutanten — benannt, begründet, datiert.
+
+Ein abgeschalteter Test ist fast immer die falsche Antwort: Prüft er etwas
+Falsches, gehört er korrigiert; prüft er etwas Richtiges, das gerade nicht
+gilt, ist das ein Fund. `@Disabled` bleibt für den Fall, dass eine Prüfung
+nachweislich von etwas abhängt, das in dieser Umgebung nicht herstellbar ist
+— dann steht genau das hier als Begründung.
+
+| Test | Begründung | Datum |
+|---|---|---|
+| _(keine Einträge)_ | |
+
+## Wie geprüft wird
+
+Der Gradle-Task `ausnahmenregister` (an `check` gehängt) sammelt alle
+`@AequivalenterMutant`- und `@Disabled`-Vorkommen aus den kompilierten
+Klassen ein und gleicht sie mit den Tabellen oben ab. Der Abgleich läuft in
+beide Richtungen:
+
+- Eine Unterdrückung ohne Eintrag bricht den Build ab. Das ist die Regel aus
+  Abschnitt 10 der Teststrategie, die bis dahin niemand geprüft hat.
+- Ein Eintrag ohne Unterdrückung ebenfalls. Ein Register, in dem
+  Karteileichen stehen bleiben, verliert seinen Zweck genauso wie eines, in
+  dem Einträge fehlen.
+
+Der Bezeichner in der ersten Spalte ist der einfache Klassenname, bei einer
+Methode zusätzlich `.methodenname` — also `Settlement.requireShare`, nicht
+der voll qualifizierte Name. Die Tabelle wird von Menschen gepflegt und soll
+lesbar bleiben.
