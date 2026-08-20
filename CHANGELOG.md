@@ -1,3 +1,10 @@
+# [3.12.0](https://github.com/ajFourteen/Watchparty/compare/v3.11.1...v3.12.0) (2026-08-20)
+
+
+### Features
+
+* neun Prozess-Skills bauen und Pipeline gegen harte Checks pruefen ([f6e7fcf](https://github.com/ajFourteen/Watchparty/commit/f6e7fcf5d7acc6d90e10a0ea84ed77fc689e19fe))
+
 ## [3.11.1](https://github.com/ajFourteen/Watchparty/compare/v3.11.0...v3.11.1) (2026-08-20)
 
 
