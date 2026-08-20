@@ -61,3 +61,26 @@ jobs:
       - run: flyctl deploy --ha=false --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # Gegenstueck zu --ha=false. fly.toml nennt diese Kontrolle Pflicht,
+      # aber bislang nur als Kommentar ("danach `fly machines list` pruefen")
+      # -- damit hing Invariante 6 daran, dass ein Mensch nachsieht. Zwei
+      # Maschinen waeren zwei getrennte Mengen von Watchpartys (ADR-005).
+      - name: Genau eine Maschine (Invariante 6)
+        run: ci/eine-maschine-pruefen.sh watchparty-fourteen
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # Node 22, weil der Rauchtest das globale WebSocket ohne Flag braucht.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Der Fly-Healthcheck fragt "GET /" ab und prueft damit nur die
+      # statische Auslieferung -- fly.toml sagt selbst, dass der Raum-Thread
+      # damit nicht nachgewiesen ist. Dieser Schritt legt ueber die echte
+      # WebSocket-Verbindung eine Watchparty an und wartet auf WELCOME und
+      # STATE: Das laeuft durch RoomCommands, den Raum-Thread und die
+      # Ausgangs-Queue und beweist genau das, was der Healthcheck nicht kann.
+      - name: Rauchtest gegen die laufende Instanz
+        run: node ci/rauchtest.mjs wss://watchparty-fourteen.fly.dev/ws
