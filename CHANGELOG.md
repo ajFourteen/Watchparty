@@ -1,3 +1,10 @@
+## [3.10.3](https://github.com/ajFourteen/Watchparty/compare/v3.10.2...v3.10.3) (2026-08-20)
+
+
+### Bug Fixes
+
+* Maschinenpruefung war nicht lauffaehig ([21cb4a0](https://github.com/ajFourteen/Watchparty/commit/21cb4a0724a21f14af10e2c62066f437ce8355c3))
+
 ## [3.10.2](https://github.com/ajFourteen/Watchparty/compare/v3.10.1...v3.10.2) (2026-08-19)
 
 
