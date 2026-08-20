@@ -125,17 +125,3 @@ Sitzung unbenutzbar. Dafür ist `/pruefen` da.
   mehrere tausend Zeilen Dokumentation zu lesen.
 - **`/fewer-permission-prompts`** senkt die Alltagsreibung — die
   Berechtigungsliste in `.claude/settings.local.json` ist kurz.
-
-## Was bereits umgesetzt ist
-
-Am 2026-08-20 aus derselben Bestandsaufnahme entstanden und deshalb hier
-**nicht** mehr vorzuschlagen: Frontend-Build und Commit-Format vor dem Release,
-Rauchtest und Maschinenzählung nach dem Deploy, Invariante 2 als
-ArchUnit-Regel, Ableitung der pitest-Ziele aus `@Criticality(HIGH)`,
-`ausnahmenregister`, `protokollvertrag`, `aufbaudoku`, Mutationstests in
-`check`, die beiden Arbeitsregel-Hooks und der Pipeline-Beobachter, sowie
-(am selben Tag, über die ursprüngliche Idee eines reinen Erinnerns
-hinausgehend) ein Stop-Hook, der bei unsauberem Arbeitsbaum den Agenten
-zwingt zu prüfen, ob die Änderung abgeschlossen ist, und im Erfolgsfall
-selbst `check` laufen lässt, committet und pusht (`ci/stop-unclean-worktree.sh`).
-Einzelheiten stehen in den Commit-Messages, nicht hier.
