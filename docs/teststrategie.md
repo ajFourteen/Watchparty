@@ -516,10 +516,17 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
 
 ## 10. Regeln für den Bau
 
-- **Die Pipeline führt Tests aus.** Heute tut sie das nicht: Der Workflow
-  macht Semantic Release und Deploy, und `gradle bootJar` zieht `test` nicht
-  an. Ein `fix:`-Commit geht damit ungetestet nach Produktion. Solange das
-  so bleibt, ist diese Strategie eine Verabredung und keine Regel.
+- **Die Pipeline führt Tests aus.** Erfüllt: `release.yml` bindet
+  `build.yml` als wiederverwendbaren Workflow ein, und der läuft `check`.
+  Ein roter Test verhindert damit Release *und* Deploy. Seit 2026-08-20
+  hängt `check` auch an `pitest` — der Schwellwert von 99 % galt vorher nur
+  für den, der die Mutationstests von Hand aufrief, und war in keinem
+  CI-Lauf wirksam.
+- **Der Bau prüft mehr als Tests.** An `check` hängen außerdem die Gates,
+  die Verabredungen zu Regeln machen: `abdeckung` (Feature-Abdeckung),
+  `ebenenDisjunktheit`, `ausnahmenregister` (Abschnitt 10),
+  `protokollvertrag` (Abschnitt 11) und `aufbaudoku` (CLAUDE.md gegen den
+  Baum). Alle brechen den Build ab, statt nur zu berichten.
 - **Zeitbudget: 10 Minuten** für den vollständigen Lauf einschließlich
   Mutationstests. Wird es enger, wird zuerst der Mutations-Scope
   hinterfragt, nicht die Feature-Abdeckung.
@@ -528,7 +535,10 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
   Wiederholungsfall — Wiederholungen werden nicht eingebaut.
 - **Ausnahmenregister.** Äquivalente Mutanten, nicht prüfbare Anforderungen
   und bewusst nicht abgedeckte Fälle stehen an einer Stelle, jeweils mit
-  Begründung und Datum. Eine Unterdrückung ohne Eintrag ist ein Fehler.
+  Begründung und Datum. Eine Unterdrückung ohne Eintrag ist ein Fehler —
+  seit 2026-08-20 auch maschinell: Der Task `ausnahmenregister` gleicht
+  `@AequivalenterMutant` und `@Disabled` mit `docs/test-ausnahmen.md` ab,
+  in beide Richtungen.
 
 ## 11. Was diese Strategie nicht abdeckt
 

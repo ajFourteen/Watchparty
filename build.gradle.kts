@@ -443,6 +443,16 @@ pitest {
             "+FANN(annotation[Generated]annotation[DoNotMutate]annotation[CoverageIgnore]annotation[AequivalenterMutant])"))
 }
 
+// Der Schwellwert oben (99 %) galt bislang nur fuer den, der `gradle pitest`
+// von Hand aufrief: `check` hing nicht daran, und kein Workflow rief ihn auf.
+// Damit war die Metrik zwar konfiguriert, aber in keinem CI-Lauf wirksam --
+// dieselbe Sorte stiller Ausfall wie eine leere Zielmenge. Abschnitt 10 der
+// Teststrategie budgetiert ausdruecklich zehn Minuten "einschliesslich
+// Mutationstests"; genau so ist es gemeint.
+tasks.named("check") {
+    dependsOn("pitest")
+}
+
 // --- Feature-Abdeckung (docs/teststrategie.md, Abschnitt 5.2) --------------
 //
 // Liest Anhang A aus derselben Datei wie die Anforderungen selbst -- eine
