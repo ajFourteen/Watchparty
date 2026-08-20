@@ -92,7 +92,6 @@ Sparsam einsetzen; alles Weitere ist in Gradle besser aufgehoben.
 - **SessionStart** — `git status`, letzte Commits und vor allem
   `offene-entscheidungen.md` einspeisen. Die Regel „dort nichts stillschweigend
   festlegen" funktioniert nur, wenn der Agent weiß, was drinsteht.
-- **Stop** — erinnern, wenn der Arbeitsbaum nicht sauber ist.
 
 Ausdrücklich **kein** Hook, der nach jedem Edit `check` anwirft: Das macht die
 Sitzung unbenutzbar. Dafür ist `/pruefen` da.
@@ -134,5 +133,9 @@ Am 2026-08-20 aus derselben Bestandsaufnahme entstanden und deshalb hier
 Rauchtest und Maschinenzählung nach dem Deploy, Invariante 2 als
 ArchUnit-Regel, Ableitung der pitest-Ziele aus `@Criticality(HIGH)`,
 `ausnahmenregister`, `protokollvertrag`, `aufbaudoku`, Mutationstests in
-`check`, die beiden Arbeitsregel-Hooks und der Pipeline-Beobachter.
+`check`, die beiden Arbeitsregel-Hooks und der Pipeline-Beobachter, sowie
+(am selben Tag, über die ursprüngliche Idee eines reinen Erinnerns
+hinausgehend) ein Stop-Hook, der bei unsauberem Arbeitsbaum den Agenten
+zwingt zu prüfen, ob die Änderung abgeschlossen ist, und im Erfolgsfall
+selbst `check` laufen lässt, committet und pusht (`ci/stop-unclean-worktree.sh`).
 Einzelheiten stehen in den Commit-Messages, nicht hier.

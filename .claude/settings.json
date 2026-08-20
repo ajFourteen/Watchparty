@@ -28,6 +28,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR:-.}/ci/stop-unclean-worktree.sh\"",
+            "timeout": 30,
+            "statusMessage": "Arbeitsbaum pruefen"
+          }
+        ]
+      }
     ]
   }
 }
