@@ -2,8 +2,7 @@ name: Build & Test
 
 # Laeuft auf jedem Push und jeder Pull Request, damit ein roter Test sichtbar
 # wird, bevor er ueberhaupt die Chance hat, auf main zu landen
-# (docs/teststrategie.md, Abschnitt 10). Das Frontend bleibt aussen vor -- es
-# wird im Docker-Build ohnehin getrennt gebaut.
+# (docs/teststrategie.md, Abschnitt 10).
 
 on:
   push:
@@ -17,12 +16,45 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Volle Historie: Die Commit-Format-Pruefung unten braucht die Commits
+      # zwischen Basis und Kopf, ein flacher Klon haette nur den letzten.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Der Typ der Commit-Betreffzeile entscheidet ueber Release und Deploy
+      # (ADR-019). Ein nicht erkannter Typ deployed stillschweigend nicht --
+      # deshalb steht diese Pruefung vor dem Bauen und nicht als Nachtrag.
+      - name: Commit-Format
+        run: |
+          ci/commit-format-pruefen.sh \
+            "${{ github.event.pull_request.base.sha || github.event.before }}" \
+            "${{ github.event.pull_request.head.sha || github.sha }}"
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "25"
+
+      # Das Frontend wird hier gebaut, obwohl `check` es mit -PskipFrontend
+      # auslaesst. Der Grund ist die Reihenfolge in release.yml: build ->
+      # release -> deploy. Wuerde das Frontend erst im Docker-Build entstehen
+      # (Dockerfile, Stufe "frontend"), scheiterte ein Syntaxfehler in einer
+      # .jsx-Datei erst *nach* dem veroeffentlichten Release -- Tag, CHANGELOG
+      # und GitHub-Release waeren draussen, Produktion bliebe auf der alten
+      # Version, und die Versionsnummer behauptete eine neue. Genau dieser
+      # stille Auseinanderlauf wird hier abgefangen.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend bauen
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
 
       - name: check
         run: ./gradlew check -PskipFrontend
