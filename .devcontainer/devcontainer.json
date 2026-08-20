@@ -14,12 +14,6 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   // Reicht ein auf dem Host gesetztes GH_TOKEN in den Container durch.
-  // Ohne Token gilt fuer die GitHub-API ein Limit von 60 Anfragen je Stunde;
-  // der Pipeline-Beobachter pollt dann seltener, damit ein laufender Deploy
-  // nicht mittendrin ins Limit faellt. Ist die Variable auf dem Host nicht
-  // gesetzt, bleibt sie hier leer -- das ist kein Fehler, nur langsamer.
-  // Noetig ist ein Fine-grained-Token mit Leserecht auf "Actions" dieses
-  // Repos; mehr braucht weder gh noch das Skript.
   "remoteEnv": {
     "GH_TOKEN": "${localEnv:GH_TOKEN}"
   }
