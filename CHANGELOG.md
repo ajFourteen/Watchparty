@@ -1,3 +1,10 @@
+# [3.13.0](https://github.com/ajFourteen/Watchparty/compare/v3.12.0...v3.13.0) (2026-08-21)
+
+
+### Features
+
+* commit-msg-Hook prueft Conventional Commits schon lokal, nicht erst in CI ([cb3e298](https://github.com/ajFourteen/Watchparty/commit/cb3e2980e3f5328b8a6f3d6998c14211c04c18cb))
+
 # [3.12.0](https://github.com/ajFourteen/Watchparty/compare/v3.11.1...v3.12.0) (2026-08-20)
 
 
