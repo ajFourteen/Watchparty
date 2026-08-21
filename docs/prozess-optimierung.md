@@ -230,6 +230,23 @@ Anforderungen-Tabelle, jetzt der Stop-Hook). Die Lehre ist jedes Mal
 dieselbe wie oben — nicht fragen, ob sich die heutige Form prüfen lässt,
 sondern ob die Prüfung die ganze Regel trifft.
 
+**Nachtrag 2026-08-21, fünfter Teil: `schneiden` endete im Chatverlauf,
+nicht auf der Platte.** Der Skill lieferte die Schnittliste einer Idee nur
+als Antworttext. Das reichte, solange dieselbe Sitzung auch Schnitt 1 mit
+`feature` baute — für Schnitt 2 in einer späteren, unabhängigen Sitzung
+(anderer Agent, anderer Tag) gab es nichts zum Nachschlagen außer dem
+Gedächtnis der Person, die die Idee ursprünglich geschnitten hatte. Jetzt
+schreibt `schneiden` einen **Schnittplan** unter `docs/schnitte/
+<kurzname>.md` (Tabelle mit Status `offen`/`in Arbeit`/`blockiert`/
+`fertig` und, sobald gebaut, dem Pfad des Feature-Dokuments). `feature`
+liest ohne genannten Schnitt die oberste `offen`-Zeile daraus und trägt
+nach dem Bau `fertig` samt Dokumentpfad ein — derselbe Rollenwechsel wie
+bei `docs/offene-entscheidungen.md`: eine Datei als Warteschlange statt
+eines Gesprächs als einziger Gedächtnisträger. Bewusst kein Gradle-Gate
+dafür: Ob ein Schnittplan zu einer Idee existiert, ist Urteilssache
+(einige Ideen sind mit einem einzigen Schnitt schon fertig geschnitten),
+nicht am Ergebnis prüfbar.
+
 ## Kontext-Ökonomie
 
 - **`CLAUDE.md` ist groß.** Rund 250 Zeilen, gut die Hälfte Dateibaum, geladen

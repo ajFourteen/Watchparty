@@ -16,7 +16,15 @@ beweist, die ihn grün gemacht hat.
 
 **Vorbedingung:** Der Schnitt steht — ein Feature, das nach Fertigstellung
 jemand benutzen kann. Wenn nicht oder unklar: erst Skill `schneiden`, dann
-hierher zurück mit dem **ersten** Schnitt.
+hierher zurück.
+
+Ohne im Gespräch genannten Schnitt (typischerweise der Fall, wenn dieser
+Skill in einer neuen Sitzung ohne Vorlauf aufgerufen wird): unter
+`docs/schnitte/` nach einer Datei suchen, deren Thema zur Anfrage passt,
+und darin die oberste Zeile mit Status `offen` nehmen — nicht `blockiert`
+oder `fertig`. Gibt es keine solche Zeile mehr oder keinen Schnittplan zu
+dem Thema, hier stoppen und nachfragen, statt zu raten, welcher Schnitt
+gemeint ist.
 
 1. **Feature-Dokument prüfen/anlegen.**
    Existiert `docs/features/NNN-kurzname.md` für diese Änderung schon?
@@ -51,7 +59,11 @@ hierher zurück mit dem **ersten** Schnitt.
    nur nach innen, ADR-024).
 
 6. **„Umgesetzt in" nachtragen** — die Klassen, die die
-   Kritikalitätseinstufung tragen.
+   Kritikalitätseinstufung tragen. Gibt es zu diesem Feature einen
+   Schnittplan unter `docs/schnitte/`: dort die Zeile dieses Schnitts auf
+   `fertig` setzen und den Pfad des gerade angelegten Feature-Dokuments in
+   die letzte Spalte eintragen — das ist der einzige Schreibzugriff, den
+   `feature` auf den Schnittplan hat.
 
 7. **Nach der Umsetzung: Feature-Dokument nicht weiterpflegen.** Lebendes
    Dokument ist ab jetzt der JGiven-Report, nicht die Datei unter

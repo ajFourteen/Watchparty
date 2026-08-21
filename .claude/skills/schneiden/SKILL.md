@@ -12,8 +12,12 @@ und einer eigenen Neun-Stufen-Bautabelle — die Teilung hat stattgefunden,
 aber erst *im* Dokument und entlang der falschen Achse.
 
 Dieser Skill läuft **vor** `feature`. Er erzeugt keinen Code und kein
-Dokument, sondern eine Liste von Schnitten. Erst danach legt `feature` für
-den **ersten** davon ein Dokument an — nicht für alle.
+Feature-Dokument, aber einen **Schnittplan**: eine Datei unter
+`docs/schnitte/<kurzname>.md`, die die Liste der Schnitte über das Ende
+des Gesprächs hinaus festhält. Erst `feature` legt je Schnitt ein eigenes
+Dokument unter `docs/features/` an — nicht für alle auf einmal, sondern
+einen nach dem anderen, bei Bedarf auch in späteren, unabhängigen
+Sitzungen: `feature` liest dafür nur den Schnittplan, keinen Chatverlauf.
 
 ## Der Fehler, den es zu vermeiden gilt
 
@@ -66,6 +70,23 @@ ist eine Scheibe.
    Diese drei prüft `featuredoku` beim Bau nach — hier verhindern sie den
    Fehlschlag, dort fangen sie ihn.
 
+7. **Schnittplan schreiben.** Unter `docs/schnitte/<kurzname>.md`, mit
+   dieser Tabelle:
+
+   | # | Schnitt | Behelf | Kritikalität | Status | Feature-Dokument |
+   |---|---|---|---|---|---|
+
+   `<kurzname>` beschreibt die Idee, nicht den ersten Schnitt, und trägt
+   **keine** Nummer — die vergibt erst `feature`, je Schnitt neu, an
+   `docs/features/`. `Status` ist eines von `offen`, `in Arbeit`,
+   `blockiert` (mit Begründung in der Zelle, meist ein Verweis auf
+   `docs/offene-entscheidungen.md`) oder `fertig`. Alle Zeilen starten als
+   `offen`, außer eine Entscheidung fehlt bereits jetzt erkennbar (dann
+   `blockiert`, siehe unten). `feature` pflegt Status und
+   Feature-Dokument-Spalte selbst nach jedem grün gebauten Schnitt — diese
+   Datei danach nicht mehr von Hand anfassen, sonst laufen Schnittplan und
+   Baustand auseinander.
+
 ## Wenn Risiko und Benutzbarkeit sich widersprechen
 
 Der begründete Einwand aus 005: Der HIGH-kritische Kern (`Scoring`) wurde
@@ -92,7 +113,14 @@ nicht.
 
 ## Danach
 
-Für den **ersten** Schnitt: Skill `feature`. Die übrigen bleiben eine
-Liste in der Antwort oder — wenn sie eine Entscheidung offenlassen —
-gehen über Skill `triage` nach `docs/offene-entscheidungen.md`. Sie
-bekommen ihr Dokument, wenn sie dran sind, nicht auf Vorrat.
+Für den **ersten** Schnitt: Skill `feature` — er nimmt sich die oberste
+`offen`-Zeile aus dem gerade geschriebenen Schnittplan, auch noch in
+derselben Sitzung. Ein Schnitt, der selbst eine Entscheidung offenlässt
+(wie Schnitt 5 im Beispiel unten), geht zusätzlich über Skill `triage`
+nach `docs/offene-entscheidungen.md` und bekommt in der Status-Spalte
+`blockiert` mit einem Verweis auf den dortigen Eintrag — `feature`
+überspringt eine blockierte Zeile und nimmt die nächste `offen`e.
+
+Die übrigen Schnitte bekommen ihr eigenes Feature-Dokument erst, wenn sie
+dran sind, nicht auf Vorrat — der Schnittplan ist die Warteschlange dafür,
+kein Ersatz für `docs/features/`.
