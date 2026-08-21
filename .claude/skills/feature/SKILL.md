@@ -14,13 +14,9 @@ beweist, die ihn grün gemacht hat.
 
 ## Schritte
 
-0. **Schnitt prüfen, bevor irgendetwas entsteht.**
-   Ist das hier *ein* Feature — eine Fähigkeit, die nach Fertigstellung
-   jemand benutzen kann, mit genau einer Kritikalität und höchstens zwölf
-   Akzeptanzkriterien? Wenn nein oder unklar: erst Skill `schneiden`, dann
-   hierher zurück, und zwar nur mit dem **ersten** Schnitt. Das ist der
-   Schritt, dessen Fehlen aus Feature 005 ein Dokument mit 38 Kriterien
-   und neun Baustufen gemacht hat.
+**Vorbedingung:** Der Schnitt steht — ein Feature, das nach Fertigstellung
+jemand benutzen kann. Wenn nicht oder unklar: erst Skill `schneiden`, dann
+hierher zurück mit dem **ersten** Schnitt.
 
 1. **Feature-Dokument prüfen/anlegen.**
    Existiert `docs/features/NNN-kurzname.md` für diese Änderung schon?
@@ -28,30 +24,19 @@ beweist, die ihn grün gemacht hat.
    dreistellige Nummer (höchste vorhandene `NNN` in `docs/features/`
    ermitteln, nicht raten).
 
-2. **Alle Abschnitte der Vorlage ausfüllen** — bis auf „Umgesetzt in",
-   das erst nach Schritt 5 einen Wert bekommt:
-   - **Anlass** — zwei Sätze, wozu.
-   - **Betroffene Anforderungen** — die Pflichttabelle `| ID | Bezug |
-     Anmerkung |`, eine Anhang-A-ID je Zeile, `Bezug` aus `bestehend`,
-     `geändert`, `neu`, `zurückgenommen`. Keine Bereiche („13.1-a bis
-     13.8-x"), keine Kapitelverweise („11 (out of scope)"), keine
-     Invarianten-Nummern — die gehören als Prosa unter die Tabelle.
-     Neue IDs werden in `docs/anforderungen.md` ergänzt, sonst bleibt
-     `abdeckung` blind.
-   - **Akzeptanzkriterien** — nummeriert, jedes eine prüfbare Aussage,
-     höchstens zwölf.
-   - **Szenarien** — Angenommen–Wenn–Dann, in der Sprache der
-     Anforderungen (Wette, Wettfenster, Runde, Tipp, Einsatz, Anteil,
-     Pool, Strafe, Auflösen — nicht „Markt", ADR-022).
-   - **Kritikalität** — genau eine Stufe, als eigene maschinenlesbare
-     Zeile `**Stufe:** LOW|MEDIUM|HIGH`, darunter die Begründung
-     (Eintrittswahrscheinlichkeit × Schadensausmaß). Bestimmt später den
-     pitest-Schwellwert für die tragenden Klassen. Wer hier eine Tabelle
-     mit mehreren Bereichen braucht, hat den Schnitt aus Schritt 0
-     übersprungen.
-   - **Offene Fragen** — was hier noch offen bleibt, geht nach
-     `docs/offene-entscheidungen.md` (Skill `triage`), nicht
-     stillschweigend in eine Annahme.
+2. **Abschnitte ausfüllen.** Die verbindliche Form steht in
+   `docs/features/_vorlage.md` und wird hier nicht wiederholt — eine
+   zweite Kopie wäre die zweite Wahrheit, und `featuredoku` prüft die Form
+   ohnehin beim Bau. „Umgesetzt in" bleibt bis Schritt 6 leer.
+
+   Zwei Dinge, die weder Vorlage noch Task abnehmen können, weil sie
+   Urteil verlangen:
+   - **Sprache der Anforderungen** in den Szenarien: Wette, Wettfenster,
+     Runde, Tipp, Einsatz, Anteil, Pool, Strafe, Auflösen — nicht „Markt"
+     (ADR-022). Ein Fachbegriff ohne eigenen Domänentyp ist ein Anlass
+     nachzufragen (ADR-025).
+   - **Offene Fragen** gehen nach `docs/offene-entscheidungen.md`
+     (Skill `triage`), nicht stillschweigend in eine Annahme.
 
 3. **Szenarien 1:1 in JGiven-Stufenklassen übersetzen**, bevor
    Produktivcode entsteht. Neue Domänentypen dabei sofort mit Stereotyp
@@ -73,11 +58,14 @@ beweist, die ihn grün gemacht hat.
    `docs/features/`. Sie bleibt als Beleg der Kritikalitätsbewertung
    stehen.
 
-Der Task `featuredoku` prüft die Form beim Bau nach: sieben
-Pflichtabschnitte, genau eine Stufe, die ID-Tabelle gegen Anhang A,
-höchstens zwölf Kriterien, keine Bautabelle. Er fängt den übersprungenen
-Schritt 0 ab, ersetzt ihn aber nicht — ein horizontaler Schnitt kann alle
-fünf Prüfungen bestehen.
+Der Kern sind die Schritte 3 und 4. Schritt 2 ist heute Form, die
+`featuredoku` prüft (sieben Pflichtabschnitte, genau eine Stufe,
+ID-Tabelle gegen Anhang A, höchstens zwölf Kriterien, keine Bautabelle);
+Schritt 5 hält `ArchitectureTest` nach. **Rot vor Grün hält niemand nach
+außer diesem Ablauf** — es gibt keinen Task, der einem grünen Test ansieht,
+ob er je rot war. Und `featuredoku` fängt zwar den übersprungenen Schnitt
+ab, ersetzt ihn aber nicht: ein horizontaler Schnitt besteht alle fünf
+Prüfungen.
 
 Für gestufte lokale Rückkopplung während Schritt 3–5: Skill `pruefen`. Vor
 dem ersten Commit der Änderung: Skill `invarianten-review` und `freigabe`.
