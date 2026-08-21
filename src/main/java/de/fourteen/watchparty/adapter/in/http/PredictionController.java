@@ -2,6 +2,7 @@ package de.fourteen.watchparty.adapter.in.http;
 
 import de.fourteen.watchparty.application.league.port.in.PredictionCommands;
 import de.fourteen.watchparty.application.league.view.PredictionView;
+import de.fourteen.watchparty.application.league.view.ReportView;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.GameScore;
@@ -50,5 +51,11 @@ class PredictionController {
     ResponseEntity<TotalPointsResponse> totalPoints(@AuthenticatedAccount EmailAddress account) {
         LeaguePoints points = predictionCommands.totalPoints(account);
         return ResponseEntity.ok(new TotalPointsResponse(points.value()));
+    }
+
+    @GetMapping("/api/league/report/{seasonYear}/{week}")
+    ResponseEntity<ReportView.MatchdayReportView> report(@AuthenticatedAccount EmailAddress account,
+            @PathVariable int seasonYear, @PathVariable int week) {
+        return ResponseEntity.ok(predictionCommands.matchdayReport(account, Matchday.of(SeasonId.of(seasonYear), week)));
     }
 }

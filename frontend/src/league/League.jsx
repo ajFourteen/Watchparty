@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLeagueAccount } from "./useLeagueAccount.js";
 import { LoginScreen } from "./LoginScreen.jsx";
 import { MatchdayScreen } from "./MatchdayScreen.jsx";
+import { ReportScreen } from "./ReportScreen.jsx";
 import { LeaguesScreen } from "./LeaguesScreen.jsx";
 import { LeagueDetailScreen } from "./LeagueDetailScreen.jsx";
 
@@ -96,6 +97,15 @@ export function League() {
           Spieltag
         </button>
         <button
+          className={`league-tab${tab === "report" ? " active" : ""}`}
+          onClick={() => {
+            setTab("report");
+            setOpenLeagueId(null);
+          }}
+        >
+          Bilanz
+        </button>
+        <button
           className={`league-tab${tab === "leagues" ? " active" : ""}`}
           onClick={() => {
             setTab("leagues");
@@ -107,6 +117,8 @@ export function League() {
       </nav>
 
       {tab === "schedule" && <MatchdayScreen />}
+
+      {tab === "report" && <ReportScreen />}
 
       {tab === "leagues" && openLeagueId === null && <LeaguesScreen onOpen={setOpenLeagueId} />}
 

@@ -43,6 +43,7 @@ export const leagueApi = {
   submitPrediction: (gameId, home, away) =>
     request("/predictions", { method: "POST", body: JSON.stringify({ gameId, home, away }) }),
   totalPoints: () => request("/predictions/total-points"),
+  matchdayReport: (year, week) => request(`/report/${year}/${week}`),
 
   myLeagues: () => request("/leagues"),
   createLeague: (name, seasonYear) =>

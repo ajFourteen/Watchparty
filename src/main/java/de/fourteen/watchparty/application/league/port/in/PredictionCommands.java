@@ -1,6 +1,7 @@
 package de.fourteen.watchparty.application.league.port.in;
 
 import de.fourteen.watchparty.application.league.view.PredictionView;
+import de.fourteen.watchparty.application.league.view.ReportView;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.GameScore;
@@ -22,4 +23,12 @@ public interface PredictionCommands {
      * dem Konto, nicht der Liga — nur die Rangliste ist liga-spezifisch).
      */
     LeaguePoints totalPoints(EmailAddress account);
+
+    /**
+     * Die eigene Bilanz eines Spieltags (13.9, Feature 006 Schnitt 1): je
+     * gewertetem Spiel Endergebnis, eigener Ergebnistipp und erreichte
+     * Wertungspunkte, dazu die Spieltagssumme. Ausschliesslich das eigene
+     * Konto — kein fremder Tipp ist Teil der Antwort (13.9-e).
+     */
+    ReportView.MatchdayReportView matchdayReport(EmailAddress account, Matchday matchday);
 }

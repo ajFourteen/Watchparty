@@ -1247,3 +1247,15 @@ body {
 .other-predictions .points {
   font-variant-numeric: tabular-nums;
 }
+
+.report-summary {
+  margin: 0;
+  padding: 0.6rem 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+.report-points {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--accent);
+}

@@ -297,6 +297,7 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 | 13.6 | Ligen, Mitgliedschaft, Rangliste | **normativ seit Stufe 6** (2026-08-17), siehe unten |
 | 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | die Regeln selbst sind mit 13.3 seit Stufe 4 abgedeckt (dieselben Tatsachen, keine zweite Nummerierung); was daraus für die Rangliste folgt, erst mit Stufe 6 |
 | 13.8 | Datenschutz und Löschung | Löschen selbst normativ seit Stufe 3 (13.2-h); die volle Datenschutzerklärung bleibt Stufe 8 |
+| 13.9 | Eigene Spieltags-Bilanz (Report) | **normativ seit Feature 006** (2026-08-21), siehe unten |
 
 Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
 nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
@@ -305,7 +306,10 @@ Moduswechsel — gelten bereits als Entscheidung; sie werden hier erst
 normativ, sobald der zugehörige Code samt Szenarien steht. Für 13.2, 13.3,
 13.4, 13.5 und 13.6 ist das seit Stufe 3, Stufe 4, Stufe 5, Stufe 1 bzw.
 Stufe 6 der Fall, siehe unten; für die übrigen Abschnitte bleibt es bei den
-Verweisen oben.
+Verweisen oben. 13.9 gehört nicht zu dieser Baustufenfolge — es ist ein
+eigenständiges, später geschnittenes Feature (`docs/features/006-spieltags-report.md`,
+Skill `schneiden`), das dieselbe Regel trotzdem befolgt: normativ erst mit
+grünem Szenario, nicht vorab.
 
 ### 13.2 Konto und Anmeldung
 
@@ -459,6 +463,29 @@ Tipper Mitglied ist — ist der Punktestand des Kontos selbst. Er existiert
 auch ohne jede Liga, weil Tipps und Punkte laut Kapitel 13.4 dem Konto
 gehören, nicht einer Liga; die Rangliste vergleicht ihn nur zusätzlich mit
 anderen.
+
+### 13.9 Eigene Spieltags-Bilanz (Report)
+
+Ein angemeldeter Tipper kann sich zu einem Spieltag seine eigene Bilanz
+anzeigen lassen (Feature 006, erster von fünf Schnitten aus der Idee
+„Spieltags-Report"): zu jedem gewerteten Spiel dieses Spieltags dessen
+Endergebnis, der eigene abgegebene Ergebnistipp — falls vorhanden — und
+die daraus erreichten Wertungspunkte nach 13.5, dazu die Summe der
+Wertungspunkte über den ganzen Spieltag.
+
+Ein noch nicht gewertetes Spiel (Status SCHEDULED oder CANCELLED, 13.3-f)
+ist nicht Teil der Bilanz — es hat kein Endergebnis, an dem sich ein Tipp
+messen ließe. Ein bereits gewertetes Spiel ohne eigenen Ergebnistipp
+erscheint dagegen in der Bilanz, mit 0 Wertungspunkten und ohne eigenen
+Tipp — dieselbe Regel wie bei der Rangliste (13.6-f), hier nur für das
+einzelne Konto statt für die Liga.
+
+Die Bilanz zeigt ausschließlich Angaben zum eigenen Konto. Ein fremder
+Ergebnistipp ist nicht Teil der Antwort — nicht verborgen, sondern
+strukturell nicht vorhanden, weil die Bilanz von vornherein nur die
+eigenen Ergebnistipps abfragt. Liga-Vergleich (die Spieltagsrangliste im
+selben Report), Platzveränderung in der Saisonrangliste und Highlights
+sind eigene, spätere Schnitte derselben Idee und nicht Teil von 13.9.
 
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
@@ -689,3 +716,8 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.6-i | Die Ranglisten zweier Ligen sind vollständig getrennt: Wer nicht Mitglied ist, steht nicht darin. | Tippspiel | backend |
 | 13.6-j | Eine Ergebniskorrektur wird bei der nächsten Abfrage der Rangliste berücksichtigt — kein eingefrorener Punktestand. | Tippspiel | backend |
 | 13.6-k | Ein Konto hat einen eigenen Punktestand — die Summe seiner Wertungspunkte über alle bewerteten Spiele, unabhängig von einer Liga. | Tippspiel | backend |
+| 13.9-a | Ein angemeldeter Tipper kann für einen Spieltag seine eigene Bilanz abrufen: je gewertetem Spiel Endergebnis, eigener Ergebnistipp und erreichte Wertungspunkte. | Tippspiel | backend |
+| 13.9-b | Ein noch nicht gewertetes Spiel (SCHEDULED oder CANCELLED) ist nicht Teil der Bilanz. | Tippspiel | backend |
+| 13.9-c | Ein gewertetes Spiel ohne eigenen Ergebnistipp erscheint mit 0 Wertungspunkten und ohne eigenen Tipp in der Bilanz. | Tippspiel | backend |
+| 13.9-d | Die Bilanz trägt zusätzlich die Summe der Wertungspunkte über alle gewerteten Spiele des Spieltags. | Tippspiel | backend |
+| 13.9-e | Die Bilanz enthält ausschließlich Angaben zum eigenen Konto — kein fremder Ergebnistipp ist Teil der Antwort. | Tippspiel | backend |

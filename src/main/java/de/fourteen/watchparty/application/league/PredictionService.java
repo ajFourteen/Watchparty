@@ -5,6 +5,7 @@ import de.fourteen.watchparty.application.league.port.out.AccountRepository;
 import de.fourteen.watchparty.application.league.port.out.GameRepository;
 import de.fourteen.watchparty.application.league.port.out.PredictionRepository;
 import de.fourteen.watchparty.application.league.view.PredictionView;
+import de.fourteen.watchparty.application.league.view.ReportView;
 import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
@@ -22,8 +23,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Setzt {@link PredictionCommands} um (Kapitel 13.4). Die eigentliche
@@ -78,6 +81,18 @@ public class PredictionService implements PredictionCommands {
             total += Scoring.score(prediction.getScore(), actual).value();
         }
         return new LeaguePoints(total);
+    }
+
+    @Override
+    public ReportView.MatchdayReportView matchdayReport(EmailAddress account, Matchday matchday) {
+        List<Game> finishedGames = games.findByMatchday(matchday).stream()
+                .filter(g -> g.getStatus() == GameStatus.FINAL)
+                .toList();
+        // Ausschliesslich die eigenen Ergebnistipps -- ein fremder Tipp wird
+        // hier gar nicht erst geladen (13.9-e), nicht nur nachtraeglich ausgefiltert.
+        Map<GameId, GameScore> ownPredictions = predictions.findByAccount(account).stream()
+                .collect(Collectors.toMap(p -> p.getId().gameId(), Prediction::getScore));
+        return ReportView.matchday(matchday, finishedGames, ownPredictions);
     }
 
     private DisplayName displayNameOf(EmailAddress email) {
