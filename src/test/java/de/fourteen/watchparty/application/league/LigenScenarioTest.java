@@ -109,4 +109,19 @@ class LigenScenarioTest extends DeutschesSzenario<LigaStufen, LigaStufen, LigaSt
 
         dann().zeigtFuerDasKontoWertungspunkte("anna@example.org", 5);
     }
+
+    @Test
+    @Anforderung("13.6-l")
+    void dieKumulierteRanglisteZaehltNurSpieltageBisZurAngefragtenNummer() {
+        angenommen().einKontoMitNamenExistiertFuer("Anna", "anna@example.org")
+                .und().legtEineLigaAnFuerDieSaisonAls("A", "Liga A", 2026, "anna@example.org")
+                .und().einSpielIstAmSpieltagBeendetMit("1", 1, 24, 17)
+                .und().einSpielIstAmSpieltagBeendetMit("2", 2, 24, 17)
+                .und().tipptFuerDasSpiel("anna@example.org", "1", 24, 17)
+                .und().tipptFuerDasSpiel("anna@example.org", "2", 24, 17);
+
+        wenn().ruftDieKumulierteRanglisteDerLigaBisSpieltagAb("A", 1);
+
+        dann().zeigtFuerDasKontoWertungspunkte("anna@example.org", 6);
+    }
 }

@@ -36,6 +36,30 @@ function ReportEntry({ entry }) {
   );
 }
 
+/** Platzveränderung in der Saison-Rangliste gegenüber der Vorwoche (13.9-i, Feature 008). */
+function RankMovementHint({ movement }) {
+  const { beforeRank, afterRank } = movement;
+  if (afterRank < beforeRank) {
+    return (
+      <p className="hint positive">
+        ▲ Von Platz {beforeRank} auf Platz {afterRank} gestiegen.
+      </p>
+    );
+  }
+  if (afterRank > beforeRank) {
+    return (
+      <p className="hint negative">
+        ▼ Von Platz {beforeRank} auf Platz {afterRank} gefallen.
+      </p>
+    );
+  }
+  return (
+    <p className="hint">
+      – Platz {afterRank}, unverändert gegenüber der Vorwoche.
+    </p>
+  );
+}
+
 /** Die eigene Bilanz eines Spieltags (Kapitel 13.9, Feature 006 Schnitt 1) — nur gewertete Spiele, nur das eigene Konto. */
 export function ReportScreen() {
   const [seasonYear] = useState(currentSeasonYear);
@@ -47,6 +71,7 @@ export function ReportScreen() {
   const [leagues, setLeagues] = useState([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState(null);
   const [leagueStandings, setLeagueStandings] = useState(null);
+  const [rankMovement, setRankMovement] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +120,33 @@ export function ReportScreen() {
       })
       .catch(() => {
         if (!cancelled) setLeagueStandings(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLeagueId, week]);
+
+  // Kapitel 13.9-i/j (Feature 008): Platzveränderung gegenüber der Vorwoche
+  // in der kumulierten Saison-Rangliste der ausgewählten Liga — am ersten
+  // Spieltag der Saison gibt es keine Vorwoche (13.9-j).
+  useEffect(() => {
+    if (!selectedLeagueId || week <= 1) {
+      setRankMovement(null);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      leagueApi.seasonStandingsThroughMatchday(selectedLeagueId, week),
+      leagueApi.seasonStandingsThroughMatchday(selectedLeagueId, week - 1),
+    ])
+      .then(([after, before]) => {
+        if (cancelled) return;
+        const afterRank = after.find((e) => e.isSelf)?.rank;
+        const beforeRank = before.find((e) => e.isSelf)?.rank;
+        setRankMovement(afterRank && beforeRank ? { afterRank, beforeRank } : null);
+      })
+      .catch(() => {
+        if (!cancelled) setRankMovement(null);
       });
     return () => {
       cancelled = true;
@@ -157,6 +209,7 @@ export function ReportScreen() {
             </select>
           )}
           {leagues.length === 1 && <p className="hint">{leagues[0].name}</p>}
+          {rankMovement && <RankMovementHint movement={rankMovement} />}
           {leagueStandings ? (
             <StandingsTable entries={leagueStandings} />
           ) : (

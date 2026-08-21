@@ -82,6 +82,15 @@ public class LeagueService implements LeagueCommands {
     }
 
     @Override
+    public List<Standings.Entry> seasonStandingsThroughMatchday(LeagueId leagueId, Matchday matchday) {
+        League league = leagueOrThrow(leagueId);
+        List<Game> gamesThroughMatchday = games.findBySeason(league.getSeason()).stream()
+                .filter(g -> g.getMatchday().week() <= matchday.week())
+                .toList();
+        return standingsFor(league, gamesThroughMatchday);
+    }
+
+    @Override
     public List<League> myLeagues(EmailAddress account) {
         return leagues.findByMember(account);
     }

@@ -297,7 +297,7 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 | 13.6 | Ligen, Mitgliedschaft, Rangliste | **normativ seit Stufe 6** (2026-08-17), siehe unten |
 | 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | die Regeln selbst sind mit 13.3 seit Stufe 4 abgedeckt (dieselben Tatsachen, keine zweite Nummerierung); was daraus für die Rangliste folgt, erst mit Stufe 6 |
 | 13.8 | Datenschutz und Löschung | Löschen selbst normativ seit Stufe 3 (13.2-h); die volle Datenschutzerklärung bleibt Stufe 8 |
-| 13.9 | Eigene Spieltags-Bilanz (Report) | **normativ seit Feature 006** (2026-08-21), erweitert um **Feature 007** (2026-08-21), siehe unten |
+| 13.9 | Eigene Spieltags-Bilanz (Report) | **normativ seit Feature 006** (2026-08-21), erweitert um **Feature 007** und **Feature 008** (2026-08-21), siehe unten |
 
 Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
 nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
@@ -457,6 +457,14 @@ Die Ranglisten zweier Ligen sind vollständig getrennt: Wer nicht Mitglied
 einer Liga ist, steht nicht in ihrer Rangliste, unabhängig davon, wie viele
 Wertungspunkte er in anderen Ligen oder insgesamt erzielt hat.
 
+Zusätzlich zur Saison-Rangliste und der Rangliste je Spieltag gibt es eine
+kumulierte Rangliste bis einschließlich eines bestimmten Spieltags — sie
+zählt nur Spiele mit Spieltagsnummer kleiner oder gleich der angefragten
+(Feature 008, dritter Schnitt der Idee „Spieltags-Report"). Sie wird wie
+jede andere Rangliste bei jeder Abfrage neu berechnet, nie eingefroren, und
+ist die Grundlage, um die eigene Platzveränderung im Report (13.9)
+gegenüber der Vorwoche zu zeigen.
+
 Dieser Gesamtwert — die Summe der Wertungspunkte eines Kontos über alle
 bewerteten Spiele, unabhängig davon, in wie vielen oder welchen Ligen der
 Tipper Mitglied ist — ist der Punktestand des Kontos selbst. Er existiert
@@ -492,8 +500,17 @@ angezeigt wird; ist er Mitglied keiner, bleibt der Report wie in Schnitt 1.
 Einzelne fremde Ergebnistipps bleiben weiterhin außen vor — die
 zusammengefasste Rangliste kennt sie strukturell nicht (13.6).
 
-Platzveränderung in der Saisonrangliste und Highlights sind eigene,
-spätere Schnitte derselben Idee und nicht Teil von 13.9.
+Der dritte Schnitt derselben Idee (Feature 008, 2026-08-21) zeigt
+zusätzlich, ob der Tipper in der eingeblendeten Liga-Saisonrangliste
+gegenüber der Vorwoche gestiegen, gefallen oder gleich geblieben ist —
+verglichen werden die kumulierten Ränge (13.6, neuer Absatz) bis
+einschließlich des angezeigten Spieltags und bis einschließlich des
+vorigen. Am ersten Spieltag der Saison gibt es keine Vorwoche, also auch
+keine Platzveränderung. Verglichen wird nur der eigene Platz, kein
+Punktabstand und keine fremde Platzveränderung.
+
+Highlights des Spieltags sind ein eigener, späterer Schnitt derselben Idee
+und nicht Teil von 13.9.
 
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
@@ -724,6 +741,7 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.6-i | Die Ranglisten zweier Ligen sind vollständig getrennt: Wer nicht Mitglied ist, steht nicht darin. | Tippspiel | backend |
 | 13.6-j | Eine Ergebniskorrektur wird bei der nächsten Abfrage der Rangliste berücksichtigt — kein eingefrorener Punktestand. | Tippspiel | backend |
 | 13.6-k | Ein Konto hat einen eigenen Punktestand — die Summe seiner Wertungspunkte über alle bewerteten Spiele, unabhängig von einer Liga. | Tippspiel | backend |
+| 13.6-l | Es gibt zusätzlich eine kumulierte Rangliste bis einschließlich eines bestimmten Spieltags — sie zählt nur Spiele mit Spieltagsnummer ≤ der angefragten. | Tippspiel | backend |
 | 13.9-a | Ein angemeldeter Tipper kann für einen Spieltag seine eigene Bilanz abrufen: je gewertetem Spiel Endergebnis, eigener Ergebnistipp und erreichte Wertungspunkte. | Tippspiel | backend |
 | 13.9-b | Ein noch nicht gewertetes Spiel (SCHEDULED oder CANCELLED) ist nicht Teil der Bilanz. | Tippspiel | backend |
 | 13.9-c | Ein gewertetes Spiel ohne eigenen Ergebnistipp erscheint mit 0 Wertungspunkten und ohne eigenen Tipp in der Bilanz. | Tippspiel | backend |
@@ -732,3 +750,5 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.9-f | Der Report zeigt zusätzlich die Spieltagsrangliste einer Liga, in der der Tipper Mitglied ist, für denselben Spieltag. | Tippspiel | frontend |
 | 13.9-g | Ist der Tipper Mitglied mehrerer Ligen, wählt er, welche Liga-Rangliste angezeigt wird. | Tippspiel | frontend |
 | 13.9-h | Ist der Tipper Mitglied keiner Liga, bleibt der Report ohne Liga-Rangliste und ohne Fehlermeldung. | Tippspiel | frontend |
+| 13.9-i | Der Report zeigt zusätzlich, ob der Tipper in der eingeblendeten Liga-Saisonrangliste gegenüber der Vorwoche gestiegen, gefallen oder gleich geblieben ist. | Tippspiel | frontend |
+| 13.9-j | Am ersten Spieltag der Saison gibt es keine Vorwoche, also keine Platzveränderung. | Tippspiel | frontend |

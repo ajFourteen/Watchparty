@@ -30,6 +30,13 @@ public interface LeagueCommands {
     /** Kriterium 33: Rangliste nur ueber einen einzelnen Spieltag. */
     List<Standings.Entry> matchdayStandings(LeagueId leagueId, Matchday matchday);
 
+    /**
+     * Kumulierte Saison-Rangliste, die nur Spiele mit Spieltagsnummer &le; der
+     * uebergebenen zaehlt (13.6-l) — Grundlage fuer die Platzveraenderung im
+     * Report (13.9-i): einmal mit Spieltag N, einmal mit Spieltag N-1 abgefragt.
+     */
+    List<Standings.Entry> seasonStandingsThroughMatchday(LeagueId leagueId, Matchday matchday);
+
     /** Kriterium 30: alle Ligen, denen das Konto angehoert. */
     List<League> myLeagues(EmailAddress account);
 

@@ -106,6 +106,11 @@ public class LigaStufen extends DeutscheStufe<LigaStufen> {
         return self();
     }
 
+    public LigaStufen ruftDieKumulierteRanglisteDerLigaBisSpieltagAb(String ligaSchluessel, int week) {
+        letzteRangliste = liga.seasonStandingsThroughMatchday(ligaIdVon.get(ligaSchluessel), Matchday.of(SeasonId.of(2026), week));
+        return self();
+    }
+
     public LigaStufen zeigtInDerRanglisteGenauDieseKonten(String... emails) {
         assertThat(letzteRangliste).extracting(e -> e.email().value()).containsExactlyInAnyOrder(emails);
         return self();

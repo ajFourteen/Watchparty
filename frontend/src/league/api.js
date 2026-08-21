@@ -53,6 +53,7 @@ export const leagueApi = {
   leagueDetail: (leagueId) => request(`/leagues/${leagueId}`),
   seasonStandings: (leagueId) => request(`/leagues/${leagueId}/standings/season`),
   matchdayStandings: (leagueId, week) => request(`/leagues/${leagueId}/standings/matchday/${week}`),
+  seasonStandingsThroughMatchday: (leagueId, week) => request(`/leagues/${leagueId}/standings/season/through/${week}`),
 };
 
 export { UnauthenticatedError };

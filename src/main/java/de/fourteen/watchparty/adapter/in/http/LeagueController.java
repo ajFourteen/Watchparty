@@ -120,6 +120,14 @@ class LeagueController {
         return ResponseEntity.ok(toResponse(leagueCommands.matchdayStandings(LeagueId.of(leagueId), matchday), account));
     }
 
+    @GetMapping("/api/league/leagues/{leagueId}/standings/season/through/{week}")
+    ResponseEntity<List<StandingsEntryResponse>> seasonStandingsThroughMatchday(@AuthenticatedAccount EmailAddress account,
+            @PathVariable UUID leagueId, @PathVariable int week) {
+        League league = leagueCommands.league(account, LeagueId.of(leagueId)).orElseThrow(NoSuchElementException::new);
+        Matchday matchday = Matchday.of(league.getSeason(), week);
+        return ResponseEntity.ok(toResponse(leagueCommands.seasonStandingsThroughMatchday(LeagueId.of(leagueId), matchday), account));
+    }
+
     private List<StandingsEntryResponse> toResponse(List<Standings.Entry> entries, EmailAddress requester) {
         return entries.stream()
                 .map(entry -> new StandingsEntryResponse(entry.displayName().value(), entry.totalPoints().value(),
