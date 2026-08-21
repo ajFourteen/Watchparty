@@ -115,7 +115,13 @@ nicht.
 
 Für den **ersten** Schnitt: Skill `feature` — er nimmt sich die oberste
 `offen`-Zeile aus dem gerade geschriebenen Schnittplan, auch noch in
-derselben Sitzung. Ein Schnitt, der selbst eine Entscheidung offenlässt
+derselben Sitzung. Kam dieser Schnittplan direkt im Anschluss an eine
+Entscheidung zustande, die Anhang A schon rot hinterlassen hat (Skill
+`entscheidung`, Abschnitt „Commit und rotes `check`"): Dann gehören der
+Commit der Entscheidung und der Start von `feature` zusammen, kein
+Zwischen-Commit mit rotem `check`.
+
+Ein Schnitt, der selbst eine Entscheidung offenlässt
 (wie Schnitt 5 im Beispiel unten), geht zusätzlich über Skill `triage`
 nach `docs/offene-entscheidungen.md` und bekommt in der Status-Spalte
 `blockiert` mit einem Verweis auf den dortigen Eintrag — `feature`

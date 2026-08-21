@@ -41,3 +41,21 @@ belegt. Das ist kein Fehler, den man vorschnell wegräumt, sondern die
 Metrik, die genau das anzeigen soll: entschieden, aber noch nicht gebaut.
 Wird die Regel sofort mitimplementiert, gilt stattdessen Skill `feature` ab
 Schritt 2 (Feature-Dokument, JGiven-Szenario zuerst).
+
+## Commit und rotes `check`
+
+`abdeckung` ist ein hartes Gate an `check` (CLAUDE.md) — ein Commit direkt
+nach Schritt 4 macht damit die CI auf dem Zielbranch rot, bis die Regel
+gebaut ist. Das übersieht man leicht, weil dieser Skill selbst keinen Code
+anfasst und sich „fertig" anfühlt, sobald die vier Stellen stimmen. Zwei
+saubere Wege — keiner davon „committen und rot stehen lassen":
+
+- **Direkt weiter mit `schneiden`/`feature`, wenn der nächste Schnitt
+  ohnehin sofort drankommt** (auch noch in derselben Sitzung): Dann landen
+  Entscheidung und der erste Schnitt in einem gemeinsamen, grünen Commit —
+  kein rotes Intervall auf dem Zielbranch.
+- **Sonst: nicht committen.** Dem Nutzer den Grund nennen (welche
+  Anhang-A-Zeilen offen sind) und fragen, ob ein bewusst rotes Intervall
+  auf dem Zielbranch in Ordnung ist, weil der Bau erst in einer späteren
+  Sitzung drankommt. Das ist keine Entscheidung, die dieser Skill allein
+  trifft.
