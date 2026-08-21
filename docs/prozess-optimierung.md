@@ -212,6 +212,24 @@ beginnen jetzt mit dem Auslöser. Zusätzlich stand seit dem Bau von
 beide mit „eine rohe Idee". Beide nennen die Abgrenzung jetzt ausdrücklich —
 `triage` beantwortet „wohin gehört das", `schneiden` „wie zerlege ich es".
 
+**Nachtrag 2026-08-21, vierter Teil: der Stop-Hook prüfte nur die Hälfte
+seiner eigenen Regel.** Er sollte erzwingen, dass fertige Arbeit committet
+*und gepusht* wird — geprüft hat er aber nur den Arbeitsbaum und stieg bei
+einem sauberen sofort aus. Acht fertige, ungepushte Commits waren damit
+unsichtbar; aufgefallen ist es, weil der Agent das Pushen als Frage
+anbot, statt es zu tun. Jetzt blockt er in zwei Fällen: unsauberer
+Arbeitsbaum (prüfen, committen, pushen) und sauberer Arbeitsbaum mit
+Vorsprung zum Upstream (pushen, mit dem Hinweis, was ein releasender Typ
+dabei auslöst). Die Datei heißt entsprechend
+`ci/stop-arbeit-abschliessen.sh` statt `stop-unclean-worktree.sh` — der
+alte Name war nach dem Umbau nur noch die halbe Wahrheit.
+
+Das ist innerhalb von zwei Tagen der dritte Fall desselben Musters: Die
+Regel war weiter formuliert als ihre Prüfung (`commit-msg`-Hook, die
+Anforderungen-Tabelle, jetzt der Stop-Hook). Die Lehre ist jedes Mal
+dieselbe wie oben — nicht fragen, ob sich die heutige Form prüfen lässt,
+sondern ob die Prüfung die ganze Regel trifft.
+
 ## Kontext-Ökonomie
 
 - **`CLAUDE.md` ist groß.** Rund 250 Zeilen, gut die Hälfte Dateibaum, geladen
