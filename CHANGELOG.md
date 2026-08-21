@@ -1,3 +1,10 @@
+# [3.17.0](https://github.com/ajFourteen/Watchparty/compare/v3.16.0...v3.17.0) (2026-08-21)
+
+
+### Features
+
+* Höhepunkte im Spieltags-Report (13.9, Feature 009 Schnitt 4) ([2536478](https://github.com/ajFourteen/Watchparty/commit/2536478cc223cc341ab145828f7204d729e8e672))
+
 # [3.16.0](https://github.com/ajFourteen/Watchparty/compare/v3.15.0...v3.16.0) (2026-08-21)
 
 
