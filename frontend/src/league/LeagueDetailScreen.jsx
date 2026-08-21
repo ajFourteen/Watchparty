@@ -1,22 +1,6 @@
 import { useEffect, useState } from "react";
 import { leagueApi } from "./api.js";
-
-function StandingsTable({ entries }) {
-  if (entries.length === 0) {
-    return <p className="hint">Noch keine gewerteten Spiele.</p>;
-  }
-  return (
-    <ol className="roster">
-      {entries.map((entry) => (
-        <li key={entry.displayName} className={`row${entry.isSelf ? " self" : ""}`}>
-          <span className="rank">{entry.rank}</span>
-          <span className="name">{entry.displayName}</span>
-          <span className="points">{entry.totalPoints}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
+import { StandingsTable } from "./StandingsTable.jsx";
 
 /** Liga-Detail: Code zum Weitergeben, Mitglieder, Saison- und Spieltagsrangliste (Kriterium 31/33/35). */
 export function LeagueDetailScreen({ leagueId, onLeft, onBack }) {

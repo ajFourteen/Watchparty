@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { leagueApi } from "./api.js";
+import { StandingsTable } from "./StandingsTable.jsx";
 
 const REGULAR_SEASON_WEEKS = 18;
 
@@ -43,6 +44,10 @@ export function ReportScreen() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [leagues, setLeagues] = useState([]);
+  const [selectedLeagueId, setSelectedLeagueId] = useState(null);
+  const [leagueStandings, setLeagueStandings] = useState(null);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -62,6 +67,39 @@ export function ReportScreen() {
       cancelled = true;
     };
   }, [seasonYear, week]);
+
+  // Kapitel 13.9-f/g/h (Feature 007): die Spieltagsrangliste einer eigenen
+  // Liga neben der eigenen Bilanz — ohne Mitgliedschaft bleibt sie leer.
+  useEffect(() => {
+    leagueApi
+      .myLeagues()
+      .then((result) => {
+        setLeagues(result);
+        setSelectedLeagueId((current) =>
+          current && result.some((l) => l.id === current) ? current : (result[0]?.id ?? null),
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!selectedLeagueId) {
+      setLeagueStandings(null);
+      return;
+    }
+    let cancelled = false;
+    leagueApi
+      .matchdayStandings(selectedLeagueId, week)
+      .then((result) => {
+        if (!cancelled) setLeagueStandings(result);
+      })
+      .catch(() => {
+        if (!cancelled) setLeagueStandings(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLeagueId, week]);
 
   return (
     <div className="league-card matchday">
@@ -100,6 +138,31 @@ export function ReportScreen() {
             <ReportEntry key={entry.gameId} entry={entry} />
           ))}
         </ul>
+      )}
+
+      {leagues.length > 0 && (
+        <div className="report-league-standings">
+          <p className="eyebrow">Liga-Rangliste — Spieltag {week}</p>
+          {leagues.length > 1 && (
+            <select
+              className="field"
+              value={selectedLeagueId ?? ""}
+              onChange={(e) => setSelectedLeagueId(e.target.value)}
+            >
+              {leagues.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {leagues.length === 1 && <p className="hint">{leagues[0].name}</p>}
+          {leagueStandings ? (
+            <StandingsTable entries={leagueStandings} />
+          ) : (
+            <p className="hint">Lädt …</p>
+          )}
+        </div>
       )}
     </div>
   );
