@@ -11,6 +11,9 @@ import de.fourteen.watchparty.domain.model.league.Team;
 import de.fourteen.watchparty.domain.model.league.TeamId;
 import de.fourteen.watchparty.teststrategy.ApiTest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,7 +34,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,7 +50,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  * die haben die Port-to-Port-Szenarien schon geliefert.
  */
 @ApiTest
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+// Das Rate Limit je IP (Kriterium 4) ist auf der Port-Ebene entschieden
+// (AnmeldungScenarioTest) und wird hier bewusst nicht noch einmal geprueft
+// (Abschnitt 1: jede Ebene testet nur, was die Ebene darunter nicht kann).
+// Alle Anmeldungen dieser Klasse kommen von localhost, teilen sich also
+// denselben Schluessel im InMemoryRateLimiter -- ohne angehobene Schranke
+// wuerde das Hinzufuegen eines weiteren Szenarios ein bestehendes umwerfen.
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "watchparty.league.login.rate-limit.max-attempts=100")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class LeagueHttpFlowTest {
 
@@ -211,4 +224,122 @@ class LeagueHttpFlowTest {
 
         assertThat(secondAttempt.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    /**
+     * Leck-Test am tatsaechlich serialisierten JSON (docs/teststrategie.md,
+     * Abschnitt 3.1) fuer Kriterium 19/20 — das Gegenstueck zu
+     * {@code WireProtocolSmokeTest} auf der Live-Wetten-Seite.
+     *
+     * {@code PredictionViewTest} prueft dieselbe Regel bereits am
+     * Nachrichtenobjekt, und zwar mit Mutation Score 100 %. Das genuegt
+     * nicht: Abschnitt 3.1 verlangt beide Ebenen ausdruecklich, weil ein
+     * Leck auch erst durch Jackson entstehen kann — ein zusaetzlicher
+     * Getter, eine Annotation, ein neues Feld in einem verschachtelten
+     * Record. Der Java-seitige Test kann das grundsaetzlich nicht sehen.
+     *
+     * Geprueft wird deshalb ueber die Ausgabeflaeche, nicht ueber Beispiele:
+     * eine Positivliste ueber die Feldnamen selbst, dazu die Abwesenheit
+     * des fremden Anzeigenamens im Rohtext der Antwort.
+     */
+    @Test
+    void vorDemAnstossStehtImJsonSelbstKeinFremderTipp() {
+        String cookie = redeemAndGetCookie("elif@example.org", "Elif");
+        String fremdesCookie = redeemAndGetCookie("faruk@example.org", "Faruk");
+
+        String gameId = "leak-" + UUID.randomUUID();
+        games.save(Game.of(GameId.of(gameId), Matchday.of(SeasonId.of(2026), 7),
+                Team.of(TeamId.of("GB"), "Green Bay Packers"), Team.of(TeamId.of("CHI"), "Chicago Bears"),
+                Instant.now().plusSeconds(3600), GameStatus.SCHEDULED, null, false));
+
+        rest.exchange(baseUrl() + "/api/league/predictions", HttpMethod.POST,
+                authenticated(cookie, Map.of("gameId", gameId, "home", 21, "away", 10)), Void.class);
+        rest.exchange(baseUrl() + "/api/league/predictions", HttpMethod.POST,
+                authenticated(fremdesCookie, Map.of("gameId", gameId, "home", 31, "away", 28)), Void.class);
+
+        String json = rest.exchange(baseUrl() + "/api/league/schedule/2026/7", HttpMethod.GET,
+                authenticated(cookie), String.class).getBody();
+
+        assertThat(json)
+                .as("Der Anzeigename des anderen Tippers darf vor dem Anstoss nicht uebertragen werden")
+                .doesNotContain("Faruk");
+        assertThat(json)
+                .as("Auch die Zahlen des fremden Tipps duerfen nicht auftauchen")
+                .doesNotContain("\"home\":31");
+
+        Set<String> erlaubteFelderJeSpiel = Set.of(
+                "gameId", "homeTeamName", "awayTeamName", "kickoff", "status",
+                "finalScore", "ownPrediction", "otherPredictions");
+        assertThat(erlaubteFelderJeSpiel).containsAll(feldnamenDesSpiels(json, gameId));
+    }
+
+    /**
+     * Die Gegenprobe zum Leck-Test: Ab dem Anstoss ist derselbe fremde Tipp
+     * Teil der Antwort. Ohne sie wuerde ein {@code otherPredictions}, das
+     * versehentlich immer leer bleibt, als bestandener Leck-Test gelten.
+     */
+    @Test
+    void abDemAnstossStehtDerFremdeTippImJson() {
+        String cookie = redeemAndGetCookie("gita@example.org", "Gita");
+        String fremdesCookie = redeemAndGetCookie("hakan@example.org", "Hakan");
+
+        String gameId = "leak-nach-anstoss-" + UUID.randomUUID();
+        games.save(Game.of(GameId.of(gameId), Matchday.of(SeasonId.of(2026), 8),
+                Team.of(TeamId.of("DAL"), "Dallas Cowboys"), Team.of(TeamId.of("PHI"), "Philadelphia Eagles"),
+                Instant.now().plusSeconds(3600), GameStatus.SCHEDULED, null, false));
+
+        rest.exchange(baseUrl() + "/api/league/predictions", HttpMethod.POST,
+                authenticated(cookie, Map.of("gameId", gameId, "home", 14, "away", 7)), Void.class);
+        rest.exchange(baseUrl() + "/api/league/predictions", HttpMethod.POST,
+                authenticated(fremdesCookie, Map.of("gameId", gameId, "home", 35, "away", 3)), Void.class);
+
+        // Anstoss in die Vergangenheit ruecken: derselbe Weg, den auch der
+        // Nachfuehr-Job nimmt (mergeFromFeed uebernimmt den Anstoss immer).
+        jdbc.update("UPDATE game SET kickoff = :kickoff WHERE id = :id",
+                new MapSqlParameterSource()
+                        .addValue("kickoff", java.sql.Timestamp.from(Instant.now().minusSeconds(60)))
+                        .addValue("id", gameId));
+
+        String json = rest.exchange(baseUrl() + "/api/league/schedule/2026/8", HttpMethod.GET,
+                authenticated(cookie), String.class).getBody();
+
+        assertThat(json).contains("Hakan").contains("\"home\":35");
+        Set<String> erlaubteFelderJeFremdemTipp = Set.of("displayName", "score");
+        assertThat(erlaubteFelderJeFremdemTipp).containsAll(feldnamenDerFremdenTipps(json, gameId));
+    }
+
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** Alle Feldnamen, die Jackson tatsaechlich fuer dieses Spiel geschrieben hat. */
+    private Set<String> feldnamenDesSpiels(String json, String gameId) {
+        return feldnamen(spielKnoten(json, gameId));
+    }
+
+    /** Alle Feldnamen, die Jackson je fremdem Tipp dieses Spiels geschrieben hat. */
+    private Set<String> feldnamenDerFremdenTipps(String json, String gameId) {
+        JsonNode tipps = spielKnoten(json, gameId).path("otherPredictions");
+        assertThat(tipps).as("Nach dem Anstoss sollte mindestens ein fremder Tipp dabei sein").isNotEmpty();
+        return StreamSupport.stream(tipps.spliterator(), false)
+                .flatMap(tipp -> feldnamen(tipp).stream())
+                .collect(Collectors.toSet());
+    }
+
+    private JsonNode spielKnoten(String json, String gameId) {
+        try {
+            JsonNode spiele = MAPPER.readTree(json).path("games");
+            return StreamSupport.stream(spiele.spliterator(), false)
+                    .filter(spiel -> gameId.equals(spiel.path("gameId").asText()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("Spiel " + gameId + " fehlt in der Antwort: " + json));
+        } catch (Exception e) {
+            throw new AssertionError("Antwort war kein lesbares JSON: " + json, e);
+        }
+    }
+
+    private Set<String> feldnamen(JsonNode knoten) {
+        return StreamSupport
+                .stream(java.util.Spliterators.spliteratorUnknownSize(knoten.fieldNames(), 0), false)
+                .collect(Collectors.toSet());
+    }
+
 }
