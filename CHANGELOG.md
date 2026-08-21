@@ -1,3 +1,10 @@
+# [3.15.0](https://github.com/ajFourteen/Watchparty/compare/v3.14.0...v3.15.0) (2026-08-21)
+
+
+### Features
+
+* Liga-Rangliste im Spieltags-Report (13.9, Feature 007 Schnitt 2) ([f318d5a](https://github.com/ajFourteen/Watchparty/commit/f318d5ab1823e1535c1bd7d552a0e0747a7b9ddf))
+
 # [3.14.0](https://github.com/ajFourteen/Watchparty/compare/v3.13.0...v3.14.0) (2026-08-21)
 
 
