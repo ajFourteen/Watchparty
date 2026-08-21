@@ -114,6 +114,48 @@ oben verworfene „Commit-Typ passt zum Diff" — geprüft wird weiterhin nur
 das *Format*, nicht ob der Typ zur Änderung passt; diese Entscheidung
 bleibt bei `/freigabe`.
 
+**Nachtrag 2026-08-21, zweiter Teil.** Drei weitere Kandidaten geprüft,
+diesmal am tatsächlichen Inhalt der Dateien, nicht nur an ihrer Struktur:
+
+- **`/freigabe` als (Teil-)Check statt nur Skill — Idee, noch nicht
+  gebaut.** Ein Vergleich „passt der Commit-Typ zum Diff" bleibt aus den
+  oben genannten Gründen zu störanfällig. Eine viel engere, einseitige
+  Fassung wäre es nicht: Ein releasender Typ (`feat:`/`fix:`/`perf:`), der
+  **keine** einzige Datei unter `src/main/`, `frontend/src/`,
+  `build.gradle.kts`, `Dockerfile` oder `fly.toml` ändert, ist mit hoher
+  Sicherheit falsch getippt — genau der Fehler, der in dieser Sitzung
+  zweimal passiert ist (Commit `f6e7fcf` und `cb3e298`, beide reine
+  Doku-/Tooling-Änderungen, beide fälschlich `feat:`). Kein Verständnis des
+  Diff-*Inhalts* nötig, nur der Pfade — deutlich sicherer als die
+  verworfene Vollversion.
+- **Anforderungen ↔ Feature-Dateien: erwogen, dann verworfen.** Der
+  Abschnitt „Betroffene Anforderungen" sah beim ersten Hinsehen aus wie
+  Anhang A: strukturierte IDs, dasselbe Muster wie `abdeckung` schon
+  parst. Ein Blick in die fünf echten Dokumente zeigt das Gegenteil: freier
+  Fließtext, der echte ID-Zitate (`10.1`), neu vorgeschlagene IDs in
+  Tabellen mit *unterschiedlichen* Spaltenköpfen je Dokument, bloße
+  Kapitelverweise (`11 (out of scope)`, dreifach im selben Dokument),
+  Platzhalter-Ranges (`13.1-a bis 13.8-x` — `x` ist kein Buchstabe aus
+  Anhang A) und eine Kollision mit einer völlig anderen Zählung
+  (`Invariante 4`) alles nebeneinander. Ein Regex auf Zahlenmuster würde
+  genau die Fehlalarme erzeugen, die schon „Umgesetzt in" unbrauchbar
+  machten — nur diesmal ohne die Möglichkeit, sie an Klassennamen zu
+  erkennen. Nicht gebaut.
+- **Kritikalität: Feature-Dokument ↔ `@Criticality`-Annotation — nicht
+  schließbar, nicht nur schwer automatisierbar.** Die Vorlage verspricht
+  ein einziges Ergebnis (LOW/MEDIUM/HIGH) je Feature. Feature 005 zeigt,
+  dass das der Realität nicht entspricht: eine Tabelle mit acht Bereichen
+  und bis zu drei verschiedenen Stufen *innerhalb desselben Dokuments*.
+  Eine 1:1-Prüfung Dokument-Stufe ↔ Klassen-Annotation hat damit kein
+  Ziel, das sie treffen könnte. Dazu kommt: Anhang A selbst trägt gar keine
+  Kritikalität (nur `backend`/`frontend`/`organisatorisch`/`beobachtung`),
+  es gibt also keine strukturierte Quelle, gegen die sich „diese
+  Anforderung muss HIGH sein" prüfen ließe — nur die freie Prosa, die
+  gerade als ungeeignet befunden wurde. Eine echte Schließung bräuchte eine
+  Kritikalitätsspalte in Anhang A selbst — das wäre eine Entscheidung für
+  `docs/offene-entscheidungen.md`, nicht eine, die sich nebenbei
+  festlegen lässt.
+
 ## Kontext-Ökonomie
 
 - **`CLAUDE.md` ist groß.** Rund 250 Zeilen, gut die Hälfte Dateibaum, geladen
