@@ -695,55 +695,165 @@ tasks.named("check") {
 // Feature-Dokument, dem ein Abschnitt fehlt, fiel niemandem auf, der es
 // nicht von Hand neben die Vorlage legt.
 //
-// Geprueft wird nur die Vollstaendigkeit der Abschnitte als Ueberschriften,
-// nicht ihr Inhalt: Ob "Umgesetzt in" wirklich existierende Klassen nennt,
-// laesst sich wegen der vielen anderen Backtick-Woerter im Fliesstext
-// (Konstanten wie SCHEMA_VERSION, Kommandonamen wie CREATE_ROOM,
-// Annotationen wie @ValueObject) nicht ohne haeufige Fehlalarme
-// automatisieren (Prozess-Audit vom 2026-08-20) -- das bleibt Aufgabe des
-// Reviews, nicht dieses Tasks. Zusaetzliche, ueber die Vorlage
-// hinausgehende Abschnitte (wie "Bewusste Festlegungen" in 004 und 005)
-// sind ausdruecklich erlaubt: Geprueft wird nur, was fehlt, nicht, was zu
-// viel ist.
+// Seit 2026-08-21 prueft der Task ausser der Vollstaendigkeit vier weitere
+// Dinge, die alle denselben Zweck haben: dass ein Feature-Dokument ein
+// Feature beschreibt und nicht acht. Ausloeser war Feature 005 (38
+// Akzeptanzkriterien, acht Kritikalitaetsbereiche, eine eigene
+// Neun-Stufen-Bautabelle) -- die Teilung hatte stattgefunden, nur eben im
+// Dokument statt in mehreren Dokumenten.
+//
+//  1. Pflichtabschnitte -- unveraendert.
+//  2. Genau eine Kritikalitaetsstufe, als maschinenlesbare Zeile
+//     "**Stufe:** LOW|MEDIUM|HIGH". Zwei Stufen heissen: zwei Features.
+//  3. "Betroffene Anforderungen" traegt die Pflichttabelle
+//     "| ID | Bezug | Anmerkung |". Eine ID je Zeile, Bezug aus vier festen
+//     Woertern; jede ID mit Bezug != neu muss in Anhang A existieren.
+//     Fliesstext darunter bleibt unangetastet -- gerade weil ein Regex auf
+//     Prosa die Fehlalarme erzeugt, an denen dieser Check im Audit vom
+//     2026-08-20 zunaechst gescheitert war (Kapitelverweise wie
+//     "11 (out of scope)", Platzhalter-Ranges, "Invariante 4").
+//  4. Hoechstens zwoelf Akzeptanzkriterien.
+//  5. Keine "Reihenfolge des Baus"-Tabelle mit mehr als einer Datenzeile.
+//     Wer im Dokument Baustufen aufzaehlt, hat mehrere Features vor sich.
+//
+// Was weiterhin NICHT geprueft wird: ob "Umgesetzt in" existierende Klassen
+// nennt (zu viele andere Backtick-Woerter im Fliesstext) und ob der Schnitt
+// vertikal ist (ein horizontaler Schnitt besteht alle fuenf Pruefungen --
+// dafuer ist der Skill `schneiden` da, nicht dieser Task). Zusaetzliche,
+// ueber die Vorlage hinausgehende Abschnitte sind ausdruecklich erlaubt.
+//
+// Bestandsschutz: Die drei Dokumente unten sind vor der Regel entstanden und
+// werden nach ihrer Umsetzung nicht mehr weitergepflegt (Skill `feature`,
+// Schritt 7). Sie hier zu nennen ist Absicht -- eine Ausnahme, die im Build
+// steht, ist etwas anderes als eine, die stillschweigend durchrutscht
+// (dasselbe Verfahren wie bei den DDD-Stereotyp-Ausnahmen in
+// ArchitectureTest).
 tasks.register("featuredoku") {
     group = "verification"
-    description = "Prueft, dass jedes Feature-Dokument alle sieben Pflichtabschnitte der Vorlage traegt."
+    description = "Prueft, dass jedes Feature-Dokument die Vorlage einhaelt und genau ein Feature beschreibt."
 
     val featuresVerzeichnis = layout.projectDirectory.dir("docs/features")
+    val anforderungenDatei = layout.projectDirectory.file("docs/anforderungen.md")
     val berichtsDatei = layout.buildDirectory.file("reports/featuredoku.txt")
 
     inputs.dir(featuresVerzeichnis)
+    inputs.file(anforderungenDatei)
     outputs.file(berichtsDatei)
 
     doLast {
         val pflichtabschnitte = listOf(
             "Anlass", "Betroffene Anforderungen", "Akzeptanzkriterien",
             "Szenarien", "Kritikalität", "Umgesetzt in", "Offene Fragen")
+        val hoechstzahlKriterien = 12
+        val erlaubteBezuege = setOf("bestehend", "geändert", "neu", "zurückgenommen")
+
+        // Datei -> Pruefungen, die fuer sie ausgesetzt sind. Grund und Zahl
+        // stehen dabei, damit ein spaeterer Leser nicht raten muss.
+        val bestandsschutz = mapOf(
+            "002-ui-ueberarbeitung.md" to setOf("kriterienzahl"),          // 16 Kriterien
+            "004-mehrere-watchpartys.md" to setOf("kriterienzahl"),        // 21 Kriterien
+            "005-tippspiel-liga.md" to setOf("kriterienzahl", "stufe", "bautabelle"))
+
+        // Alle IDs aus Anhang A -- dieselbe Quelle, die `abdeckung` liest.
+        val anhangA = anforderungenDatei.asFile.readText()
+            .substringAfter("## Anhang A")
+            .lines()
+            .mapNotNull { Regex("""^\|\s*([0-9]+(?:\.[0-9]+)?(?:-[a-z]+)?)\s*\|""").find(it)?.groupValues?.get(1) }
+            .toSet()
+        if (anhangA.isEmpty()) {
+            throw GradleException("Anhang A in docs/anforderungen.md lieferte keine einzige ID -- Format geaendert?")
+        }
+
+        fun abschnitt(zeilen: List<String>, name: String): List<String> {
+            val von = zeilen.indexOfFirst { it.trim() == "## $name" }
+            if (von < 0) return emptyList()
+            val bis = zeilen.drop(von + 1).indexOfFirst { it.startsWith("## ") }
+            return if (bis < 0) zeilen.drop(von + 1) else zeilen.subList(von + 1, von + 1 + bis)
+        }
 
         val dateien = featuresVerzeichnis.asFile.listFiles { f ->
             f.isFile && f.extension == "md" && f.name != "_vorlage.md"
         }?.sortedBy { it.name } ?: emptyList()
 
-        val fehlend = linkedMapOf<String, List<String>>()
+        val maengel = linkedMapOf<String, MutableList<String>>()
         dateien.forEach { datei ->
-            val ueberschriften = datei.readLines()
-                .filter { it.startsWith("## ") }
-                .map { it.removePrefix("## ").trim() }
-                .toSet()
+            val zeilen = datei.readLines()
+            val ausgesetzt = bestandsschutz[datei.name] ?: emptySet()
+            val fehler = mutableListOf<String>()
+
+            // 1. Pflichtabschnitte
+            val ueberschriften = zeilen.filter { it.startsWith("## ") }
+                .map { it.removePrefix("## ").trim() }.toSet()
             val fehlendeAbschnitte = pflichtabschnitte.filter { it !in ueberschriften }
             if (fehlendeAbschnitte.isNotEmpty()) {
-                fehlend[datei.name] = fehlendeAbschnitte
+                fehler += "fehlende Abschnitte: ${fehlendeAbschnitte.joinToString(", ")}"
             }
+
+            // 2. Genau eine Kritikalitaetsstufe
+            if ("stufe" !in ausgesetzt) {
+                val stufen = abschnitt(zeilen, "Kritikalität")
+                    .mapNotNull { Regex("""^\*\*Stufe:\*\*\s+(LOW|MEDIUM|HIGH)\s*$""").find(it.trim())?.groupValues?.get(1) }
+                when (stufen.size) {
+                    1 -> Unit
+                    0 -> fehler += "keine Zeile \"**Stufe:** LOW|MEDIUM|HIGH\" im Abschnitt Kritikalität"
+                    else -> fehler += "${stufen.size} Kritikalitätsstufen (${stufen.joinToString("/")}) -- das sind ${stufen.size} Features"
+                }
+            }
+
+            // 3. Pflichttabelle in "Betroffene Anforderungen"
+            val bezugsZeilen = abschnitt(zeilen, "Betroffene Anforderungen")
+                .map { it.trim() }
+                .filter { it.startsWith("|") && !it.startsWith("|---") && !it.startsWith("| ID ") }
+            if (bezugsZeilen.isEmpty()) {
+                fehler += "Abschnitt \"Betroffene Anforderungen\" ohne Pflichttabelle | ID | Bezug | Anmerkung |"
+            }
+            bezugsZeilen.forEach { zeile ->
+                val spalten = zeile.trim('|').split("|").map { it.trim() }
+                if (spalten.size < 2) {
+                    fehler += "Tabellenzeile ohne Bezug-Spalte: $zeile"
+                    return@forEach
+                }
+                val (id, bezug) = spalten[0] to spalten[1]
+                if (bezug !in erlaubteBezuege) {
+                    fehler += "unbekannter Bezug \"$bezug\" bei $id (erlaubt: ${erlaubteBezuege.joinToString(", ")})"
+                }
+                if (!Regex("""^[0-9]+(\.[0-9]+)?(-[a-z]+)?$""").matches(id)) {
+                    fehler += "\"$id\" ist keine Anhang-A-ID -- Bereiche, Kapitelverweise und Invarianten gehören unter die Tabelle"
+                } else if (bezug != "neu" && id !in anhangA) {
+                    fehler += "$id ($bezug) steht nicht in Anhang A"
+                }
+            }
+
+            // 4. Zahl der Akzeptanzkriterien
+            if ("kriterienzahl" !in ausgesetzt) {
+                val anzahl = abschnitt(zeilen, "Akzeptanzkriterien").count { Regex("""^[0-9]+\.\s""").containsMatchIn(it) }
+                if (anzahl > hoechstzahlKriterien) {
+                    fehler += "$anzahl Akzeptanzkriterien (höchstens $hoechstzahlKriterien) -- der Schnitt ist zu breit, siehe Skill `schneiden`"
+                }
+            }
+
+            // 5. Keine eigene Bautabelle
+            if ("bautabelle" !in ausgesetzt) {
+                val stufenZeilen = abschnitt(zeilen, "Reihenfolge des Baus")
+                    .map { it.trim() }
+                    .filter { it.startsWith("|") && !it.startsWith("|---") && !it.startsWith("| # ") }
+                if (stufenZeilen.size > 1) {
+                    fehler += "\"Reihenfolge des Baus\" mit ${stufenZeilen.size} Stufen -- das sind ${stufenZeilen.size} Features, siehe Skill `schneiden`"
+                }
+            }
+
+            if (fehler.isNotEmpty()) maengel[datei.name] = fehler
         }
 
         val bericht = buildString {
-            appendLine("Feature-Dokumente: ${dateien.size} geprueft.")
-            if (fehlend.isEmpty()) {
-                appendLine("Jedes Feature-Dokument traegt alle sieben Pflichtabschnitte.")
+            appendLine("Feature-Dokumente: ${dateien.size} geprueft, ${bestandsschutz.size} mit Bestandsschutz.")
+            if (maengel.isEmpty()) {
+                appendLine("Jedes Feature-Dokument haelt die Vorlage ein und beschreibt genau ein Feature.")
             } else {
-                appendLine("Unvollstaendig (${fehlend.size}):")
-                fehlend.forEach { (name, abschnitte) ->
-                    appendLine("  - $name: fehlt ${abschnitte.joinToString(", ")}")
+                appendLine("Beanstandet (${maengel.size}):")
+                maengel.forEach { (name, liste) ->
+                    appendLine("  - $name:")
+                    liste.forEach { appendLine("      $it") }
                 }
             }
         }
@@ -752,9 +862,8 @@ tasks.register("featuredoku") {
         datei.parentFile.mkdirs()
         datei.writeText(bericht)
 
-        if (fehlend.isNotEmpty()) {
-            throw GradleException(
-                "Feature-Dokument(e) ohne alle Pflichtabschnitte: ${fehlend.keys.joinToString(", ")}")
+        if (maengel.isNotEmpty()) {
+            throw GradleException("Feature-Dokument(e) beanstandet: ${maengel.keys.joinToString(", ")}")
         }
     }
 }
