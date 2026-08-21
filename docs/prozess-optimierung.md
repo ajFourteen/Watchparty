@@ -117,17 +117,18 @@ bleibt bei `/freigabe`.
 **Nachtrag 2026-08-21, zweiter Teil.** Drei weitere Kandidaten geprüft,
 diesmal am tatsächlichen Inhalt der Dateien, nicht nur an ihrer Struktur:
 
-- **`/freigabe` als (Teil-)Check statt nur Skill — Idee, noch nicht
-  gebaut.** Ein Vergleich „passt der Commit-Typ zum Diff" bleibt aus den
-  oben genannten Gründen zu störanfällig. Eine viel engere, einseitige
-  Fassung wäre es nicht: Ein releasender Typ (`feat:`/`fix:`/`perf:`), der
-  **keine** einzige Datei unter `src/main/`, `frontend/src/`,
-  `build.gradle.kts`, `Dockerfile` oder `fly.toml` ändert, ist mit hoher
-  Sicherheit falsch getippt — genau der Fehler, der in dieser Sitzung
-  zweimal passiert ist (Commit `f6e7fcf` und `cb3e298`, beide reine
-  Doku-/Tooling-Änderungen, beide fälschlich `feat:`). Kein Verständnis des
-  Diff-*Inhalts* nötig, nur der Pfade — deutlich sicherer als die
-  verworfene Vollversion.
+- **`/freigabe` als (Teil-)Check statt nur Skill — umgesetzt, 2026-08-21.**
+  Ein Vergleich „passt der Commit-Typ zum Diff" bleibt aus den oben
+  genannten Gründen zu störanfällig. Die engere, einseitige Fassung ist
+  jetzt Teil von `ci/commit-format-pruefen.sh` (und damit sowohl im
+  `commit-msg`-Hook als auch im CI-Range-Modus): Ein releasender Typ
+  (`feat:`/`fix:`/`perf:`), der **keine** einzige Datei unter `src/main/`,
+  `frontend/src/`, `frontend/package(-lock).json`, `build.gradle.kts`,
+  `settings.gradle.kts`, `Dockerfile` oder `fly.toml` ändert, wird
+  abgelehnt. Kein Verständnis des Diff-*Inhalts* nötig, nur der Pfade.
+  Der Gegenprobe-Lauf gegen die eigene Historie fand sofort einen echten
+  Treffer: Commit `cb3e298` (der `commit-msg`-Hook selbst) war genau dieser
+  Fehler — `feat:` ohne jede Anwendungsdatei.
 - **Anforderungen ↔ Feature-Dateien: erwogen, dann verworfen.** Der
   Abschnitt „Betroffene Anforderungen" sah beim ersten Hinsehen aus wie
   Anhang A: strukturierte IDs, dasselbe Muster wie `abdeckung` schon
