@@ -1,3 +1,10 @@
+# [3.19.0](https://github.com/ajFourteen/Watchparty/compare/v3.18.0...v3.19.0) (2026-08-21)
+
+
+### Features
+
+* Kurzanleitung im Tippspiel (13.10, Feature 011) ([ee237ca](https://github.com/ajFourteen/Watchparty/commit/ee237ca15958b40f27f55afffb2a097f793b12c7))
+
 # [3.18.0](https://github.com/ajFourteen/Watchparty/compare/v3.17.0...v3.18.0) (2026-08-21)
 
 
