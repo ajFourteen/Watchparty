@@ -17,11 +17,13 @@ import de.fourteen.watchparty.domain.model.league.LeagueCode;
 import de.fourteen.watchparty.domain.model.league.LeagueId;
 import de.fourteen.watchparty.domain.model.league.LeagueName;
 import de.fourteen.watchparty.domain.model.league.Matchday;
+import de.fourteen.watchparty.domain.model.league.Membership;
 import de.fourteen.watchparty.domain.model.league.Prediction;
 import de.fourteen.watchparty.domain.model.league.SeasonId;
 import de.fourteen.watchparty.domain.service.league.Standings;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,19 +56,31 @@ public class LeagueService implements LeagueCommands {
         return league.getId();
     }
 
+    /**
+     * Kriterium 29. Geschrieben wird ueber {@link LeagueRepository#addMember}
+     * statt ueber {@code save(league)}: Der gelesene Stand dient nur noch
+     * dazu, die Liga zu finden und {@link League#join} die Fachregel pruefen
+     * zu lassen — er wird nicht zurueckgeschrieben. Sonst ueberschreiben
+     * sich zwei Beitritte, die denselben Stand gelesen haben, gegenseitig
+     * (nachgewiesen in {@code NebenlaeufigeSchreibzugriffeTest}); anders als
+     * bei den Live-Wetten gibt es hier keinen Raum-Thread, der das
+     * ausschliesst.
+     */
     @Override
     public void joinLeague(EmailAddress account, LeagueCode code) {
         League league = leagues.findByCode(code)
                 .orElseThrow(() -> new NoSuchElementException("Unbekannter Liga-Code: " + code));
-        league.join(account, clock.instant());
-        leagues.save(league);
+        Instant now = clock.instant();
+        league.join(account, now);
+        leagues.addMember(league.getId(), Membership.of(account, now));
     }
 
+    /** Kriterium 34, dasselbe Vorgehen wie beim Beitritt. */
     @Override
     public void leaveLeague(EmailAddress account, LeagueId leagueId) {
         League league = leagueOrThrow(leagueId);
         league.leave(account);
-        leagues.save(league);
+        leagues.removeMember(league.getId(), account);
     }
 
     @Override

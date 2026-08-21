@@ -76,6 +76,34 @@ public class LeagueRepositoryJdbc implements LeagueRepository {
     }
 
     @Override
+    public void addMember(LeagueId league, Membership member) {
+        // Ein einziges Statement statt "alles loeschen, alles neu schreiben":
+        // Damit haengt das Ergebnis nicht mehr davon ab, welchen Stand der
+        // Aufrufer vorher gelesen hat. ON CONFLICT DO NOTHING traegt die
+        // Zusage aus League.join, dass ein zweiter Beitritt wirkungslos ist,
+        // in dieselbe unteilbare Anweisung -- ein vorheriges SELECT wuerde
+        // wieder ein Zeitfenster oeffnen.
+        jdbc.update("""
+                INSERT INTO league_membership (league_id, account_email, joined_at)
+                VALUES (:leagueId, :accountEmail, :joinedAt)
+                ON CONFLICT (league_id, account_email) DO NOTHING
+                """, new MapSqlParameterSource()
+                .addValue("leagueId", league.value())
+                .addValue("accountEmail", member.getAccountEmail().value())
+                .addValue("joinedAt", Timestamp.from(member.getJoinedAt())));
+    }
+
+    @Override
+    public void removeMember(LeagueId league, EmailAddress account) {
+        jdbc.update("""
+                DELETE FROM league_membership
+                WHERE league_id = :leagueId AND account_email = :accountEmail
+                """, new MapSqlParameterSource()
+                .addValue("leagueId", league.value())
+                .addValue("accountEmail", account.value()));
+    }
+
+    @Override
     public Optional<League> findById(LeagueId id) {
         List<LeagueRow> found = jdbc.query(
                 "SELECT id, season_year, code, name, manager_email FROM league WHERE id = :id",
