@@ -1,3 +1,10 @@
+# [3.14.0](https://github.com/ajFourteen/Watchparty/compare/v3.13.0...v3.14.0) (2026-08-21)
+
+
+### Features
+
+* eigene Spieltags-Bilanz im Tippspiel (13.9, Feature 006 Schnitt 1) ([b9592e7](https://github.com/ajFourteen/Watchparty/commit/b9592e78274e3f61a29940de86d96070ce65ea68))
+
 # [3.13.0](https://github.com/ajFourteen/Watchparty/compare/v3.12.0...v3.13.0) (2026-08-21)
 
 
