@@ -1269,3 +1269,10 @@ body {
   font-weight: 700;
   color: var(--accent);
 }
+
+.report-highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.5rem;
+}

@@ -15,7 +15,7 @@ diese Datei unverändert liegen.
 | 1 | Ich sehe nach dem Spieltag meine eigene Bilanz | keine Liga-Sicht, keine Platzveränderung, keine Highlights | MEDIUM | fertig | `docs/features/006-spieltags-report.md` |
 | 2 | Ich sehe, wie meine Liga den Spieltag getippt hat | keine fremden Einzeltipps im Report (die bleiben im `MatchdayScreen`) | MEDIUM | fertig | `docs/features/007-spieltags-report-liga.md` |
 | 3 | Ich sehe, ob ich in der Saison gestiegen oder gefallen bin | — | MEDIUM | fertig | `docs/features/008-spieltags-report-platzierung.md` |
-| 4 | Ich sehe die Höhepunkte des Spieltags | — | LOW | offen | — |
+| 4 | Ich sehe die Höhepunkte des Spieltags | — | LOW | fertig | `docs/features/009-spieltags-report-hoehepunkte.md` |
 | 5 | Ich bekomme den Report per Mail | — | — | blockiert | wartet auf `docs/offene-entscheidungen.md` (Abschnitt Fachlich, „Spieltags-Report per Mail: Auslöser, Empfängerkreis, Abmeldung") |
 
 Status ∈ `offen`, `in Arbeit`, `blockiert`, `fertig`. `feature` nimmt

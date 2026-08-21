@@ -297,7 +297,7 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 | 13.6 | Ligen, Mitgliedschaft, Rangliste | **normativ seit Stufe 6** (2026-08-17), siehe unten |
 | 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | die Regeln selbst sind mit 13.3 seit Stufe 4 abgedeckt (dieselben Tatsachen, keine zweite Nummerierung); was daraus für die Rangliste folgt, erst mit Stufe 6 |
 | 13.8 | Datenschutz und Löschung | Löschen selbst normativ seit Stufe 3 (13.2-h); die volle Datenschutzerklärung bleibt Stufe 8 |
-| 13.9 | Eigene Spieltags-Bilanz (Report) | **normativ seit Feature 006** (2026-08-21), erweitert um **Feature 007** und **Feature 008** (2026-08-21), siehe unten |
+| 13.9 | Eigene Spieltags-Bilanz (Report) | **normativ seit Feature 006** (2026-08-21), erweitert um **Feature 007**, **Feature 008** und **Feature 009** (2026-08-21), siehe unten |
 
 Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
 nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
@@ -509,8 +509,22 @@ vorigen. Am ersten Spieltag der Saison gibt es keine Vorwoche, also auch
 keine Platzveränderung. Verglichen wird nur der eigene Platz, kein
 Punktabstand und keine fremde Platzveränderung.
 
-Highlights des Spieltags sind ein eigener, späterer Schnitt derselben Idee
-und nicht Teil von 13.9.
+Der vierte Schnitt derselben Idee (Feature 009, 2026-08-21) zeigt
+zusätzlich drei Höhepunkte des Spieltags, jeder eine reine Ableitung aus
+bereits vorhandenen Antworten: den Spieltagssieger der eingeblendeten Liga
+(Rang 1 der Spieltagsrangliste, 13.6-h), die Mitglieder dieser Liga mit
+mindestens einem exakt getroffenen Ergebnis am Spieltag (Volltreffer,
+über das bereits vorhandene `exactCount` je Mitglied) und das Spiel oder
+die Spiele mit dem größten Punktabstand im Endergebnis (größte
+Überraschung, aus den Endergebnissen der eigenen Bilanz). Spieltagssieger
+und Volltreffer setzen wie die Liga-Rangliste eine Liga-Mitgliedschaft
+voraus; die größte Überraschung nicht, weil sie nur die eigene Bilanz
+liest. Kein Höhepunkt legt einen einzelnen fremden Ergebnistipp offen —
+Volltreffer zeigt nur, dass ein Mitglied getroffen hat, nicht was es
+getippt hat.
+
+Der Mailversand des Reports ist der fünfte und letzte, noch blockierte
+Schnitt derselben Idee (`docs/offene-entscheidungen.md`).
 
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
@@ -752,3 +766,6 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.9-h | Ist der Tipper Mitglied keiner Liga, bleibt der Report ohne Liga-Rangliste und ohne Fehlermeldung. | Tippspiel | frontend |
 | 13.9-i | Der Report zeigt zusätzlich, ob der Tipper in der eingeblendeten Liga-Saisonrangliste gegenüber der Vorwoche gestiegen, gefallen oder gleich geblieben ist. | Tippspiel | frontend |
 | 13.9-j | Am ersten Spieltag der Saison gibt es keine Vorwoche, also keine Platzveränderung. | Tippspiel | frontend |
+| 13.9-k | Der Report zeigt den/die Spieltagssieger der eingeblendeten Liga (Rang 1 der Spieltagsrangliste). | Tippspiel | frontend |
+| 13.9-l | Der Report zeigt die Mitglieder der eingeblendeten Liga mit mindestens einem exakt getroffenen Ergebnis am Spieltag (Volltreffer). | Tippspiel | frontend |
+| 13.9-m | Der Report zeigt das Spiel oder die Spiele mit dem größten Punktabstand im Endergebnis als größte Überraschung des Spieltags. | Tippspiel | frontend |

@@ -36,6 +36,41 @@ function ReportEntry({ entry }) {
   );
 }
 
+/** Spiel mit dem größten Punktabstand im Endergebnis, ggf. mehrere bei Gleichstand (13.9-m, Feature 009). */
+function biggestSurprises(games) {
+  const withMargin = games.map((g) => ({ ...g, margin: Math.abs(g.finalScore.home - g.finalScore.away) }));
+  const maxMargin = Math.max(...withMargin.map((g) => g.margin));
+  return withMargin.filter((g) => g.margin === maxMargin);
+}
+
+/** Größte Überraschung des Spieltags — unabhängig von einer Liga, liest nur die eigene Bilanz (13.9-m). */
+function SurpriseHighlight({ games }) {
+  const surprises = biggestSurprises(games);
+  return (
+    <p className="hint">
+      Größte Überraschung:{" "}
+      {surprises
+        .map((g) => `${g.homeTeamName} ${g.finalScore.home}:${g.finalScore.away} ${g.awayTeamName}`)
+        .join(", ")}
+    </p>
+  );
+}
+
+/** Spieltagssieger (Rang 1) und Volltreffer (exactCount > 0) der eingeblendeten Liga (13.9-k/l, Feature 009). */
+function LeagueHighlights({ entries }) {
+  const sieger = entries.filter((e) => e.rank === 1);
+  const volltreffer = entries.filter((e) => e.exactCount > 0);
+  if (sieger.length === 0 && volltreffer.length === 0) return null;
+  return (
+    <div className="report-highlights">
+      {sieger.length > 0 && <p className="hint">Spieltagssieger: {sieger.map((e) => e.displayName).join(", ")}</p>}
+      {volltreffer.length > 0 && (
+        <p className="hint">Volltreffer: {volltreffer.map((e) => e.displayName).join(", ")}</p>
+      )}
+    </div>
+  );
+}
+
 /** Platzveränderung in der Saison-Rangliste gegenüber der Vorwoche (13.9-i, Feature 008). */
 function RankMovementHint({ movement }) {
   const { beforeRank, afterRank } = movement;
@@ -185,11 +220,14 @@ export function ReportScreen() {
       )}
 
       {!loading && report && report.games.length > 0 && (
-        <ul className="games">
-          {report.games.map((entry) => (
-            <ReportEntry key={entry.gameId} entry={entry} />
-          ))}
-        </ul>
+        <>
+          <SurpriseHighlight games={report.games} />
+          <ul className="games">
+            {report.games.map((entry) => (
+              <ReportEntry key={entry.gameId} entry={entry} />
+            ))}
+          </ul>
+        </>
       )}
 
       {leagues.length > 0 && (
@@ -210,6 +248,7 @@ export function ReportScreen() {
           )}
           {leagues.length === 1 && <p className="hint">{leagues[0].name}</p>}
           {rankMovement && <RankMovementHint movement={rankMovement} />}
+          {leagueStandings && <LeagueHighlights entries={leagueStandings} />}
           {leagueStandings ? (
             <StandingsTable entries={leagueStandings} />
           ) : (
