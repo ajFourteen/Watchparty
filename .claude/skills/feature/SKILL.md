@@ -80,4 +80,7 @@ ab, ersetzt ihn aber nicht: ein horizontaler Schnitt besteht alle fünf
 Prüfungen.
 
 Für gestufte lokale Rückkopplung während Schritt 3–5: Skill `pruefen`. Vor
-dem ersten Commit der Änderung: Skill `invarianten-review` und `freigabe`.
+dem ersten Commit der Änderung, in dieser Reihenfolge: Skill
+`invarianten-review` (Systemregeln), `abnahme` (Akzeptanzkriterien dieses
+Feature-Dokuments gegen das tatsächliche Verhalten) und `freigabe`
+(Commit-Typ).

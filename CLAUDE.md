@@ -89,7 +89,7 @@ Die **Reihenfolge** der Arbeit steckt in Skills unter `.claude/skills/`, das
 sich überspringen; die Gates nicht.
 
 Die Kette: `triage` → `schneiden` → `feature` → `pruefen` →
-`invarianten-review` → `freigabe` → Commit → CI → Deploy.
+`invarianten-review` → `abnahme` → `freigabe` → Commit → CI → Deploy.
 
 Drei Einstiege ab einer neuen Idee, je nachdem, was sie ist:
 
@@ -108,8 +108,9 @@ Vorbedingung.
 Ein übersprungener Skill ist kein Beinbruch, ein übersprungenes Gate gibt es
 nicht: `featuredoku`, `abdeckung`, `ArchitectureTest`, `pitest` und der
 `commit-msg`-Hook greifen unabhängig davon, ob jemand einen Skill aufgerufen
-hat. Umgekehrt prüft kein Gate, ob die Szenarien je rot waren und ob ein
-Schnitt vertikal war — dafür sind `feature` und `schneiden` da.
+hat. Umgekehrt prüft kein Gate, ob die Szenarien je rot waren, ob ein
+Schnitt vertikal war und ob das Ergebnis den Akzeptanzkriterien entspricht
+— dafür sind `feature`, `schneiden` und `abnahme` da.
 
 Zu Sitzungsbeginn speist `ci/sitzungsstart.sh` (SessionStart-Hook)
 Arbeitsstand und offene Entscheidungen ein.
