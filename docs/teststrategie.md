@@ -464,34 +464,45 @@ keinen Code liest. Daraus folgen drei Regeln:
 ### 9.1 Neue Features: testgetrieben, Kriterien vorher
 
 Vor der Implementierung entsteht ein Feature-Dokument unter
-`docs/features/NNN-kurzname.md` nach fester Vorlage:
+`docs/features/NNN-kurzname.md`. Die verbindliche Form steht in
+`docs/features/_vorlage.md` und wird hier bewusst **nicht** noch einmal
+abgedruckt — eine zweite Kopie der Vorlage wäre genau die zweite Wahrheit,
+vor der der übernächste Absatz warnt. Sieben Pflichtabschnitte: Anlass,
+Betroffene Anforderungen, Akzeptanzkriterien, Szenarien, Kritikalität,
+Umgesetzt in, Offene Fragen.
 
-```
-# NNN — Kurzname
+**Ein Dokument beschreibt genau ein Feature.** Seit dem 2026-08-21 ist das
+keine Ermahnung mehr, sondern gemessen — drei Größen, die `featuredoku`
+beim Bau prüft:
 
-## Anlass
-Wozu, in zwei Sätzen.
+| Regel | Grenze | woran sie hängt |
+|---|---|---|
+| Kritikalität | genau **eine** Stufe je Dokument | zwei Stufen sind zwei Features mit zwei pitest-Schwellwerten |
+| Akzeptanzkriterien | höchstens **zwölf** | darüber ist der Schnitt nicht mehr an einem Abend prüfbar |
+| Baustufen | **keine** eigene Stufentabelle | wer Stufen aufzählt, hat die Teilung schon vorgenommen |
 
-## Betroffene Anforderungen
-Nummern aus anforderungen.md, oder: neu (dann dort ergänzen).
+Anlass war Feature 005: 38 Akzeptanzkriterien, acht Kritikalitätsbereiche
+mit drei Stufen und eine Neun-Stufen-Bautabelle in einem Dokument. Die
+Teilung hatte stattgefunden — im Dokument statt in mehreren Dokumenten, und
+entlang der Schichten (Wertung, Persistenz, … Oberfläche) statt entlang der
+Fähigkeiten. Bis Stufe 7 von 9 konnte kein Mensch etwas tun, obwohl das
+Dokument jede Stufe als „einzeln einsetzbar" bezeichnet.
 
-## Akzeptanzkriterien
-Nummeriert. Jedes eine prüfbare Aussage.
+Wie ein Vorhaben stattdessen geschnitten wird — dünn durch alle Ringe, jede
+Scheibe für sich benutzbar —, steht im Skill `schneiden`; er läuft vor
+`feature`. Die Schnittrichtung selbst bleibt Urteilssache: Ein horizontaler
+Schnitt besteht alle drei Prüfungen oben. Sie fangen die Größe ab, nicht die
+Achse.
 
-## Szenarien
-Angenommen — Wenn — Dann, in Prosa und in der
-Sprache der Anforderungen. Werden eins zu eins zu JGiven-Szenarien.
-
-## Kritikalität
-Eintrittswahrscheinlichkeit × Schadensausmaß, begründet.
-Ergebnis: LOW | MEDIUM | HIGH.
-
-## Umgesetzt in
-Klassen, die die Einstufung tragen. Bindet die Metrik an den Code.
-
-## Offene Fragen
-Wandern nach offene-entscheidungen.md, wenn sie es bleiben.
-```
+Der Abschnitt **Betroffene Anforderungen** trägt eine Pflichttabelle
+`| ID | Bezug | Anmerkung |` mit genau einer Anhang-A-ID je Zeile und
+`Bezug` aus `bestehend`, `geändert`, `neu`, `zurückgenommen`. `featuredoku`
+liest nur diese beiden Spalten und prüft jede ID mit `Bezug != neu` gegen
+Anhang A. Alles, was keine ID ist — Kapitelverweise wie „11 (out of scope)",
+Invarianten aus `CLAUDE.md`, Platzhalter-Bereiche —, gehört als Fließtext
+unter die Tabelle. Diese Trennung ist der Grund, warum die Prüfung jetzt
+geht: Der Versuch, dieselbe Aussage aus freier Prosa zu lesen, war am
+2026-08-20 an Fehlalarmen gescheitert und verworfen worden.
 
 Zwei Abgrenzungen, damit keine zweite Wahrheit entsteht:
 
@@ -530,12 +541,15 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
   die Verabredungen zu Regeln machen: `abdeckung` (Feature-Abdeckung),
   `ebenenDisjunktheit`, `ausnahmenregister` (Abschnitt 10),
   `protokollvertrag` (Abschnitt 11), `aufbaudoku` (CLAUDE.md gegen den
-  Baum) und seit 2026-08-20 `featuredoku` (jedes Feature-Dokument trägt
-  alle sieben Pflichtabschnitte der Vorlage — nur die Struktur, nicht der
-  Inhalt: Ob „Umgesetzt in" wirklich existierende Klassen nennt, ließe sich
-  wegen der vielen anderen Backtick-Wörter im Fließtext — Konstanten,
+  Baum) und seit 2026-08-20 `featuredoku` (Abschnitt 9.1: sieben
+  Pflichtabschnitte, seit 2026-08-21 zusätzlich genau eine
+  Kritikalitätsstufe, die ID-Tabelle gegen Anhang A, höchstens zwölf
+  Akzeptanzkriterien und keine eigene Baustufentabelle — drei Dokumente
+  tragen dabei einen im Build benannten Bestandsschutz. Weiterhin nicht
+  geprüft: ob „Umgesetzt in" wirklich existierende Klassen nennt, das ließe
+  sich wegen der vielen anderen Backtick-Wörter im Fließtext — Konstanten,
   Kommandonamen, Annotationen — nicht ohne häufige Fehlalarme
-  automatisieren, das bleibt Aufgabe des Reviews). Alle brechen den Build
+  automatisieren und bleibt Aufgabe des Reviews). Alle brechen den Build
   ab, statt nur zu berichten.
 - **Zeitbudget: 10 Minuten** für den vollständigen Lauf einschließlich
   Mutationstests. Wird es enger, wird zuerst der Mutations-Scope

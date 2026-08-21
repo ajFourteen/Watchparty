@@ -528,7 +528,18 @@ selbst, die sich nicht am Schreibtisch simulieren lassen.
   `docs/features/_vorlage.md` — Anlass, betroffene Anforderungen,
   Akzeptanzkriterien, Szenarien in Angenommen/Wenn/Dann, Kritikalität. Die
   Szenarien werden eins zu eins zu JGiven-Szenarien, bevor der
-  Produktivcode dafür existiert. Das gilt für neue Features; der
+  Produktivcode dafür existiert.
+- **Ein Feature-Dokument beschreibt genau ein Feature** — seit 2026-08-21
+  gemessen, nicht ermahnt: genau eine Kritikalitätsstufe, höchstens zwölf
+  Akzeptanzkriterien, keine eigene Baustufentabelle, und im Abschnitt
+  „Betroffene Anforderungen" eine Pflichttabelle `| ID | Bezug |
+  Anmerkung |` gegen Anhang A. Der Task `featuredoku` bricht sonst den
+  Build ab (Bestandsschutz für 002/004/005 ist dort namentlich
+  eingetragen). Geschnitten wird **vertikal**: Jede Scheibe geht dünn durch
+  alle Ringe und ist für sich benutzbar — nicht Schicht für Schicht wie
+  Feature 005, wo bis Stufe 7 von 9 niemand etwas tun konnte. Der Weg von
+  der Idee zu den Scheiben ist der Skill `schneiden`, er läuft vor
+  `feature`. Das gilt für neue Features; der
   bestehende Funktionsumfang wurde einmalig als Characterization Testing
   nachgerüstet (`docs/teststrategie-umsetzung.md`, inzwischen abgeschlossen
   und gelöscht) und ist davon nicht rückwirkend betroffen.

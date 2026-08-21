@@ -17,6 +17,7 @@ Die meisten Einzelfälle beantwortet diese Sortierfrage von selbst:
 | die **Reihenfolge** der Arbeit | einen Skill | braucht Urteil, ist am Ergebnis nicht messbar |
 | die **Gewohnheiten** des Agenten | einen Hook | betrifft nur dessen Sitzung |
 | nur **Kontext**, kein Urteil | einen Subagenten | Lesen auslagern, Kontext sparen |
+| die **Form** des Dokuments, an dem die Regel scheitert | eine Änderung an Vorlage und Bestand | ein Formatmangel ist kein Naturgesetz (2026-08-21) |
 
 Der Satz, auf den es ankommt: **Wer eine Regel über den Code in einen Hook
 schreibt, halbiert sie.** Sie gilt dann nur, wenn der Agent arbeitet — nicht
@@ -129,33 +130,69 @@ diesmal am tatsächlichen Inhalt der Dateien, nicht nur an ihrer Struktur:
   Der Gegenprobe-Lauf gegen die eigene Historie fand sofort einen echten
   Treffer: Commit `cb3e298` (der `commit-msg`-Hook selbst) war genau dieser
   Fehler — `feat:` ohne jede Anwendungsdatei.
-- **Anforderungen ↔ Feature-Dateien: erwogen, dann verworfen.** Der
-  Abschnitt „Betroffene Anforderungen" sah beim ersten Hinsehen aus wie
-  Anhang A: strukturierte IDs, dasselbe Muster wie `abdeckung` schon
-  parst. Ein Blick in die fünf echten Dokumente zeigt das Gegenteil: freier
-  Fließtext, der echte ID-Zitate (`10.1`), neu vorgeschlagene IDs in
-  Tabellen mit *unterschiedlichen* Spaltenköpfen je Dokument, bloße
-  Kapitelverweise (`11 (out of scope)`, dreifach im selben Dokument),
-  Platzhalter-Ranges (`13.1-a bis 13.8-x` — `x` ist kein Buchstabe aus
-  Anhang A) und eine Kollision mit einer völlig anderen Zählung
-  (`Invariante 4`) alles nebeneinander. Ein Regex auf Zahlenmuster würde
-  genau die Fehlalarme erzeugen, die schon „Umgesetzt in" unbrauchbar
-  machten — nur diesmal ohne die Möglichkeit, sie an Klassennamen zu
-  erkennen. Nicht gebaut.
-- **Kritikalität: Feature-Dokument ↔ `@Criticality`-Annotation — nicht
-  schließbar, nicht nur schwer automatisierbar.** Die Vorlage verspricht
-  ein einziges Ergebnis (LOW/MEDIUM/HIGH) je Feature. Feature 005 zeigt,
-  dass das der Realität nicht entspricht: eine Tabelle mit acht Bereichen
-  und bis zu drei verschiedenen Stufen *innerhalb desselben Dokuments*.
-  Eine 1:1-Prüfung Dokument-Stufe ↔ Klassen-Annotation hat damit kein
-  Ziel, das sie treffen könnte. Dazu kommt: Anhang A selbst trägt gar keine
-  Kritikalität (nur `backend`/`frontend`/`organisatorisch`/`beobachtung`),
-  es gibt also keine strukturierte Quelle, gegen die sich „diese
-  Anforderung muss HIGH sein" prüfen ließe — nur die freie Prosa, die
-  gerade als ungeeignet befunden wurde. Eine echte Schließung bräuchte eine
-  Kritikalitätsspalte in Anhang A selbst — das wäre eine Entscheidung für
-  `docs/offene-entscheidungen.md`, nicht eine, die sich nebenbei
-  festlegen lässt.
+- **Anforderungen ↔ Feature-Dateien: erst verworfen, dann umgesetzt
+  (2026-08-21).** Der ursprüngliche Befund stimmte in jeder Einzelheit: Der
+  Abschnitt „Betroffene Anforderungen" enthielt echte ID-Zitate,
+  Tabellen mit unterschiedlichen Spaltenköpfen je Dokument, bloße
+  Kapitelverweise (`11 (out of scope)`, dreifach im selben Dokument), eine
+  Platzhalter-Range (`13.1-a bis 13.8-x`) und eine Kollision mit einer
+  anderen Zählung (`Invariante 4`). Ein Regex darauf hätte Fehlalarme
+  erzeugt.
+  Falsch war die **Folgerung**. Aus „diese Prosa ist nicht parsbar" wurde
+  „diese Prüfung ist nicht baubar" — und damit ein Formatmangel als
+  Naturgesetz verbucht. Dass an Anforderungen nichts unparsbar ist, beweist
+  Anhang A: derselbe Stoff, feste Spalten, und daran hängen `abdeckung`,
+  `@Anforderung` und `jedeKritikalitaetsAnforderungExistiertInAnhangA`.
+  Dazu kam ein übersehener Hinweis: 002, 003 und 004 hatten von sich aus
+  dieselbe Tabelle erfunden — eine unformalisierte Konvention, kein Chaos.
+  Umgesetzt: Der Abschnitt trägt jetzt eine Pflichttabelle
+  `| ID | Bezug | Anmerkung |`, Fließtext bleibt darunter und ungeparst.
+  `featuredoku` prüft `Bezug` gegen vier feste Wörter und jede ID mit
+  `Bezug != neu` gegen Anhang A. Die fünf bestehenden Dokumente sind
+  nachgezogen. Genau die Fälle, die den ersten Anlauf gekippt haben, fängt
+  die Gegenprobe jetzt einzeln ab.
+
+- **Kritikalität: erst „nicht schließbar", dann geschlossen (2026-08-21).**
+  Auch hier stimmte die Beobachtung — Feature 005 trägt acht Bereiche mit
+  drei Stufen — und auch hier zeigte sie auf die Vorlage, während die
+  Folgerung auf die Prüfbarkeit zeigte. Ein Feature aus Anmeldung,
+  Wertung, Feed und Oberfläche *hat* keine eine Stufe; 005 ist das
+  ehrliche Dokument und die Vorlage die widerlegte Seite.
+  Der zweite Denkfehler war eine Verschiebung des Ziels: Zur Debatte stand
+  Feature-Dokument ↔ `@Criticality`. Die Antwort „Anhang A trägt keine
+  Kritikalitätsspalte" beantwortet die viel größere Frage „welche
+  *Anforderung* muss HIGH sein" — und lehnte die kleine ab, weil die große
+  offen war. Eine neue Spalte in Anhang A braucht es dafür nicht.
+  Umgesetzt: Die Vorlage verlangt genau eine Stufe als maschinenlesbare
+  Zeile `**Stufe:** LOW|MEDIUM|HIGH`. Damit wird „mehr als eine Stufe
+  nötig" zum Teilungskriterium statt zur geduldeten Ausnahme.
+
+- **Featuregröße als Gate (2026-08-21, neu).** Aus beidem folgte die
+  eigentliche Ursache: 005 ist kein Feature, sondern neun. Das Dokument
+  sagt es selbst — eine Neun-Stufen-Bautabelle, ein `feat:`-Commit je
+  Stufe. Die Teilung hatte stattgefunden, nur nicht in Dateien, und entlang
+  der Schichten statt der Fähigkeiten: Bis Stufe 7 („Oberfläche", als
+  einzige mit Umfang L) konnte kein Mensch etwas tun, obwohl das Dokument
+  jede Stufe „einzeln einsetzbar" nennt.
+  `featuredoku` prüft deshalb zusätzlich: höchstens zwölf
+  Akzeptanzkriterien und keine eigene Baustufentabelle. Drei Dokumente
+  (002, 004, 005) liegen darüber und sind im Build namentlich als
+  Bestandsschutz eingetragen — dass drei von fünf die Regel verletzen, ist
+  der Befund und nicht ein Grund, die Grenze weicher zu setzen.
+  Was sich damit **nicht** prüfen lässt, ist die Schnittrichtung: Ein
+  horizontaler Schnitt besteht alle Prüfungen. Dafür der neue Skill
+  `schneiden` — er läuft vor `feature` und macht aus einer Idee eine Folge
+  vertikaler Scheiben, jede für sich benutzbar. Nach dem Ordnungsprinzip
+  oben ist das richtig verortet: Größe ist Ergebnis (→ Gradle),
+  Schnittrichtung ist Urteil (→ Skill).
+
+**Was aus beiden Fehlschlüssen zu lernen ist.** Die Sortiertabelle am Kopf
+dieses Dokuments kennt vier Ausgänge — Gradle-Task, Skill, Hook,
+Subagent — und keinen fünften: *das Format des Artefakts ist der Mangel*.
+Ein Audit, das nur mit diesem Raster fragt, kann bei unstrukturierter
+Quelle ausschließlich „nicht prüfbar" ausgeben. Deshalb steht die Frage
+jetzt hier: **Muss dieses Dokument so aussehen?** — vor der Frage, ob sich
+sein heutiges Aussehen prüfen lässt.
 
 ## Kontext-Ökonomie
 
