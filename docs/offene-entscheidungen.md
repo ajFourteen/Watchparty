@@ -35,6 +35,18 @@ Die 15 Sekunden aus Anforderung 5 gelten für alle Wetten gleich. Ob ein Kick
 ein kürzeres und der Drive-Ausgang ein längeres Fenster braucht, zeigt sich
 erst am Spielabend. Bis dahin bleibt es bei einem Wert für alle.
 
+**Spieltags-Report per Mail: Auslöser, Empfängerkreis, Abmeldung.** (Tippspiel)
+Dass es den Spieltags-Report nicht nur als Seite, sondern auch per Mail geben
+soll, steht seit dem 2026-08-21 fest. Offen ist dreierlei. Erstens der
+Auslöser: Seit dem ADR-037-Nachtrag gibt es keinen internen Nachführ-Job
+mehr, der Feed kommt über einen täglichen GitHub-Actions-Relay — ein
+Versand hinge also an demselben Relay, an einem zweiten Auslöser oder am
+Übergang des letzten Spiels eines Spieltags auf FINAL. Zweitens der
+Empfängerkreis: alle Mitglieder einer Liga, nur wer getippt hat, oder nur
+wer den Versand bestellt hat. Drittens die Abmeldung: Ohne sie wäre der
+Report ungefragter Versand an eine personenbezogene Adresse (13.8). Bis das
+entschieden ist, entsteht der Report als Seite zum Abruf.
+
 ## Technisch
 
 **Verhalten bei sehr kleiner Runde.** (Live-Wetten)
