@@ -1017,6 +1017,158 @@ tasks.named("check") {
     dependsOn("protokollvertrag")
 }
 
+// --- Protokollvertrag Tippspiel (docs/teststrategie.md, Abschnitt 11) ------
+//
+// Der Task oben prueft die WebSocket-Grenze der Live-Wetten und sagt selbst,
+// dass er das Tippspiel bewusst auslaesst. Damit stand dieselbe Fehlerart
+// dort ungeprueft: Ein umbenanntes DTO-Feld oder ein verschobener Pfad faellt
+// im Backend nicht auf -- die Tests kennen ja beide Seiten nicht zugleich --
+// und im Frontend erst zur Laufzeit, als leeres Feld oder als 404.
+//
+// REST hat gegenueber dem WebSocket-Protokoll eine zweite Grenze: nicht nur
+// Feldnamen, auch Pfade. Beide werden hier abgeglichen, und die Pfade in
+// beide Richtungen -- ein Frontend, das einen Pfad ruft, den es nicht gibt,
+// ist der teurere Fall von beiden.
+tasks.register("protokollvertragLiga") {
+    group = "verification"
+    description = "Gleicht Pfade und Feldnamen der REST-Schnittstelle mit der Tippspiel-App ab."
+    dependsOn(tasks.named("classes"))
+
+    val httpVerzeichnis = layout.projectDirectory.dir("src/main/java/de/fourteen/watchparty/adapter/in/http")
+    val ligaFrontend = layout.projectDirectory.dir("frontend/src/league")
+    val klassenpfad = sourceSets.main.get().runtimeClasspath
+    val berichtsDatei = layout.buildDirectory.file("reports/protokollvertrag-liga.txt")
+
+    inputs.dir(httpVerzeichnis)
+    inputs.dir(ligaFrontend)
+    outputs.file(berichtsDatei)
+
+    doLast {
+        val httpDateien = httpVerzeichnis.asFile.walkTopDown().filter { it.extension == "java" }.toList()
+        val serverText = httpDateien.joinToString("\n") { it.readText() }
+        val frontendDateien = ligaFrontend.asFile.walkTopDown()
+            .filter { it.isFile && (it.extension == "js" || it.extension == "jsx") }.toList()
+        val frontendText = frontendDateien.joinToString("\n") { it.readText() }
+        val apiText = ligaFrontend.file("api.js").asFile.readText()
+
+        // --- Pfade -------------------------------------------------------
+        //
+        // Beide Seiten werden auf dieselbe Form gebracht: fuehrendes
+        // /api/league weg, jeder Platzhalter zu einem *. Aus
+        // "/api/league/leagues/{leagueId}/standings/matchday/{week}" und aus
+        // `/leagues/${leagueId}/standings/matchday/${week}` wird damit
+        // dasselbe "/leagues/*/standings/matchday/*".
+        fun vereinheitliche(pfad: String): String =
+            pfad.removePrefix("/api/league")
+                // Erst die JS-Interpolation ${...}, dann die Spring-Vorlage
+                // {...} -- andersherum bliebe von ${leagueId} ein "$*" uebrig.
+                .replace(Regex("""\$\{[^}]*\}"""), "*")
+                .replace(Regex("""\{[^}]*\}"""), "*")
+                .removeSuffix("/")
+
+        val serverPfade = Regex("""@(?:Get|Post|Put|Delete|Patch)Mapping\("([^"]+)"\)""")
+            .findAll(serverText).map { vereinheitliche(it.groupValues[1]) }.toSet()
+
+        // Der erste Parameter jedes request(...)-Aufrufs in api.js, in beiden
+        // Schreibweisen: "..." und `...`.
+        val frontendPfade = Regex("""request\(\s*(?:"([^"]+)"|`([^`]+)`)""")
+            .findAll(apiText)
+            .map { vereinheitliche(it.groupValues[1].ifEmpty { it.groupValues[2] }) }
+            .toSet()
+
+        // Der Feed-Relay wird nicht vom Browser gerufen, sondern vom
+        // GitHub-Actions-Workflow (ADR-037-Nachtrag) -- er hat im Frontend
+        // bewusst keine Entsprechung. Ebenso der Handeintrag, der ueber
+        // curl bedient wird (Kriterium 14).
+        val pfadeOhneFrontend = setOf("/feed-relay/*/*", "/admin/games/*/result")
+
+        val frontendPfadeOhneServer = (frontendPfade - serverPfade).sorted()
+        val serverPfadeOhneFrontend = (serverPfade - frontendPfade - pfadeOhneFrontend).sorted()
+
+        // --- Feldnamen ---------------------------------------------------
+        //
+        // Wie beim WebSocket-Vertrag ueber Reflection statt per Regex: Ein
+        // Record kennt seine Komponenten selbst. Gesammelt wird ueber die
+        // Controller-DTOs und die beiden Sichten, die sie zurueckgeben.
+        val urls = klassenpfad.files.map { it.toURI().toURL() }.toTypedArray()
+        val classLoader = URLClassLoader(urls, javaClass.classLoader)
+        val wurzeln = listOf(
+            "de.fourteen.watchparty.adapter.in.http.LoginController",
+            "de.fourteen.watchparty.adapter.in.http.LeagueController",
+            "de.fourteen.watchparty.adapter.in.http.PredictionController",
+            "de.fourteen.watchparty.application.league.view.PredictionView",
+            "de.fourteen.watchparty.application.league.view.ReportView")
+        val felder = sortedSetOf<String>()
+        fun sammleFelder(klasse: Class<*>) {
+            if (klasse.isRecord) {
+                klasse.recordComponents.forEach { felder += it.name }
+            }
+            klasse.declaredClasses.forEach { sammleFelder(it) }
+        }
+        wurzeln.forEach { sammleFelder(classLoader.loadClass(it)) }
+
+        // Felder, die das Frontend nicht liest, mit Begruendung -- sichtbar
+        // im Diff statt in einer Datei nebenan (dieselbe Regel wie oben).
+        //
+        // correctTendencyCount: die dritte Stufe der Gleichstandsregel
+        // (13.6-g). Der Server liefert sie, damit die Rangfolge vollstaendig
+        // begruendet ist; die Tabelle zeigt bewusst nur Platz, Name und
+        // Punktzahl. Beim ersten Fund am 2026-08-21 eingetragen -- die Regel
+        // selbst ist backend-markiert und in Standings geprueft, die Anzeige
+        // waere eine eigene, frontend-markierte Entscheidung.
+        val felderOhneFrontend = setOf("correctTendencyCount")
+
+        val unbekannteFelder = felder.filter { feld ->
+            feld !in felderOhneFrontend && !Regex("\\b${Regex.escape(feld)}\\b").containsMatchIn(frontendText)
+        }.sorted()
+
+        val bericht = buildString {
+            appendLine("Protokollvertrag Tippspiel: ${serverPfade.size} Serverpfad(e), " +
+                "${frontendPfade.size} Frontendpfad(e), ${felder.size} Feld(er).")
+            if (frontendPfadeOhneServer.isEmpty() && serverPfadeOhneFrontend.isEmpty() && unbekannteFelder.isEmpty()) {
+                appendLine("Beide Seiten sprechen dieselbe Schnittstelle.")
+            }
+            if (frontendPfadeOhneServer.isNotEmpty()) {
+                appendLine("Frontend ruft Pfade, die der Server nicht anbietet (${frontendPfadeOhneServer.size}):")
+                frontendPfadeOhneServer.forEach { appendLine("  - $it") }
+            }
+            if (serverPfadeOhneFrontend.isNotEmpty()) {
+                appendLine("Serverpfade ohne Entsprechung im Frontend (${serverPfadeOhneFrontend.size}):")
+                serverPfadeOhneFrontend.forEach { appendLine("  - $it") }
+            }
+            if (unbekannteFelder.isNotEmpty()) {
+                appendLine("Antwortfelder, die im Frontend nicht vorkommen (${unbekannteFelder.size}):")
+                unbekannteFelder.forEach { appendLine("  - $it") }
+            }
+        }
+        println(bericht)
+        val datei = berichtsDatei.get().asFile
+        datei.parentFile.mkdirs()
+        datei.writeText(bericht)
+
+        val fehler = mutableListOf<String>()
+        if (frontendPfadeOhneServer.isNotEmpty()) {
+            fehler += "Frontend ruft unbekannte Pfade: ${frontendPfadeOhneServer.joinToString(", ")} " +
+                "(serverseitig umbenannt oder Tippfehler -- zur Laufzeit ein 404)"
+        }
+        if (serverPfadeOhneFrontend.isNotEmpty()) {
+            fehler += "Serverpfade ohne Aufrufer: ${serverPfadeOhneFrontend.joinToString(", ")} " +
+                "(umbenannt, ohne das Frontend nachzuziehen -- oder eine bewusste Ausnahme fehlt)"
+        }
+        if (unbekannteFelder.isNotEmpty()) {
+            fehler += "Antwortfelder ohne Entsprechung im Frontend: ${unbekannteFelder.joinToString(", ")} " +
+                "(umbenannt, oder das Frontend liest sie noch nicht)"
+        }
+        if (fehler.isNotEmpty()) {
+            throw GradleException("Protokollvertrag Tippspiel verletzt -- " + fehler.joinToString("; "))
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("protokollvertragLiga")
+}
+
 // --- Ausnahmenregister (docs/test-ausnahmen.md, Abschnitt 10) -------------
 //
 // "Eine Unterdrueckung ohne Eintrag ist ein Fehler" -- so steht die Regel in
