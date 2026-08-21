@@ -35,8 +35,8 @@
             "asyncRewake": true,
             "timeout": 1800,
             "statusMessage": "Pipeline beobachten",
-            "rewakeMessage": "Die Pipeline zu diesem Push ist rot. Befund des Beobachters:",
-            "rewakeSummary": "Pipeline fehlgeschlagen"
+            "rewakeMessage": "Rueckmeldung des Pipeline-Beobachters zu diesem Push:",
+            "rewakeSummary": "Pipeline beobachtet"
           }
         ]
       }

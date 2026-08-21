@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # PostToolUse-Hook: beobachtet nach einem Push die GitHub-Actions-Laeufe.
 #
-# Laeuft im Hintergrund (async) und meldet sich nur, wenn etwas schiefgeht:
-# Exit 2 weckt das Modell mit der Ausgabe dieses Skripts, Exit 0 bleibt still.
-# Ein gruener Lauf soll niemanden stoeren.
+# Laeuft im Hintergrund (async) und meldet sich nach Abschluss GENAU EINMAL,
+# gruen wie rot: Exit 2 weckt das Modell mit der Ausgabe dieses Skripts,
+# Exit 0 bleibt still. Danach ist das Skript fertig -- kein wiederholtes
+# Aufwecken fuer denselben Push.
 #
-# Bewusst wird NUR bei einem echten Fehlschlag geweckt. Ein nicht erreichbares
-# Netz, ein fehlender Lauf oder eine Zeitgrenze sind keine Pipeline-Fehler --
-# dafuer zu wecken waere Rauschen, und ein Beobachter, der staendig faelschlich
-# anschlaegt, wird abgeschaltet.
+# Ein nicht erreichbares Netz, ein fehlender Lauf oder eine Zeitgrenze sind
+# kein Pipeline-Ergebnis, sondern Beobachtungs-Rauschen -- dafuer zu wecken
+# waere Rauschen, und ein Beobachter, der staendig faelschlich anschlaegt,
+# wird abgeschaltet. Nur ein tatsaechlich abgeschlossener Lauf (gruen oder
+# rot) loest die Meldung aus.
 
 set -uo pipefail
 
@@ -61,7 +63,10 @@ while [ $SECONDS -lt $ende ]; do
     fehlgeschlagen="$(printf '%s' "$antwort" | jq -r '
         [.workflow_runs[] | select(.conclusion != "success" and .conclusion != "skipped")]')"
     anzahl="$(printf '%s' "$fehlgeschlagen" | jq -r 'length')"
-    [ "$anzahl" -eq 0 ] && exit 0
+    if [ "$anzahl" -eq 0 ]; then
+        echo "Pipeline gruen fuer ${sha:0:8} in $repo."
+        exit 2
+    fi
 
     # Ab hier steht fest: mindestens ein Lauf ist rot. Die Meldung nennt den
     # fehlgeschlagenen Schritt, nicht nur den Lauf -- sonst beginnt die
