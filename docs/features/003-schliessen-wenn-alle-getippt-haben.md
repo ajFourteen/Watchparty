@@ -11,20 +11,20 @@ die Oberfläche sichtbar, *warum* geschlossen wurde.
 
 ## Betroffene Anforderungen
 
-Bestehend: 5-b/5-c/5-d (das Fenster schließt nach 15 Sekunden oder per
-Host-Klick — je nachdem, was zuerst eintritt), 8.1-b (der Teilnehmerkreis
-ist beim Öffnen eingefroren), 9-a/9-b (Ablauf und Aufdeckung beim
-Schließen), 10-c (was Spieler sehen).
+| ID | Bezug | Anmerkung |
+|---|---|---|
+| 5-b | bestehend | Fenster schließt nach 15 Sekunden |
+| 5-c | bestehend | oder per Host-Klick |
+| 5-d | bestehend | je nachdem, was zuerst eintritt |
+| 8.1-b | bestehend | Teilnehmerkreis ist beim Öffnen eingefroren |
+| 9-a | bestehend | Ablauf beim Schließen |
+| 9-b | bestehend | Aufdeckung beim Schließen |
+| 10-c | bestehend | was Spieler sehen |
+| 5-g | neu | Ein dritter Auslöser fürs Schließen neben Zeitablauf und Host-Klick. Das ist Verhalten der Leitung, nicht der Darstellung. Marke `backend`. |
+| 5-h | neu | Die Oberfläche hebt hervor, dass wegen vollständiger Beteiligung geschlossen wurde, statt kommentarlos umzuschalten. Marke `frontend`. |
 
 Der Abschnitt 5 der Anforderungen bekommt einen dritten Auslöser für den
 Fensterschluss, Abschnitt 9 Schritt 4 wird entsprechend nachgezogen.
-
-Anhang A ergänzt um:
-
-| ID | Marke | Warum neu |
-|---|---|---|
-| 5-g | backend | Ein dritter Auslöser fürs Schließen neben Zeitablauf und Host-Klick. Das ist Verhalten der Leitung, nicht der Darstellung. |
-| 5-h | frontend | Die Oberfläche hebt hervor, dass wegen vollständiger Beteiligung geschlossen wurde, statt kommentarlos umzuschalten. |
 
 ## Akzeptanzkriterien
 
@@ -120,7 +120,7 @@ DevTools-Emulation von `prefers-reduced-motion`.
 
 ## Kritikalität
 
-**MEDIUM.**
+**Stufe:** MEDIUM
 
 Ein Fehler bei der Frage „haben wirklich alle getippt?" schließt das Fenster
 zu früh und sperrt einen Spieler aus, der noch tippen wollte — der zahlt dann

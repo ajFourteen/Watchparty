@@ -20,21 +20,25 @@ zusätzlich als ablaufenden Rahmen zeigen.
 
 ## Betroffene Anforderungen
 
-Bestehend: 3.1-a (Parameter an einer Stelle), 6-b und Invariante 4
-(verdeckte Tipps), 6-d (Einsatz vor dem Bestätigen erhöhen), 8.1-a/8.1-b
-(Teilnehmerkreis und Strafe), 9-b (ab dem Schließen liegen die Tipps
-offen), 10-c (Spieler sehen Countdown, Tipps, Ergebnisse, Leaderboard).
-
-Anhang A ergänzt um:
-
-| ID | Marke | Warum neu |
+| ID | Bezug | Anmerkung |
 |---|---|---|
-| 3.1-c | backend | Der Client bekommt die drei Parameter vom Server, statt eine eigene Kopie zu halten. Zieht 3.1-a über die Protokollgrenze. |
-| 8.1-f | backend | Ab dem Schließen nennt der Zustand die Teilnehmer ohne Tipp — vorher nicht. Das ist eine Protokollzusage, keine Frage der Darstellung. |
-| 8.1-g | frontend | Die Oberfläche zeigt sie hervorgehoben an und nennt die Strafe. |
-| 9-d | frontend | Das Ergebnis zeigt zu jedem Tipp den Einsatz und hebt die eigene Zeile hervor. |
-| 10-d | frontend | Der Countdown ist zusätzlich als ablaufender Rahmen sichtbar; Phasenwechsel sind animiert. |
-| 10.1-e | frontend | Die Host-Rolle ist an einer eigenen Farbe erkennbar (Rahmen und Chip). |
+| 3.1-a | bestehend | Parameter an einer Stelle |
+| 6-b | bestehend | verdeckte Tipps |
+| 6-d | bestehend | Einsatz vor dem Bestätigen erhöhen |
+| 8.1-a | bestehend | Teilnehmerkreis |
+| 8.1-b | bestehend | Strafe |
+| 9-b | bestehend | ab dem Schließen liegen die Tipps offen |
+| 10-c | bestehend | Spieler sehen Countdown, Tipps, Ergebnisse, Leaderboard |
+| 3.1-c | neu | Der Client bekommt die drei Parameter vom Server, statt eine eigene Kopie zu halten. Zieht 3.1-a über die Protokollgrenze. Marke `backend`. |
+| 8.1-f | neu | Ab dem Schließen nennt der Zustand die Teilnehmer ohne Tipp — vorher nicht. Das ist eine Protokollzusage, keine Frage der Darstellung. Marke `backend`. |
+| 8.1-g | neu | Die Oberfläche zeigt sie hervorgehoben an und nennt die Strafe. Marke `frontend`. |
+| 9-d | neu | Das Ergebnis zeigt zu jedem Tipp den Einsatz und hebt die eigene Zeile hervor. Marke `frontend`. |
+| 10-d | neu | Der Countdown ist zusätzlich als ablaufender Rahmen sichtbar; Phasenwechsel sind animiert. Marke `frontend`. |
+| 10.1-e | neu | Die Host-Rolle ist an einer eigenen Farbe erkennbar (Rahmen und Chip). Marke `frontend`. |
+
+Nicht in der Tabelle, weil keine Anhang-A-ID: Invariante 4 aus `CLAUDE.md`
+(verdeckte Tipps) ist von 6-b nicht zu trennen und wird durch dieses
+Feature ausdrücklich nicht angetastet.
 
 ## Akzeptanzkriterien
 
@@ -129,7 +133,9 @@ Fenster.
 
 ## Kritikalität
 
-**MEDIUM**, mit einer Stelle, die den Ausschlag gibt.
+**Stufe:** MEDIUM
+
+Mit einer Stelle, die den Ausschlag gibt.
 
 Der Löwenanteil ist reine Darstellung — `LOW` für sich genommen: kein
 Einfluss auf Punkte, Serverzustand oder Rundenablauf, und ein Fehler fällt

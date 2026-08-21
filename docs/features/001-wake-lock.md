@@ -12,7 +12,11 @@ ADR-021 dort verlinkt.
 
 ## Betroffene Anforderungen
 
-10.1 (Host-Rolle) — Anhang A ergänzt um `10.1-d` (neu, Marke `frontend`).
+| ID | Bezug | Anmerkung |
+|---|---|---|
+| 10.1 | bestehend | Host-Rolle |
+| 10.1-d | neu | Marke `frontend` |
+
 Kein Effekt auf 8.1 selbst, nur auf die Wahrscheinlichkeit, dass sie
 zuschlägt.
 
@@ -48,7 +52,9 @@ unbemerkt weg, oder hilft der Lock spürbar?
 
 ## Kritikalität
 
-**LOW.** Reiner Komfortgewinn, best effort, kein Einfluss auf
+**Stufe:** LOW
+
+Reiner Komfortgewinn, best effort, kein Einfluss auf
 Punkteverrechnung oder Serverzustand (Invarianten 1–6 aus `CLAUDE.md`
 bleiben unberührt — das ist eine rein clientseitige Änderung). Schlägt die
 Anfrage fehl, verhält sich die App exakt wie vorher.

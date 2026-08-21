@@ -25,28 +25,24 @@ Instanzen zwei getrennte *Mengen* von Räumen (CLAUDE.md Invariante 6,
 
 ## Betroffene Anforderungen
 
-Bestehend und **geändert**: 1-b (aus „genau ein Spielraum" wird „mehrere
-getrennte Watchpartys; je Watchparty immer nur eine Runde gleichzeitig"), 1-e
-(der Beitritt verlangt einen Namen und, wer einer bestehenden Watchparty
-beitritt, deren Code).
-
-Bestehend und **unberührt**: die gesamte Wett-Ökonomie (2, 3, 6, 7, 8), der
-Wettkatalog (4), Fenster und Ablauf (5, 9), die Anzeige (10) — sie gelten ab
-jetzt je Raum, ihr Inhalt ändert sich nicht. Ebenso 1-c (keine Persistenz über
-Abende hinweg) und 1-d (Snapshot mit sechs Stunden Verfallszeit), die jetzt je
-Raum gelten. 1-f (Link öffnen genügt) bleibt gültig und wird durch den
-Beitrittslink sogar wörtlicher erfüllt.
-
-Anhang A ergänzt um:
-
-| ID | Marke | Warum neu |
+| ID | Bezug | Anmerkung |
 |---|---|---|
-| 1-g | backend | Ein eigenes Kommando erzeugt einen Raum; wer ihn erzeugt, ist sein Host. Ohne diese Regel gäbe es keinen Weg zum ersten Raum. |
-| 1-h | backend | Der Code ist vierstellig alphanumerisch und wird unabhängig von Groß-/Kleinschreibung angenommen. Er wird vorgelesen — die Toleranz ist Fachlichkeit, keine Bequemlichkeit. |
-| 1-i | backend | Räume sind vollständig getrennt: Keine Nachricht und kein Kommando eines Raums wirkt auf einen anderen. Die zentrale neue Zusicherung. |
-| 1-j | backend | Ein Raum ohne Aktivität wird nach sechs Stunden verworfen, samt seinem Snapshot. Vorher erledigte das der Neustart. |
-| 1-k | frontend | Der Code der eigenen Watchparty ist ständig sichtbar, um ihn vorlesen zu können. |
-| 1-l | frontend | `/join/CODE` füllt das Code-Feld vor, sodass ein geteilter Link nur noch den Namen verlangt. |
+| 1-b | geändert | aus „genau ein Spielraum" wird „mehrere getrennte Watchpartys; je Watchparty immer nur eine Runde gleichzeitig" |
+| 1-e | geändert | der Beitritt verlangt einen Namen und, wer einer bestehenden Watchparty beitritt, deren Code |
+| 1-c | bestehend | keine Persistenz über Abende hinweg, gilt jetzt je Raum |
+| 1-d | bestehend | Snapshot mit sechs Stunden Verfallszeit, gilt jetzt je Raum |
+| 1-f | bestehend | Link öffnen genügt — durch den Beitrittslink sogar wörtlicher erfüllt |
+| 1-g | neu | Ein eigenes Kommando erzeugt einen Raum; wer ihn erzeugt, ist sein Host. Ohne diese Regel gäbe es keinen Weg zum ersten Raum. Marke `backend`. |
+| 1-h | neu | Der Code ist vierstellig alphanumerisch und wird unabhängig von Groß-/Kleinschreibung angenommen. Er wird vorgelesen — die Toleranz ist Fachlichkeit, keine Bequemlichkeit. Marke `backend`. |
+| 1-i | neu | Räume sind vollständig getrennt: Keine Nachricht und kein Kommando eines Raums wirkt auf einen anderen. Die zentrale neue Zusicherung. Marke `backend`. |
+| 1-j | neu | Ein Raum ohne Aktivität wird nach sechs Stunden verworfen, samt seinem Snapshot. Vorher erledigte das der Neustart. Marke `backend`. |
+| 1-k | neu | Der Code der eigenen Watchparty ist ständig sichtbar, um ihn vorlesen zu können. Marke `frontend`. |
+| 1-l | neu | `/join/CODE` füllt das Code-Feld vor, sodass ein geteilter Link nur noch den Namen verlangt. Marke `frontend`. |
+
+Nicht in der Tabelle, weil Kapitelverweise statt Anhang-A-IDs: Die gesamte
+Wett-Ökonomie (2, 3, 6, 7, 8), der Wettkatalog (4), Fenster und Ablauf
+(5, 9) und die Anzeige (10) bleiben **unberührt** — sie gelten ab jetzt je
+Raum, ihr Inhalt ändert sich nicht.
 
 ## Akzeptanzkriterien
 
@@ -212,7 +208,7 @@ mit zwei Browsern nachvollzogen, davon einer über den `/join/CODE`-Link.
 
 ## Kritikalität
 
-**HIGH.**
+**Stufe:** HIGH
 
 Die Wirkung eines Fehlers reicht hier über eine Runde und über einen Abend
 hinaus, weil sie *fremde* Abende betrifft. Fehlt die Zuordnung an einer

@@ -44,40 +44,69 @@ Invarianten aus CLAUDE.md in Gefahr, ohne einen Zeile Code zu sparen.
 
 ## Betroffene Anforderungen
 
-**Zurückgenommen, aber nur für das Tippspiel** (die Live-Wetten bleiben in
-jedem Punkt, wie sie sind — das gehört ausdrücklich in die Formulierung, sonst
-liest sich jede dieser Streichungen wie eine Aufgabe des bisherigen Prinzips):
-
-| ID | heute | künftig |
+| ID | Bezug | Anmerkung |
 |---|---|---|
-| 1-c | keine Persistenz über Spielabende hinweg | gilt für die Live-Wetten; das Tippspiel ist per Definition dauerhaft |
-| 1-e | Beitritt verlangt nur einen Namen, kein Account | gilt für die Live-Wetten; das Tippspiel verlangt ein Konto |
-| 11 (out of scope) | keine Persistenz / keine Saison | fällt für das Tippspiel |
-| 11 (out of scope) | keine automatische Ergebnis-Erkennung per Datenfeed | fällt für das Tippspiel; die Begründung (Broadcast-Verzögerung, Synchronität zum Fernsehbild) trägt nur für die Live-Wetten und ist für ein Endergebnis gegenstandslos |
-| 11 (out of scope) | kein Remote-Play über mehrere Orte | fällt für das Tippspiel; eine Liga ist ortsunabhängig |
+| 1-c | zurückgenommen | nur für das Tippspiel: keine Persistenz über Spielabende hinweg — die Live-Wetten bleiben, wie sie sind |
+| 1-e | zurückgenommen | nur für das Tippspiel: Beitritt ohne Account — das Tippspiel verlangt ein Konto |
+| 13.2-a | neu | Eine Anfrage mit E-Mail-Adresse und Anzeigename löst den Versand eines Anmeldelinks aus, una… |
+| 13.2-b | neu | Existiert zur Adresse noch kein Konto, entsteht es beim Einlösen mit dem beim Anfordern mitg… |
+| 13.2-c | neu | Ein Anmeldelink ist genau einmal verwendbar und verfällt 15 Minuten nach der Ausstellung. |
+| 13.2-d | neu | Die Antwort auf eine Anmeldeanfrage ist immer dieselbe, unabhängig davon, ob die Adresse bek… |
+| 13.2-e | neu | Anmeldeanfragen sind je E-Mail-Adresse und je Absender-IP in ihrer Häufigkeit begrenzt; grei… |
+| 13.2-f | neu | Eine erfolgreiche Anmeldung (Sitzung) hält 90 Tage. |
+| 13.2-g | neu | Der Anzeigename eines Kontos umfasst 1 bis 20 Zeichen. |
+| 13.2-h | neu | Ein Konto kann gelöscht werden; danach sind E-Mail-Adresse und Anzeigename fort, und seine S… |
+| 13.3-a | neu | Der Server hält zu jedem Spiel Saison, Spieltag, Heim- und Gastmannschaft, Anstoßzeit und —… |
+| 13.3-b | neu | Spielplan und Ergebnisse werden regelmäßig aus dem Feed nachgeführt, ohne dass jemand etwas… |
+| 13.3-c | neu | Verschiebt der Feed eine Anstoßzeit, gilt ab dann die neue Zeit. |
+| 13.3-d | neu | Fällt der Feed aus, bleibt der zuletzt bekannte Stand unangetastet stehen — kein Spiel versc… |
+| 13.3-e | neu | Ein Endergebnis kann sich nachträglich korrigieren (Feed oder Handeintrag); der gespeicherte… |
+| 13.3-f | neu | Ein abgesagtes oder nicht gewertetes Spiel trägt einen eigenen Status statt eines Endergebni… |
+| 13.3-g | neu | Der Betreiber kann ein Endergebnis von Hand setzen; dieser Handeintrag überschreibt den Feed… |
+| 13.3-h | neu | Der Handeintrag ist nur einem fest konfigurierten Admin-Konto möglich, das sich wie jeder Ti… |
+| 13.4-a | neu | Ein angemeldeter Tipper sieht die Spiele eines Spieltags mit Anstoßzeit. |
+| 13.4-b | neu | Er kann zu jedem Spiel einen Ergebnistipp abgeben: zwei nicht-negative ganze Zahlen. |
+| 13.4-c | neu | Ein Ergebnistipp ist bis zum Anstoß des jeweiligen Spiels änderbar, danach weder änderbar no… |
+| 13.4-d | neu | Fremde Ergebnistipps zu einem Spiel sind erst ab dessen Anstoß Teil der Antwort. |
+| 13.4-e | neu | Der eigene Ergebnistipp ist jederzeit Teil der Antwort. |
+| 13.5-a | neu | Höchste erreichte Stufe zählt, nicht die Summe: exaktes Ergebnis 6 Wertungspunkte, sonst ric… |
+| 13.5-b | neu | Falsche Tendenz bringt 0 Wertungspunkte, unabhängig vom Abstand — der Abstand wird nur bei r… |
+| 13.5-c | neu | Die Abstands-Eimer sind 0 (Unentschieden) / 1–8 / 9–16 / ab 17. |
+| 13.5-d | neu | Wertungspunkte sind ganzzahlig und nie negativ. |
+| 13.5-e | neu | Die Wertung ist eine reine Funktion aus Ergebnistipp und Endergebnis: zustandslos, dieselbe… |
+| 13.6-a | neu | Ein angemeldeter Tipper kann eine Liga anlegen; er ist ihr Verwalter und zugleich ihr erstes… |
+| 13.6-b | neu | Eine Liga hat einen Beitrittscode; wer ihn hat, tritt bei. |
+| 13.6-c | neu | Ein Ergebnistipp gilt für alle Ligen des Tippers gleichzeitig, auch für Ligen, denen er erst… |
+| 13.6-d | neu | Ein Mitglied kann eine Liga verlassen; seine Ergebnistipps bleiben bestehen und zählen weite… |
+| 13.6-e | neu | Die Rangliste zeigt Mitglieder mit der Summe ihrer Wertungspunkte über die gewerteten Spiele… |
+| 13.6-f | neu | Ein nicht getipptes Spiel bringt 0 Wertungspunkte, ohne Strafe. |
+| 13.6-g | neu | Bei Punktgleichheit entscheidet zuerst die Zahl der exakten Ergebnisse, dann die Zahl der ri… |
+| 13.6-h | neu | Es gibt zusätzlich eine Rangliste je Spieltag, die nur dessen Spiele zählt. |
+| 13.6-i | neu | Die Ranglisten zweier Ligen sind vollständig getrennt: Wer nicht Mitglied ist, steht nicht d… |
+| 13.6-j | neu | Eine Ergebniskorrektur wird bei der nächsten Abfrage der Rangliste berücksichtigt — kein ein… |
+| 13.6-k | neu | Ein Konto hat einen eigenen Punktestand — die Summe seiner Wertungspunkte über alle bewertet… |
 
-**Unberührt:** Die gesamte Wett-Ökonomie (2, 3, 6, 7, 8), der Wettkatalog (4),
-Fenster und Ablauf (5, 9), Rollen (10). Kein Zeichen davon ändert sich.
-Weiterhin gilt: kein echtes Geld.
+**Zurückgenommen, aber nur für das Tippspiel.** Die Live-Wetten bleiben in
+jedem Punkt, wie sie sind — das gehört ausdrücklich in die Formulierung,
+sonst liest sich jede dieser Streichungen wie eine Aufgabe des bisherigen
+Prinzips. Nicht in der Tabelle, weil Kapitelverweis statt Anhang-A-ID:
+Kapitel 11 (out of scope) verliert für das Tippspiel drei Punkte — keine
+Persistenz/keine Saison, keine automatische Ergebnis-Erkennung per
+Datenfeed (die Begründung Broadcast-Verzögerung trägt nur für die
+Live-Wetten und ist für ein Endergebnis gegenstandslos) und kein
+Remote-Play über mehrere Orte (eine Liga ist ortsunabhängig).
 
-**Neu:** ein eigenes Kapitel 13 in `anforderungen.md`. Die bestehende
-Nummerierung bleibt unangetastet (dieselbe Zusage wie in Feature 004), Kapitel
-12 („Offene Punkte") bleibt stehen. Vorschlag für die Gliederung:
+**Unberührt:** Die gesamte Wett-Ökonomie (2, 3, 6, 7, 8), der Wettkatalog
+(4), Fenster und Ablauf (5, 9), Rollen (10). Kein Zeichen davon ändert
+sich. Weiterhin gilt: kein echtes Geld.
 
-| Abschnitt | Inhalt |
-|---|---|
-| 13.1 | Zweck, Abgrenzung zu den Live-Wetten, Parallelbetrieb |
-| 13.2 | Konto und Anmeldung |
-| 13.3 | Spielplan, Anstoßzeiten, Endergebnisse |
-| 13.4 | Tippen und Abgabeschluss |
-| 13.5 | Wertung (Tendenz, Abstand, exaktes Ergebnis) |
-| 13.6 | Ligen, Mitgliedschaft, Rangliste |
-| 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) |
-| 13.8 | Datenschutz und Löschung |
-
-Anhang A wächst entsprechend um die IDs `13.1-a` bis `13.8-x`; die
-Akzeptanzkriterien unten sind so geschnitten, dass daraus je eine atomare
-Regel wird.
+**Neu:** ein eigenes Kapitel 13 in `anforderungen.md` (Zweck/Abgrenzung,
+Konto, Spielplan, Tippen, Wertung, Ligen, Sonderfälle, Datenschutz). Die
+bestehende Nummerierung bleibt unangetastet (dieselbe Zusage wie in
+Feature 004), Kapitel 12 („Offene Punkte") bleibt stehen. Die Tabelle oben
+führt die IDs, die daraus tatsächlich entstanden sind — im ersten Entwurf
+dieses Dokuments stand hier die Platzhalter-Range „13.1-a bis 13.8-x", die
+gerade deshalb nicht prüfbar war.
 
 ## Bewusste Festlegungen
 
@@ -396,6 +425,13 @@ Feed-Mapping gegen aufgezeichnete Antworten, die Migrationen, das
 Repository-Verhalten.
 
 ## Kritikalität
+
+> **Bestandsschutz (2026-08-21).** Dieses Dokument ist vor der Regel
+> „genau eine Stufe je Feature" entstanden und in `featuredoku`
+> ausdrücklich als Ausnahme benannt. Die Tabelle unten ist der Beleg für
+> die Regel, nicht ihre Widerlegung: Acht Bereiche mit drei Stufen sind
+> acht Features, die als eines geschrieben wurden. Wie derselbe Umfang
+> heute geschnitten würde, steht als Beispiel im Skill `schneiden`.
 
 Das Feature zerfällt in Bereiche mit deutlich verschiedenem Risiko; eine
 Pauschaleinstufung wäre hier irreführend.
