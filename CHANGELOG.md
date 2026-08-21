@@ -1,3 +1,10 @@
+# [3.16.0](https://github.com/ajFourteen/Watchparty/compare/v3.15.0...v3.16.0) (2026-08-21)
+
+
+### Features
+
+* Platzveränderung im Spieltags-Report (13.9, Feature 008 Schnitt 3) ([c37fdff](https://github.com/ajFourteen/Watchparty/commit/c37fdff86d9b5be4a314770db8f6c590df55bcb6))
+
 # [3.15.0](https://github.com/ajFourteen/Watchparty/compare/v3.14.0...v3.15.0) (2026-08-21)
 
 
