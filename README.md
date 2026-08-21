@@ -27,6 +27,10 @@ Tragende Entscheidungen (Details in `docs/adrs.md`):
 - JDK 21
 - Node 20+ (für den Frontend-Build)
 - Gradle (oder einmalig `gradle wrapper` ausführen, um den Wrapper anzulegen)
+- Einmalig `git config core.hooksPath .githooks`, damit ein falsches
+  Commit-Format schon lokal auffällt (`commit-msg`-Hook), nicht erst in CI
+  (`.git/hooks` liegt außerhalb der Versionskontrolle, deshalb dieser
+  Umweg über ein Verzeichnis im Repo)
 
 ## Entwickeln
 

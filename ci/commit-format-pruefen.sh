@@ -14,11 +14,36 @@
 #
 # Aufruf: ci/commit-format-pruefen.sh <basis-ref> <kopf-ref>
 #         ci/commit-format-pruefen.sh              (ohne Argumente: HEAD allein)
+#         ci/commit-format-pruefen.sh <nachrichtendatei>   (commit-msg-Hook)
+#
+# Der dritte Aufruf ist fuer .githooks/commit-msg (Prozess-Audit 2026-08-21):
+# Bislang fiel ein falscher Typ erst nach dem Push auf, wenn build.yml schon
+# rot lief -- derselbe Regelkern greift jetzt schon lokal, bevor der Commit
+# ueberhaupt entsteht.
 
 set -euo pipefail
 
 typen="build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test"
 muster="^(${typen})(\([a-z0-9./-]+\))?!?: .+"
+
+# commit-msg-Hook-Modus: einziges Argument ist eine vorhandene Datei -- die
+# noch nicht erstellte Commit-Nachricht, kein Git-Ref, den git log verstehen
+# wuerde. git-log-Modus (unten) bekommt nie ein Argument, das eine Datei ist.
+if [ $# -eq 1 ] && [ -f "$1" ]; then
+    betreff="$(head -n1 "$1")"
+    if ! echo "$betreff" | grep -Eq "$muster"; then
+        echo "  ✗ ${betreff}"
+        echo
+        echo "Commit-Betreff folgt nicht Conventional Commits."
+        echo "Erlaubte Typen: ${typen//|/, }"
+        echo "Beispiel: fix: Verbindungsstatus ganz unten platzieren"
+        echo
+        echo "Ein nicht erkannter Typ bedeutet: kein Release und kein Deploy (ADR-019)."
+        exit 1
+    fi
+    echo "Commit-Format: gueltig."
+    exit 0
+fi
 
 # Loest sich die Basis nicht auf (flacher Klon, erster Push eines Branches,
 # ein Force-Push, der den alten Stand entfernt hat), wird nur HEAD geprueft --

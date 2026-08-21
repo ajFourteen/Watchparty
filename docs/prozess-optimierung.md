@@ -63,11 +63,6 @@ Sitzung unbenutzbar. Dafür ist `/pruefen` da.
   ~60 Sekunden würde das abfangen. Bewusst offen gelassen, bis ein echter
   Deploy zeigt, ob es das Problem überhaupt gibt — beim ersten (2026-08-20)
   trat es nicht auf.
-- **Git-Hooks für den Menschen.** `ci/git-regeln-hook.sh` bindet den Agenten,
-  nicht das Repository: Wer selbst `git checkout -b` tippt, wird nicht
-  gehindert. Ein `pre-commit`/`pre-push`-Hook könnte dasselbe Skript
-  wiederverwenden, braucht aber `core.hooksPath` auf ein Verzeichnis im Repo
-  plus einen einmaligen Einrichtungsschritt.
 
 ### Audit vom 2026-08-20: welche Pipeline-Stufen noch einen harten Check vertragen
 
@@ -106,6 +101,18 @@ Offen geblieben, mit Begründung:
   begründeten Ausnahme `awaitIdle`), nicht pauschal `java.io`/`java.nio`.
   Ein zusätzliches Import-Verbot wäre redundant dazu und ein schwächeres
   Signal als die gezielte Regel — zurückgestellt.
+
+**Nachtrag 2026-08-21.** `ci/commit-format-pruefen.sh` prüfte das
+Commit-Format bislang nur in CI (`build.yml`) — ein falscher Typ fiel erst
+nach dem Push auf. Das Skript unterstützte einen Einzel-Commit-Aufruf zwar
+schon (`ci/commit-format-pruefen.sh` ohne Argumente), nichts rief ihn aber
+lokal auf. Jetzt ein echter Git-`commit-msg`-Hook (`.githooks/commit-msg`,
+aktiv über `git config core.hooksPath .githooks`, siehe README.md) — anders
+als `ci/git-regeln-hook.sh`, der nur den Claude-Code-Agenten bindet, gilt
+dieser für jeden, der hier committet. Das ist **nicht** dasselbe wie der
+oben verworfene „Commit-Typ passt zum Diff" — geprüft wird weiterhin nur
+das *Format*, nicht ob der Typ zur Änderung passt; diese Entscheidung
+bleibt bei `/freigabe`.
 
 ## Kontext-Ökonomie
 

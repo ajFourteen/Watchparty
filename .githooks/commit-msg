@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Echter Git-Hook (nicht der Claude-Code-Hook aus .claude/settings.json):
+# validiert die Commit-Nachricht, bevor der Commit entsteht. Wirkt fuer
+# jeden, der hier committet -- Mensch oder Agent --, nicht nur waehrend
+# einer Claude-Code-Sitzung (Prozess-Audit 2026-08-21).
+#
+# Aktiv nach einmaligem `git config core.hooksPath .githooks` je Klon
+# (README.md, Abschnitt "Voraussetzungen") -- .git/hooks liegt ausserhalb
+# der Versionskontrolle, deshalb dieser Umweg statt einer Datei dort.
+
+set -euo pipefail
+exec "$(git rev-parse --show-toplevel)/ci/commit-format-pruefen.sh" "$1"
