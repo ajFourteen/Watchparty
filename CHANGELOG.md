@@ -1,3 +1,10 @@
+# [3.18.0](https://github.com/ajFourteen/Watchparty/compare/v3.17.0...v3.18.0) (2026-08-21)
+
+
+### Features
+
+* Spieltags-Report per Mail (13.9, Feature 010 Schnitt 5) ([16b80f8](https://github.com/ajFourteen/Watchparty/commit/16b80f8794dcc4518ee035a5d4ee8b120db90e8a))
+
 # [3.17.0](https://github.com/ajFourteen/Watchparty/compare/v3.16.0...v3.17.0) (2026-08-21)
 
 
