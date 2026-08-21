@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLeagueAccount } from "./useLeagueAccount.js";
 import { LoginScreen } from "./LoginScreen.jsx";
 import { MatchdayScreen } from "./MatchdayScreen.jsx";
 import { ReportScreen } from "./ReportScreen.jsx";
 import { LeaguesScreen } from "./LeaguesScreen.jsx";
 import { LeagueDetailScreen } from "./LeagueDetailScreen.jsx";
+import { LeagueGuide } from "./LeagueGuide.jsx";
+
+const GUIDE_SEEN_KEY = "watchparty.league.guideSeen";
 
 /** Das Tippspiel: Anmeldung, Spieltag, Ligen — unabhängig von den Live-Wetten (CLAUDE.md, "Beide Modi teilen sich die Anwendung und sonst nichts"). */
 export function League() {
@@ -22,6 +25,17 @@ export function League() {
   } = useLeagueAccount();
   const [tab, setTab] = useState("schedule");
   const [openLeagueId, setOpenLeagueId] = useState(null);
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  // Bei der ersten Anmeldung auf diesem Gerät geht die Kurzanleitung von
+  // selbst auf (13.10-b); danach nur noch auf Wunsch, dieselbe Bauweise wie
+  // bei den Live-Wetten (GUIDE_SEEN_KEY in Watchparty.jsx).
+  useEffect(() => {
+    if (status === "authenticated" && !window.localStorage.getItem(GUIDE_SEEN_KEY)) {
+      window.localStorage.setItem(GUIDE_SEEN_KEY, "1");
+      setGuideOpen(true);
+    }
+  }, [status]);
 
   if (status === "loading") {
     return (
@@ -85,6 +99,9 @@ export function League() {
         <span className="bug-inline">
           Punktestand <strong>{account.totalPoints}</strong>
         </span>
+        <button className="button ghost" onClick={() => setGuideOpen(true)} aria-label="Anleitung">
+          ?
+        </button>
         <details className="account-menu">
           <summary className="button ghost" aria-label="Konto-Menü">
             ⋮
@@ -165,6 +182,8 @@ export function League() {
           onLeft={() => setOpenLeagueId(null)}
         />
       )}
+
+      {guideOpen && <LeagueGuide onClose={() => setGuideOpen(false)} />}
     </main>
   );
 }

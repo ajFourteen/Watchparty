@@ -298,6 +298,7 @@ grundsätzlich nur, was hier ausformuliert steht (`teststrategie.md` 9.1).
 | 13.7 | Sonder- und Randfälle (Absage, Verlegung, Korrektur, Feed-Ausfall) | die Regeln selbst sind mit 13.3 seit Stufe 4 abgedeckt (dieselben Tatsachen, keine zweite Nummerierung); was daraus für die Rangliste folgt, erst mit Stufe 6 |
 | 13.8 | Datenschutz und Löschung | Löschen selbst normativ seit Stufe 3 (13.2-h); die volle Datenschutzerklärung bleibt Stufe 8 |
 | 13.9 | Eigene Spieltags-Bilanz (Report) | **normativ seit Feature 006** (2026-08-21), erweitert um **Feature 007**, **Feature 008** und **Feature 009** (2026-08-21), siehe unten |
+| 13.10 | Kurzanleitung | **normativ seit Feature 011** (2026-08-21), siehe unten |
 
 Die Bewussten Festlegungen in `docs/features/005-tippspiel-liga.md` — Wertung
 nach höchster Stufe, Abstands-Eimer, Magic Link, ESPN hinter dem Port,
@@ -536,6 +537,25 @@ ausschließlich Tipper, die den Versand für sich aktiv bestellt haben
 an alle, die getippt haben. Jede Report-Mail trägt einen individuellen
 Ein-Klick-Abmeldelink, der den Versand ohne Anmeldung sofort abbestellt
 (13.8).
+
+### 13.10 Kurzanleitung
+
+Ein angemeldeter Tipper kann sich jederzeit über einen Knopf im
+Kopfbereich der Tippspiel-Oberfläche eine Kurzanleitung anzeigen lassen,
+unabhängig davon, welchen Tab (Spieltag oder Ligen) er gerade offen hat.
+Sie fasst in Prosa zusammen, was an anderer Stelle in diesem Kapitel schon
+gilt: die Anmeldung per Magic Link ohne Kennwort (13.2), dass ein
+Ergebnistipp bis zum Anstoß des jeweiligen Spiels änderbar ist und danach
+nicht mehr (13.4), dass fremde Ergebnistipps erst ab Anstoß sichtbar
+werden (13.4), die Wertung nach der höchsten erreichten Stufe (13.5), das
+Anlegen einer Liga und den Beitritt per Code (13.6), die Gleichstandsregel
+der Rangliste (13.6) und den Mail-Opt-in des Spieltags-Reports (13.9). Sie
+führt keine eigene Regel ein, sondern erklärt nur bereits geltende.
+
+Bei der ersten Anmeldung auf einem Gerät geht die Kurzanleitung von selbst
+auf; bei jeder weiteren Anmeldung auf demselben Gerät bleibt sie zu, bis
+der Tipper sie selbst öffnet — dieselbe Bauweise wie bei den Live-Wetten
+(`Guide.jsx`).
 
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
@@ -783,3 +803,5 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.9-n | Ein angemeldeter Tipper kann den Mailversand des Spieltags-Reports für sich bestellen und wieder abbestellen (Opt-in). | Tippspiel | backend |
 | 13.9-o | Wechselt durch einen Feed-Abgleich oder einen Handeintrag das letzte Spiel eines Spieltags auf FINAL, wird der Report dieses Spieltags an jeden Tipper mit aktivem Opt-in per Mail versendet. | Tippspiel | backend |
 | 13.9-p | Jede Report-Mail enthält einen individuellen Ein-Klick-Abmeldelink, der den Mailversand ohne Anmeldung sofort abbestellt. | Tippspiel | backend |
+| 13.10-a | Ein angemeldeter Tipper kann sich jederzeit über einen Knopf im Kopfbereich eine Kurzanleitung anzeigen lassen, die Anmeldung, Tippen/Abgabeschluss, Wertung, Ligen/Rangliste und den Spieltags-Report erklärt. | Tippspiel | frontend |
+| 13.10-b | Bei der ersten Anmeldung auf einem Gerät geht die Kurzanleitung von selbst auf; bei jeder weiteren bleibt sie zu, bis der Tipper sie selbst öffnet. | Tippspiel | frontend |
