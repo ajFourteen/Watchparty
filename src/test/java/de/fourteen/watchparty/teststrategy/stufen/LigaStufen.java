@@ -10,6 +10,7 @@ import de.fourteen.watchparty.application.league.port.in.LeagueCommands;
 import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 import de.fourteen.watchparty.domain.model.league.Game;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.GameScore;
@@ -58,7 +59,7 @@ public class LigaStufen extends DeutscheStufe<LigaStufen> {
     private List<Standings.Entry> letzteRangliste = List.of();
 
     public LigaStufen einKontoMitNamenExistiertFuer(String name, String email) {
-        accounts.save(Account.of(EmailAddress.of(email), DisplayName.of(name), clock.instant()));
+        accounts.save(Account.of(EmailAddress.of(email), DisplayName.of(name), clock.instant(), false, ReportMailToken.generate()));
         return self();
     }
 

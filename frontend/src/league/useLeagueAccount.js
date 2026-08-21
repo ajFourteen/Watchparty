@@ -12,8 +12,21 @@ import { leagueApi } from "./api.js";
  * "Jetzt anmelden" unangetastet und auch in der URL stehen, damit sich der
  * Link notfalls noch kopieren und anderswo öffnen lässt.
  */
-function tokenFromLocation() {
+function loginTokenFromLocation() {
   const match = window.location.pathname.match(/^\/league\/login\/([^/]+)$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * `/league/report-mail/unsubscribe/TOKEN` kommt aus der Report-Mail
+ * (13.9-p, ADR-041). Anders als der Anmeldelink wirkt dieser Link sofort
+ * beim Laden, ohne extra Klick: Er ist beliebig oft wirksam und ohne
+ * Anmeldung gültig (ADR-041, "sofort wirkt") -- verbraucht ihn ein
+ * Vorschau-Browser eines Mail-Programms vorzeitig, ist das folgenlos, ein
+ * erneutes Bestellen im Konto-Menü macht es rückgängig.
+ */
+function unsubscribeTokenFromLocation() {
+  const match = window.location.pathname.match(/^\/league\/report-mail\/unsubscribe\/([^/]+)$/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
@@ -27,7 +40,8 @@ export function useLeagueAccount() {
   const [status, setStatus] = useState("loading");
   const [account, setAccount] = useState(null);
   const [error, setError] = useState(null);
-  const [pendingToken, setPendingToken] = useState(() => tokenFromLocation());
+  const [pendingToken, setPendingToken] = useState(() => loginTokenFromLocation());
+  const [unsubscribeToken] = useState(() => unsubscribeTokenFromLocation());
 
   const refresh = useCallback(async () => {
     try {
@@ -42,12 +56,19 @@ export function useLeagueAccount() {
   }, []);
 
   useEffect(() => {
+    if (unsubscribeToken) {
+      leagueApi.unsubscribeReportMail(unsubscribeToken).finally(() => {
+        window.history.replaceState(null, "", "/league");
+        setStatus("unsubscribed");
+      });
+      return;
+    }
     if (pendingToken) {
       setStatus("pendingLogin");
       return;
     }
     refresh();
-  }, [pendingToken, refresh]);
+  }, [pendingToken, unsubscribeToken, refresh]);
 
   const confirmLogin = useCallback(async () => {
     if (!pendingToken) return;
@@ -63,6 +84,10 @@ export function useLeagueAccount() {
       setError("Der Anmeldelink ist ungültig oder schon verbraucht.");
     }
   }, [pendingToken, refresh]);
+
+  const continueAfterUnsubscribe = useCallback(async () => {
+    await refresh();
+  }, [refresh]);
 
   const requestLink = useCallback(async (email, displayName) => {
     setError(null);
@@ -81,5 +106,26 @@ export function useLeagueAccount() {
     setStatus("anonymous");
   }, []);
 
-  return { status, account, error, requestLink, logout, deleteAccount, confirmLogin };
+  const optInReportMail = useCallback(async () => {
+    await leagueApi.optInReportMail();
+    setAccount((current) => (current ? { ...current, reportMailOptIn: true } : current));
+  }, []);
+
+  const optOutReportMail = useCallback(async () => {
+    await leagueApi.optOutReportMail();
+    setAccount((current) => (current ? { ...current, reportMailOptIn: false } : current));
+  }, []);
+
+  return {
+    status,
+    account,
+    error,
+    requestLink,
+    logout,
+    deleteAccount,
+    confirmLogin,
+    continueAfterUnsubscribe,
+    optInReportMail,
+    optOutReportMail,
+  };
 }

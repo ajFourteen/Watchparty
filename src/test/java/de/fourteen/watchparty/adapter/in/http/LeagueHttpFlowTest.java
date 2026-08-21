@@ -171,6 +171,37 @@ class LeagueHttpFlowTest {
     }
 
     @Test
+    void mailversandBestellenUndUeberDenAbmeldelinkOhneAnmeldungWiederAbbestellen() {
+        String cookie = redeemAndGetCookie("dana@example.org", "Dana");
+
+        ResponseEntity<Void> optedIn = rest.postForEntity(baseUrl() + "/api/league/report-mail/opt-in",
+                authenticated(cookie), Void.class);
+        assertThat(optedIn.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ResponseEntity<Map> me = rest.exchange(baseUrl() + "/api/league/me", HttpMethod.GET, authenticated(cookie), Map.class);
+        assertThat(me.getBody()).containsEntry("reportMailOptIn", true);
+
+        String token = jdbc.queryForObject(
+                "SELECT report_mail_token FROM account WHERE email = :email",
+                new MapSqlParameterSource("email", "dana@example.org"), String.class);
+
+        ResponseEntity<Void> unsubscribed = rest.postForEntity(
+                baseUrl() + "/api/league/report-mail/unsubscribe/" + token, null, Void.class);
+        assertThat(unsubscribed.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ResponseEntity<Map> meAfter = rest.exchange(baseUrl() + "/api/league/me", HttpMethod.GET, authenticated(cookie), Map.class);
+        assertThat(meAfter.getBody()).containsEntry("reportMailOptIn", false);
+    }
+
+    @Test
+    void einUnbekannterAbmeldelinkTokenQuittiertDenselbenErfolg() {
+        ResponseEntity<Void> response = rest.postForEntity(
+                baseUrl() + "/api/league/report-mail/unsubscribe/unbekannter-token", null, Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
     void einVerbrauchterAnmeldelinkMeldetNiemandenAnUeberDieLeitung() {
         rest.postForEntity(baseUrl() + "/api/league/login", Map.of("email", "cem@example.org", "displayName", "Cem"), Void.class);
         String token = loginLinkTokenFor("cem@example.org");

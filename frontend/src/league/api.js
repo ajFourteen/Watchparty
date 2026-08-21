@@ -38,6 +38,10 @@ export const leagueApi = {
   redeem: (token) => request(`/login/${encodeURIComponent(token)}`, { method: "POST" }),
   logout: () => request("/logout", { method: "POST" }),
   deleteAccount: () => request("/account", { method: "DELETE" }),
+  optInReportMail: () => request("/report-mail/opt-in", { method: "POST" }),
+  optOutReportMail: () => request("/report-mail/opt-out", { method: "POST" }),
+  unsubscribeReportMail: (token) =>
+    request(`/report-mail/unsubscribe/${encodeURIComponent(token)}`, { method: "POST" }),
 
   schedule: (year, week) => request(`/schedule/${year}/${week}`),
   submitPrediction: (gameId, home, away) =>

@@ -13,6 +13,7 @@ import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
 import de.fourteen.watchparty.domain.model.league.LoginLink;
 import de.fourteen.watchparty.domain.model.league.LoginLinkToken;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -83,7 +84,7 @@ public class LoginService implements LoginCommands {
         loginLinks.save(link);
 
         Account account = accounts.findByEmail(link.getEmail())
-                .orElseGet(() -> Account.of(link.getEmail(), link.getDisplayName(), now));
+                .orElseGet(() -> Account.of(link.getEmail(), link.getDisplayName(), now, false, ReportMailToken.generate()));
         accounts.save(account);
 
         AccountSession session = AccountSession.start(account.getEmail(), now, SESSION_VALIDITY);

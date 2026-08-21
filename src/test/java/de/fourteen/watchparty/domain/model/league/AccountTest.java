@@ -18,7 +18,7 @@ class AccountTest {
         EmailAddress email = EmailAddress.of("anna@example.org");
         DisplayName name = DisplayName.of("Anna");
 
-        Account account = Account.of(email, name, NOW);
+        Account account = Account.of(email, name, NOW, false, ReportMailToken.generate());
 
         assertThat(account.getEmail()).isEqualTo(email);
         assertThat(account.getDisplayName()).isEqualTo(name);

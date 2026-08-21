@@ -49,7 +49,7 @@ class LoginController {
     record LoginRequest(String email, String displayName) {
     }
 
-    record AccountResponse(String email, String displayName) {
+    record AccountResponse(String email, String displayName, boolean reportMailOptIn) {
     }
 
     @PostMapping("/api/league/login")
@@ -80,7 +80,8 @@ class LoginController {
     @GetMapping("/api/league/me")
     ResponseEntity<AccountResponse> me(@AuthenticatedAccount EmailAddress account) {
         Account found = accounts.findByEmail(account).orElseThrow();
-        return ResponseEntity.ok(new AccountResponse(found.getEmail().value(), found.getDisplayName().value()));
+        return ResponseEntity.ok(new AccountResponse(found.getEmail().value(), found.getDisplayName().value(),
+                found.isReportMailOptIn()));
     }
 
     @DeleteMapping("/api/league/account")

@@ -4,6 +4,7 @@ import de.fourteen.watchparty.adapter.out.db.support.PostgresAdapterSupport;
 import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 import de.fourteen.watchparty.teststrategy.AdapterTest;
 
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,7 @@ class AccountRepositoryJdbcTest extends PostgresAdapterSupport {
 
     @Test
     void gespeichertesKontoIstUeberDieEmailWiederAuffindbar() {
-        Account account = Account.of(EmailAddress.of("anna@example.org"), DisplayName.of("Anna"), NOW);
+        Account account = Account.of(EmailAddress.of("anna@example.org"), DisplayName.of("Anna"), NOW, false, ReportMailToken.generate());
 
         repository.save(account);
 
@@ -46,8 +47,8 @@ class AccountRepositoryJdbcTest extends PostgresAdapterSupport {
 
     @Test
     void speichernMitDerselbenEmailAktualisiertStattZuDuplizieren() {
-        repository.save(Account.of(EmailAddress.of("anna@example.org"), DisplayName.of("Anna"), NOW));
-        repository.save(Account.of(EmailAddress.of("anna@example.org"), DisplayName.of("Anna B"), NOW));
+        repository.save(Account.of(EmailAddress.of("anna@example.org"), DisplayName.of("Anna"), NOW, false, ReportMailToken.generate()));
+        repository.save(Account.of(EmailAddress.of("anna@example.org"), DisplayName.of("Anna B"), NOW, false, ReportMailToken.generate()));
 
         Optional<Account> gefunden = repository.findByEmail(EmailAddress.of("anna@example.org"));
         assertThat(gefunden).isPresent();
@@ -57,7 +58,7 @@ class AccountRepositoryJdbcTest extends PostgresAdapterSupport {
     @Test
     void geloeschtesKontoIstDanachNichtMehrAuffindbar() {
         EmailAddress email = EmailAddress.of("anna@example.org");
-        repository.save(Account.of(email, DisplayName.of("Anna"), NOW));
+        repository.save(Account.of(email, DisplayName.of("Anna"), NOW, false, ReportMailToken.generate()));
 
         repository.delete(email);
 

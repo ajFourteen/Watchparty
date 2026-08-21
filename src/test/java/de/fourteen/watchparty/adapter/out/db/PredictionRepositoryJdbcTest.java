@@ -4,6 +4,7 @@ import de.fourteen.watchparty.adapter.out.db.support.PostgresAdapterSupport;
 import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 import de.fourteen.watchparty.domain.model.league.Game;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.GameScore;
@@ -43,7 +44,7 @@ class PredictionRepositoryJdbcTest extends PostgresAdapterSupport {
     private final PredictionRepositoryJdbc repository = new PredictionRepositoryJdbc(JDBC);
 
     private void legeKontoUndSpielAn() {
-        accounts.save(Account.of(ANNA, DisplayName.of("Anna"), NOW));
+        accounts.save(Account.of(ANNA, DisplayName.of("Anna"), NOW, false, ReportMailToken.generate()));
         games.save(Game.of(GAME_ID, MATCHDAY, HOME, AWAY, NOW.plusSeconds(3600), GameStatus.SCHEDULED, null, false));
     }
 

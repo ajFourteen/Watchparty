@@ -20,6 +20,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * versteht. Ungated, anders als die Ligakommandos selbst: Ohne Datenbank
  * bleibt die Liga zwar funktionslos, aber die Seite soll trotzdem laden,
  * nicht mit einem rohen 404 enden (Kriterium 37 sinngemaess).
+ * {@code /league/report-mail/unsubscribe/TOKEN} (13.9-p, ADR-041): derselbe
+ * Grund fuer den Abmeldelink aus der Report-Mail.
  *
  * {@code /impressum} und {@code /datenschutz} (Stufe 8, Feature 005):
  * gelten fuer beide Spielmodi gleichermassen, deshalb ausserhalb von
@@ -34,6 +36,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addViewController("/join/{code}").setViewName("forward:/index.html");
         registry.addViewController("/league").setViewName("forward:/index.html");
         registry.addViewController("/league/login/{token}").setViewName("forward:/index.html");
+        registry.addViewController("/league/report-mail/unsubscribe/{token}").setViewName("forward:/index.html");
         registry.addViewController("/impressum").setViewName("forward:/index.html");
         registry.addViewController("/datenschutz").setViewName("forward:/index.html");
     }

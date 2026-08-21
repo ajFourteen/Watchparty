@@ -2,7 +2,9 @@ package de.fourteen.watchparty.application.league.port.out;
 
 import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -23,4 +25,10 @@ public interface AccountRepository {
 
     /** Kriterium 7: Adresse und Anzeigename sind danach fort. */
     void delete(EmailAddress email);
+
+    /** Alle Konten mit aktivem Mailversand-Opt-in (13.9-n) -- die Empfaenger eines Spieltags-Reports. */
+    List<Account> findOptedIntoReportMail();
+
+    /** Fuer den Abmeldelink (13.9-p): der Token steht im Link, nicht die E-Mail-Adresse. */
+    Optional<Account> findByReportMailToken(ReportMailToken token);
 }

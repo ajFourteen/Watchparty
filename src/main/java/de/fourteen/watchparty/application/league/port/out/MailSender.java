@@ -1,5 +1,7 @@
 package de.fourteen.watchparty.application.league.port.out;
 
+import de.fourteen.watchparty.application.league.view.ReportView;
+import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.LoginLink;
 
 /**
@@ -16,4 +18,7 @@ import de.fourteen.watchparty.domain.model.league.LoginLink;
 public interface MailSender {
 
     void sendLoginLink(LoginLink link);
+
+    /** Der Spieltags-Report per Mail (13.9-o, ADR-041) -- derselbe Inhalt wie die eigene Bilanz zum Abruf (13.9-a). */
+    void sendMatchdayReport(Account account, ReportView.MatchdayReportView report);
 }

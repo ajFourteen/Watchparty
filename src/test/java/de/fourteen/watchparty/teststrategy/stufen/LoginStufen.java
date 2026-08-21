@@ -13,6 +13,7 @@ import de.fourteen.watchparty.domain.model.league.AccountSession;
 import de.fourteen.watchparty.domain.model.league.ClientIp;
 import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 import de.fourteen.watchparty.domain.model.league.LoginLink;
 
 import java.time.Duration;
@@ -49,7 +50,7 @@ public class LoginStufen extends DeutscheStufe<LoginStufen> {
     }
 
     public LoginStufen einKontoMitNamenExistiertFuer(String name, String email) {
-        accounts.save(Account.of(EmailAddress.of(email), DisplayName.of(name), clock.instant()));
+        accounts.save(Account.of(EmailAddress.of(email), DisplayName.of(name), clock.instant(), false, ReportMailToken.generate()));
         return self();
     }
 

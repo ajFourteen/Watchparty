@@ -10,6 +10,7 @@ import de.fourteen.watchparty.application.league.view.PredictionView;
 import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 import de.fourteen.watchparty.domain.model.league.Game;
 import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.GameScore;
@@ -73,7 +74,7 @@ public class TippenStufen extends DeutscheStufe<TippenStufen> {
     }
 
     public TippenStufen einKontoMitNamenExistiertFuer(String name, String email) {
-        accounts.save(Account.of(EmailAddress.of(email), DisplayName.of(name), clock.instant()));
+        accounts.save(Account.of(EmailAddress.of(email), DisplayName.of(name), clock.instant(), false, ReportMailToken.generate()));
         return self();
     }
 

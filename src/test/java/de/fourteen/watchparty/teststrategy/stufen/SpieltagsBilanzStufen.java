@@ -16,6 +16,7 @@ import de.fourteen.watchparty.domain.model.league.GameId;
 import de.fourteen.watchparty.domain.model.league.GameScore;
 import de.fourteen.watchparty.domain.model.league.GameStatus;
 import de.fourteen.watchparty.domain.model.league.Matchday;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 import de.fourteen.watchparty.domain.model.league.SeasonId;
 import de.fourteen.watchparty.domain.model.league.Team;
 import de.fourteen.watchparty.domain.model.league.TeamId;
@@ -62,7 +63,7 @@ public class SpieltagsBilanzStufen extends DeutscheStufe<SpieltagsBilanzStufen> 
     }
 
     public SpieltagsBilanzStufen einKontoMitNamenExistiertFuer(String name, String email) {
-        accounts.save(Account.of(EmailAddress.of(email), DisplayName.of(name), clock.instant()));
+        accounts.save(Account.of(EmailAddress.of(email), DisplayName.of(name), clock.instant(), false, ReportMailToken.generate()));
         return self();
     }
 

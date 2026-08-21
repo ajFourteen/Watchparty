@@ -1,6 +1,9 @@
 package de.fourteen.watchparty.adapter.out.mail;
 
 import de.fourteen.watchparty.application.league.port.out.MailSender;
+import de.fourteen.watchparty.application.league.view.PredictionView;
+import de.fourteen.watchparty.application.league.view.ReportView;
+import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.LoginLink;
 
 import org.springframework.mail.SimpleMailMessage;
@@ -58,6 +61,27 @@ public class SmtpMailSender implements MailSender {
 
                 Hast du das nicht angefordert, kannst du diese Mail einfach ignorieren.
                 """.formatted(LoginLinkUrl.of(baseUrl, link)));
+        delegate.send(message);
+    }
+
+    @Override
+    public void sendMatchdayReport(Account account, ReportView.MatchdayReportView report) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(from);
+        message.setTo(account.getEmail().value());
+        message.setSubject("Deine Bilanz zu Spieltag " + report.week());
+        message.setText("""
+                Hallo %s,
+
+                dein Spieltag %d ist ausgewertet -- %d Punkte insgesamt:
+
+                %s
+
+                Diese Mail bekommst du, weil du den Spieltags-Report bestellt hast.
+                Abbestellen kannst du hier, ohne dich anzumelden:
+                %s
+                """.formatted(account.getDisplayName().value(), report.week(), report.totalPoints(),
+                ReportMailBody.of(report), ReportMailUnsubscribeUrl.of(baseUrl, account)));
         delegate.send(message);
     }
 }

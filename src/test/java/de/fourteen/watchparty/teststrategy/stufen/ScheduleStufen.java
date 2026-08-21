@@ -31,7 +31,8 @@ public class ScheduleStufen extends DeutscheStufe<ScheduleStufen> {
 
     private final FakeGameRepository games = new FakeGameRepository();
     private final FakeScheduleFeed feed = new FakeScheduleFeed();
-    private final ScheduleCommands schedule = new ScheduleSyncService(feed, games);
+    /** Diese Stufe prueft den Spielplan-Abgleich selbst, nicht den Mailversand (siehe ReportMailStufen dafuer). */
+    private final ScheduleCommands schedule = new ScheduleSyncService(feed, games, matchday -> { });
 
     public ScheduleStufen derFeedMeldetFuerEinGeplantesSpiel(String gameId, Matchday matchday) {
         feed.antworteMit(matchday, Game.of(GameId.of(gameId), matchday, HOME, AWAY, KICKOFF, GameStatus.SCHEDULED, null, false));

@@ -1708,3 +1708,58 @@ Vorgang.
 - `docs/features/004-mehrere-watchpartys.md` wird an den Stellen
   nachgezogen, die `JOIN ohne Code` als Erzeugungsweg nennen (Kriterium 1,
   Szenarien, „Umgesetzt in").
+
+## ADR-041: Spieltags-Report per Mail — Auslöser im Domain-Modell, Opt-in, Ein-Klick-Abmeldung
+
+**Status:** Akzeptiert
+
+**Kontext:** `docs/offene-entscheidungen.md` hielt seit dem 2026-08-21 drei
+offene Fragen zum fünften und letzten Schnitt der Idee „Spieltags-Report"
+(`docs/schnitte/spieltags-report.md`, Schnitt 5): den Auslöser des
+Versands, den Empfängerkreis und die Abmeldung. Beim Auslöser standen drei
+Varianten zur Wahl: am täglichen GitHub-Actions-Relay hängen (der seit dem
+ADR-037-Nachtrag den Feed nachführt, weil ESPN den Zugriff aus dem
+Fly.io-IP-Bereich blockiert), ein eigener zweiter Auslöser unabhängig vom
+Relay, oder der Übergang des letzten Spiels eines Spieltags auf FINAL. Die
+dritte Variante trägt sowohl den Feed-Relay als auch den Handeintrag
+(13.3) als Ursache, ohne dass der Report-Versand vom Übertragungsweg
+abhängt — entscheidend ist der fachliche Zustand des Spieltags, nicht wie
+er entstanden ist.
+
+**Entscheidung:**
+1. **Auslöser:** Der Versand hängt am Übergang des letzten Spiels eines
+   Spieltags auf FINAL, erkannt im Domain-/Anwendungsring (dort, wo
+   `mergeFromFeed`, `ingestRelayedFeed` und `applyManualResult` den
+   Spielstatus setzen), nicht datenbankseitig über einen Trigger oder eine
+   Polling-Abfrage. Damit bleibt die Regel „was einen Versand auslöst"
+   fachlicher Code statt Infrastruktur, unabhängig davon, ob der auslösende
+   Abgleich vom Relay oder vom Handeintrag kommt.
+2. **Empfängerkreis:** Ausschließlich Opt-in. Nur ein Tipper, der den
+   Mailversand für sich aktiv bestellt hat, bekommt ihn — kein
+   automatischer Versand an alle Liga-Mitglieder oder an alle, die für den
+   Spieltag getippt haben.
+3. **Abmeldung:** Jede Report-Mail trägt einen individuellen Ein-Klick-Link,
+   der den Versand ohne Anmeldung sofort abbestellt (Anforderung 13.8 —
+   ohne Abmeldung wäre der Versand ungefragte Post an eine
+   personenbezogene Adresse).
+
+**Konsequenzen:**
+- Ob ein Tipper den Versand bestellt hat, ist neuer Zustand, der noch
+  keinen Platz im Domänenmodell hat (`Account` oder eine eigene Entity) —
+  die Modellierung bleibt den Skills `schneiden`/`feature` für Schnitt 5
+  vorbehalten, diese Entscheidung legt nur Auslöser, Kreis und Abmeldung
+  fest.
+- Den Übergang „letztes Spiel eines Spieltags wird FINAL" gibt es heute
+  nicht als eigenen Zustand — `Game`/`GameStatus` kennen nur den einzelnen
+  Spielstatus, keinen spieltagsweiten. Das Erkennen dieses Übergangs ist
+  neuer Code in oder neben `ScheduleSyncService`.
+- `MailSender` (ADR-036) bekommt einen zweiten Verwendungszweck neben dem
+  Anmeldelink; der Abmeldelink braucht einen eigenen Token-Typ und Adapter
+  nach dem Vorbild von `LoginLinkUrl`.
+- Schnitt 5 in `docs/schnitte/spieltags-report.md` wechselt von `blockiert`
+  auf `offen` — Kritikalität und Behelf sind damit noch nicht festgelegt,
+  das bleibt Sache von `schneiden`.
+- `docs/anforderungen.md` 13.9 und Anhang A (13.9-n bis 13.9-p) tragen die
+  Entscheidung als geltenden Text nach; `gradle abdeckung` läuft für diese
+  drei Zeilen absichtlich rot, bis Schnitt 5 gebaut ist — entschieden, aber
+  noch nicht umgesetzt.

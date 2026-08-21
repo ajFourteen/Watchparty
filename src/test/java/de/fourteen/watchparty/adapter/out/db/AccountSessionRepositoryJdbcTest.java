@@ -5,6 +5,7 @@ import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.AccountSession;
 import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 import de.fourteen.watchparty.domain.model.league.SessionToken;
 import de.fourteen.watchparty.teststrategy.AdapterTest;
 
@@ -32,7 +33,7 @@ class AccountSessionRepositoryJdbcTest extends PostgresAdapterSupport {
 
     private static EmailAddress annaLegtEinKontoAn(AccountRepositoryJdbc accounts) {
         EmailAddress email = EmailAddress.of("anna@example.org");
-        accounts.save(Account.of(email, DisplayName.of("Anna"), NOW));
+        accounts.save(Account.of(email, DisplayName.of("Anna"), NOW, false, ReportMailToken.generate()));
         return email;
     }
 

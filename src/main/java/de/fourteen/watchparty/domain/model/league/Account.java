@@ -14,10 +14,12 @@ import java.time.Instant;
  * eindeutig (Kriterium 1). Trifft die Zusage, so wenig personenbezogene
  * Daten wie moeglich zu halten (Rueckfrage vom 2026-08-17).
  *
- * Traegt in dieser Stufe nur Datenhaltung. Der Anmeldefluss (Magic Link,
- * ADR-036) und das Loeschen (Kriterium 7) kommen mit ihren eigenen
- * Kommandos und benannten Uebergaengen erst in Stufe 3 — bis dahin ist ein
- * {@code Account} unveraenderlich.
+ * Traegt neben der reinen Datenhaltung zwei benannte Uebergaenge fuer den
+ * Mailversand des Spieltags-Reports (13.9-n, ADR-041): {@link
+ * #optIntoReportMail} und {@link #optOutOfReportMail}. Der {@link
+ * #reportMailToken} entsteht mit dem Konto und bleibt ueber seine gesamte
+ * Lebensdauer stabil -- ein Abmeldelink aus einer alten Mail muss auch nach
+ * spaeterem erneuten Bestellen noch wirken.
  */
 @AggregateRoot
 public class Account {
@@ -26,16 +28,30 @@ public class Account {
     private final EmailAddress email;
     private final DisplayName displayName;
     private final Instant createdAt;
+    private boolean reportMailOptIn;
+    private final ReportMailToken reportMailToken;
 
-    private Account(EmailAddress email, DisplayName displayName, Instant createdAt) {
+    private Account(EmailAddress email, DisplayName displayName, Instant createdAt, boolean reportMailOptIn,
+            ReportMailToken reportMailToken) {
         this.email = email;
         this.displayName = displayName;
         this.createdAt = createdAt;
+        this.reportMailOptIn = reportMailOptIn;
+        this.reportMailToken = reportMailToken;
     }
 
     /** Legt ein neues Konto an oder baut ein bestehendes aus seinen gespeicherten Werten wieder auf. */
-    public static Account of(EmailAddress email, DisplayName displayName, Instant createdAt) {
-        return new Account(email, displayName, createdAt);
+    public static Account of(EmailAddress email, DisplayName displayName, Instant createdAt, boolean reportMailOptIn,
+            ReportMailToken reportMailToken) {
+        return new Account(email, displayName, createdAt, reportMailOptIn, reportMailToken);
+    }
+
+    public void optIntoReportMail() {
+        this.reportMailOptIn = true;
+    }
+
+    public void optOutOfReportMail() {
+        this.reportMailOptIn = false;
     }
 
     public EmailAddress getEmail() {
@@ -48,5 +64,13 @@ public class Account {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isReportMailOptIn() {
+        return reportMailOptIn;
+    }
+
+    public ReportMailToken getReportMailToken() {
+        return reportMailToken;
     }
 }

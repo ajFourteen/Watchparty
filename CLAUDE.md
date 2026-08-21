@@ -265,7 +265,15 @@ src/main/java/de/fourteen/watchparty/
     Account.java            Aggregate Root: das Konto eines Tippers.
                            Identität ist die E-Mail-Adresse selbst — kein
                            separates AccountId (so wenig personenbezogene
-                           Daten wie möglich)
+                           Daten wie möglich). Trägt seit ADR-041 zusätzlich
+                           den Mailversand-Opt-in des Spieltags-Reports
+                           (optIntoReportMail/optOutOfReportMail) und einen
+                           stabilen ReportMailToken für den Abmeldelink
+    ReportMailToken.java     Value Object: dieselbe Bauweise wie
+                           LoginLinkToken, aber dauerhaft gültig statt
+                           einmal verwendbar (13.9-p, ADR-041) — ein
+                           Abmeldelink in einer alten Mail muss auch nach
+                           erneutem Bestellen noch wirken
     EmailAddress.java        Value Object: Format, Normalisierung
                            (Kleinschreibung)
     DisplayName.java         Value Object — 1..20 Zeichen wie PlayerName,
@@ -360,7 +368,15 @@ src/main/java/de/fourteen/watchparty/
                            ein ausgefallener Spieltag hält die übrigen
                            nicht auf. ingestRelayedFeed nutzt dieselbe
                            Merge-Logik für eine extern abgerufene Antwort
-                           (ADR-037-Nachtrag, GitHub-Actions-Relay)
+                           (ADR-037-Nachtrag, GitHub-Actions-Relay). Meldet
+                           seit ADR-041 zusätzlich den Übergang eines
+                           Spieltags in den vollständig ausgewerteten
+                           Zustand an MatchdayCompletionListener (13.9-o)
+    ReportMailService.java     Setzt ReportMailCommands um (Opt-in/Opt-out/
+                           Abmeldung) und hängt als MatchdayCompletionListener
+                           an ScheduleSyncService — versendet den
+                           Spieltags-Report an jedes Konto mit aktivem
+                           Opt-in (13.9-n/o/p, ADR-041, Feature 010)
     port/in/ScheduleCommands   syncMatchday/syncSeason/ingestRelayedFeed/
                            setResultManually
     port/out/GameRepository, ScheduleFeed   Ausgangs-Ports des Spielplans;

@@ -320,6 +320,15 @@ body {
   padding-top: 0.6rem;
 }
 
+.account-menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.2rem;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
 /* --- Punktestand der anderen (ausklappbar) ------------------------------ */
 
 /*

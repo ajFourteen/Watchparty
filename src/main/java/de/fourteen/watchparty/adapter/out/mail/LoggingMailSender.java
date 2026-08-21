@@ -1,6 +1,8 @@
 package de.fourteen.watchparty.adapter.out.mail;
 
 import de.fourteen.watchparty.application.league.port.out.MailSender;
+import de.fourteen.watchparty.application.league.view.ReportView;
+import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.LoginLink;
 
 import org.slf4j.Logger;
@@ -30,5 +32,12 @@ public class LoggingMailSender implements MailSender {
     public void sendLoginLink(LoginLink link) {
         log.info("Anmeldelink fuer {} (verfaellt {}): {}", link.getEmail(), link.getExpiresAt(),
                 LoginLinkUrl.of(baseUrl, link));
+    }
+
+    @Override
+    public void sendMatchdayReport(Account account, ReportView.MatchdayReportView report) {
+        log.info("Spieltags-Report fuer {} (Spieltag {}, {} Punkte), Abmeldelink: {}\n{}",
+                account.getEmail(), report.week(), report.totalPoints(),
+                ReportMailUnsubscribeUrl.of(baseUrl, account), ReportMailBody.of(report));
     }
 }

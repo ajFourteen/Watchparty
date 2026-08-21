@@ -4,6 +4,7 @@ import de.fourteen.watchparty.adapter.out.feed.EspnScheduleFeed;
 import de.fourteen.watchparty.application.league.ScheduleSyncService;
 import de.fourteen.watchparty.application.league.port.in.ScheduleCommands;
 import de.fourteen.watchparty.application.league.port.out.GameRepository;
+import de.fourteen.watchparty.application.league.port.out.MatchdayCompletionListener;
 import de.fourteen.watchparty.application.league.port.out.ScheduleFeed;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -27,9 +28,11 @@ import org.springframework.context.annotation.Configuration;
  * Fehlt die Saison, gibt es nichts abzugleichen — kein impliziter Standard,
  * der irgendwann die falsche Saison zieht. Braucht zusaetzlich {@link
  * GameRepository} aus {@link LeagueDatabaseConfig} (also indirekt
- * {@code watchparty.league.db.url}); fehlt die Datenbank trotz gesetzter
- * Saison, scheitert der Start mit einer eindeutigen Fehlermeldung statt
- * eines still falschen Verhaltens.
+ * {@code watchparty.league.db.url}) und seit ADR-041 {@link
+ * MatchdayCompletionListener} aus {@link LeagueReportMailConfig} (dieselbe
+ * indirekte Abhaengigkeit); fehlt die Datenbank trotz gesetzter Saison,
+ * scheitert der Start mit einer eindeutigen Fehlermeldung statt eines still
+ * falschen Verhaltens.
  */
 @Configuration
 @ConditionalOnProperty(prefix = "watchparty.league.schedule", name = "season-year")
@@ -41,7 +44,8 @@ public class LeagueScheduleConfig {
     }
 
     @Bean
-    public ScheduleCommands scheduleCommands(ScheduleFeed scheduleFeed, GameRepository gameRepository) {
-        return new ScheduleSyncService(scheduleFeed, gameRepository);
+    public ScheduleCommands scheduleCommands(ScheduleFeed scheduleFeed, GameRepository gameRepository,
+            MatchdayCompletionListener matchdayCompletionListener) {
+        return new ScheduleSyncService(scheduleFeed, gameRepository, matchdayCompletionListener);
     }
 }

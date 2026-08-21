@@ -523,8 +523,19 @@ liest. Kein Höhepunkt legt einen einzelnen fremden Ergebnistipp offen —
 Volltreffer zeigt nur, dass ein Mitglied getroffen hat, nicht was es
 getippt hat.
 
-Der Mailversand des Reports ist der fünfte und letzte, noch blockierte
-Schnitt derselben Idee (`docs/offene-entscheidungen.md`).
+Der Mailversand des Reports ist der fünfte und letzte Schnitt derselben
+Idee — entschieden am 2026-08-21 (ADR-041), aber noch nicht umgesetzt
+(Schnitt 5 in `docs/schnitte/spieltags-report.md` steht offen). Ausgelöst
+wird der Versand nicht datenbankseitig, sondern im Domain-/Anwendungsring:
+Wechselt durch einen Feed-Abgleich oder einen Handeintrag (13.3) das letzte
+Spiel eines Spieltags auf FINAL, gilt der Spieltag als abgeschlossen und
+der Versand für diesen Spieltag wird angestoßen — unabhängig davon, ob der
+Übergang vom Relay oder vom Handeintrag kommt. Empfänger sind
+ausschließlich Tipper, die den Versand für sich aktiv bestellt haben
+(Opt-in); es gibt keinen automatischen Versand an alle Liga-Mitglieder oder
+an alle, die getippt haben. Jede Report-Mail trägt einen individuellen
+Ein-Klick-Abmeldelink, der den Versand ohne Anmeldung sofort abbestellt
+(13.8).
 
 ## Anhang A: Atomare Regeln und Prüfbarkeit
 
@@ -769,3 +780,6 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.9-k | Der Report zeigt den/die Spieltagssieger der eingeblendeten Liga (Rang 1 der Spieltagsrangliste). | Tippspiel | frontend |
 | 13.9-l | Der Report zeigt die Mitglieder der eingeblendeten Liga mit mindestens einem exakt getroffenen Ergebnis am Spieltag (Volltreffer). | Tippspiel | frontend |
 | 13.9-m | Der Report zeigt das Spiel oder die Spiele mit dem größten Punktabstand im Endergebnis als größte Überraschung des Spieltags. | Tippspiel | frontend |
+| 13.9-n | Ein angemeldeter Tipper kann den Mailversand des Spieltags-Reports für sich bestellen und wieder abbestellen (Opt-in). | Tippspiel | backend |
+| 13.9-o | Wechselt durch einen Feed-Abgleich oder einen Handeintrag das letzte Spiel eines Spieltags auf FINAL, wird der Report dieses Spieltags an jeden Tipper mit aktivem Opt-in per Mail versendet. | Tippspiel | backend |
+| 13.9-p | Jede Report-Mail enthält einen individuellen Ein-Klick-Abmeldelink, der den Mailversand ohne Anmeldung sofort abbestellt. | Tippspiel | backend |

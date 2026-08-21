@@ -4,6 +4,7 @@ import de.fourteen.watchparty.adapter.out.db.support.PostgresAdapterSupport;
 import de.fourteen.watchparty.domain.model.league.Account;
 import de.fourteen.watchparty.domain.model.league.DisplayName;
 import de.fourteen.watchparty.domain.model.league.EmailAddress;
+import de.fourteen.watchparty.domain.model.league.ReportMailToken;
 import de.fourteen.watchparty.domain.model.league.League;
 import de.fourteen.watchparty.domain.model.league.LeagueCode;
 import de.fourteen.watchparty.domain.model.league.LeagueId;
@@ -35,8 +36,8 @@ class LeagueRepositoryJdbcTest extends PostgresAdapterSupport {
     private final LeagueRepositoryJdbc repository = new LeagueRepositoryJdbc(JDBC);
 
     private void legeKontenAn() {
-        accounts.save(Account.of(ANNA, DisplayName.of("Anna"), NOW));
-        accounts.save(Account.of(BEN, DisplayName.of("Ben"), NOW));
+        accounts.save(Account.of(ANNA, DisplayName.of("Anna"), NOW, false, ReportMailToken.generate()));
+        accounts.save(Account.of(BEN, DisplayName.of("Ben"), NOW, false, ReportMailToken.generate()));
     }
 
     @Test

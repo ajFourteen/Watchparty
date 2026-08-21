@@ -8,8 +8,18 @@ import { LeagueDetailScreen } from "./LeagueDetailScreen.jsx";
 
 /** Das Tippspiel: Anmeldung, Spieltag, Ligen — unabhängig von den Live-Wetten (CLAUDE.md, "Beide Modi teilen sich die Anwendung und sonst nichts"). */
 export function League() {
-  const { status, account, error, requestLink, logout, deleteAccount, confirmLogin } =
-    useLeagueAccount();
+  const {
+    status,
+    account,
+    error,
+    requestLink,
+    logout,
+    deleteAccount,
+    confirmLogin,
+    continueAfterUnsubscribe,
+    optInReportMail,
+    optOutReportMail,
+  } = useLeagueAccount();
   const [tab, setTab] = useState("schedule");
   const [openLeagueId, setOpenLeagueId] = useState(null);
 
@@ -40,6 +50,24 @@ export function League() {
     );
   }
 
+  if (status === "unsubscribed") {
+    return (
+      <main className="shell shell--league">
+        <div className="league-card">
+          <p className="eyebrow">Tippspiel</p>
+          <h1 className="display">Abgemeldet</h1>
+          <p className="hint">
+            Du bekommst den Spieltags-Report nicht mehr per Mail. Bestellen kannst du ihn
+            jederzeit im Konto-Menü wieder.
+          </p>
+          <button className="button primary wide" onClick={continueAfterUnsubscribe}>
+            Weiter
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (status === "anonymous") {
     return (
       <main className="shell shell--league">
@@ -62,6 +90,14 @@ export function League() {
             ⋮
           </summary>
           <div className="account-menu-panel">
+            <label className="account-menu-toggle">
+              <input
+                type="checkbox"
+                checked={account.reportMailOptIn}
+                onChange={(e) => (e.target.checked ? optInReportMail() : optOutReportMail())}
+              />
+              Spieltags-Report per Mail
+            </label>
             <button className="button ghost wide" onClick={logout}>
               Abmelden
             </button>
