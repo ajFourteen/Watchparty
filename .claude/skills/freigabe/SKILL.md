@@ -1,6 +1,6 @@
 ---
 name: freigabe
-description: Macht vor dem Commit sichtbar, was der gewählte Commit-Typ auslöst — eine Deployment-Entscheidung, keine Beschriftung.
+description: Wenn der Commit-Typ festgelegt wird, vor jedem Commit: macht sichtbar, was feat/fix/perf auslösen — Release und Deploy auf Fly.io — und ob der Typ zur Änderung passt. Eine Deployment-Entscheidung, keine Beschriftung.
 ---
 
 # Freigabe

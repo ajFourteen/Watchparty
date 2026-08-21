@@ -1,6 +1,6 @@
 ---
 name: pruefen
-description: Gestufte lokale Rückkopplung statt Blindflug — compileJava vor test vor archTest vor vollem check, Abbruch beim ersten Rot.
+description: Wenn geprüft werden soll, ob der Stand trägt — vor dem Commit, nach einer größeren Änderung, oder bevor blind der volle Build läuft: gestufte lokale Rückkopplung statt Blindflug — compileJava vor test vor archTest vor vollem check, Abbruch beim ersten Rot.
 ---
 
 # Prüfen

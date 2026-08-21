@@ -1,6 +1,6 @@
 ---
 name: domaenentyp
-description: Checkliste für einen neuen Typ in domain/model — was ArchitectureTest und NullAway bereits erzwingen, und was Urteilssache bleibt.
+description: Wenn ein neuer Typ in domain/model entsteht — Aggregate Root, Entity oder Value Object: Checkliste, was ArchitectureTest und NullAway bereits erzwingen (Stereotyp, Ringe, Nullness) und was Urteilssache bleibt.
 ---
 
 # Domänentyp

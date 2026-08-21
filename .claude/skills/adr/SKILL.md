@@ -1,6 +1,6 @@
 ---
 name: adr
-description: Legt einen neuen Architecture Decision Record mit der nächsten freien Nummer an, in Kontext-Entscheidung-Konsequenzen-Form, und zieht den Rückverweis nach.
+description: Wenn eine technische Entscheidung getroffen ist — Architektur, Stack, Bibliothek, Datenformat: legt den Architecture Decision Record mit der nächsten freien Nummer an, in Kontext-Entscheidung-Konsequenzen-Form, und zieht den Rückverweis nach.
 ---
 
 # ADR

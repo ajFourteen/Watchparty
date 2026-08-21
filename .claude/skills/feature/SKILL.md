@@ -1,6 +1,6 @@
 ---
 name: feature
-description: Führt Teststrategie-Abschnitt 9.1 aus — Feature-Dokument anlegen, Szenarien zuerst als rot laufende JGiven-Stufen, erst danach Produktivcode.
+description: Wenn der Schnitt steht und gebaut werden soll: führt Teststrategie 9.1 aus — Feature-Dokument anlegen, Szenarien zuerst als rot laufende JGiven-Stufen, erst danach Produktivcode. Der Kern ist Rot vor Grün; das prüft sonst nichts nach.
 ---
 
 # Feature

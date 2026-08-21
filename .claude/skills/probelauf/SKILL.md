@@ -1,6 +1,6 @@
 ---
 name: probelauf
-description: Arbeitet den Beobachtungsbogen aus docs/probelauf.md nach einem echten Spielabend ab und ordnet jede Beobachtung ihrem Ziel zu.
+description: Nach einem echten Spielabend: arbeitet den Beobachtungsbogen aus docs/probelauf.md ab und ordnet jede Beobachtung ihrem Ziel zu — offene Entscheidung, Anforderung oder Feature.
 ---
 
 # Probelauf

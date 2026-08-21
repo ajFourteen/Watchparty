@@ -1,6 +1,6 @@
 ---
 name: invarianten-review
-description: Prüft eine Änderung gezielt gegen die sieben harten Invarianten aus CLAUDE.md — die Regeln, die ein generischer Code-Review nicht kennt und die meisten Tests nicht automatisch abfangen.
+description: Wenn eine Änderung Raumzustand, Nachrichten, Sichtbarkeit von Tipps, Punkte oder Nebenläufigkeit berührt, vor dem Commit: prüft sie gezielt gegen die sieben harten Invarianten aus CLAUDE.md — die Regeln, die ein generischer Code-Review nicht kennt und die meisten Tests nicht automatisch abfangen.
 ---
 
 # Invarianten-Review

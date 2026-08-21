@@ -1,6 +1,6 @@
 ---
 name: entscheidung
-description: Zieht die Vier-Dokumente-Kette, wenn eine offene Frage aus offene-entscheidungen.md beantwortet ist — Eintrag streichen, ADR schreiben, Anforderungen nachziehen, Anhang A ergänzen.
+description: Wenn eine bislang offene Frage aus offene-entscheidungen.md beantwortet ist: zieht die Vier-Dokumente-Kette nach — Eintrag streichen, ADR schreiben, Anforderungen nachziehen, Anhang A ergänzen. Ohne diesen Schritt bleibt die Antwort nur im Gespräch.
 ---
 
 # Entscheidung

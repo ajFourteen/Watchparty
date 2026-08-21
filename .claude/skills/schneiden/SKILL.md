@@ -1,6 +1,6 @@
 ---
 name: schneiden
-description: Macht aus einer rohen Idee eine Folge kleiner, vertikaler Feature-Schnitte — je einer benutzbar, je einer mit genau einer Kritikalität. Vorgeschaltet vor dem Skill feature.
+description: Wenn feststeht, dass aus einer Idee ein Feature wird, und sie in umsetzbare Stücke zerfallen muss: macht daraus vertikale Schnitte — je einer dünn durch alle Ringe, je einer für sich benutzbar, je einer mit genau einer Kritikalität. Beantwortet „wie zerlege ich es", nicht „wohin gehört das" (dafür: triage). Läuft vor feature.
 ---
 
 # Schneiden

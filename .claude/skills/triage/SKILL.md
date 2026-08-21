@@ -1,6 +1,6 @@
 ---
 name: triage
-description: Ordnet eine rohe Idee, Beobachtung oder Frage genau einem von vier Orten im Projekt zu — offene Entscheidung, Beobachtungsbogen, ADR oder Feature — und legt sie dort an.
+description: Wenn eine neue Idee, Beobachtung oder Frage auftaucht und noch unklar ist, WAS sie überhaupt ist: ordnet sie genau einem von vier Orten zu — offene Entscheidung, Beobachtungsbogen, ADR oder Feature — und legt sie dort an. Beantwortet „wohin gehört das", nicht „wie zerlege ich es" (dafür: schneiden).
 ---
 
 # Triage
