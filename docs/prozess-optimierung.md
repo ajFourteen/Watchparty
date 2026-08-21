@@ -44,9 +44,16 @@ Arbeit".
 
 Sparsam einsetzen; alles Weitere ist in Gradle besser aufgehoben.
 
-- **SessionStart** — `git status`, letzte Commits und vor allem
-  `offene-entscheidungen.md` einspeisen. Die Regel „dort nichts stillschweigend
-  festlegen" funktioniert nur, wenn der Agent weiß, was drinsteht.
+- ~~**SessionStart**~~ — **umgesetzt am 2026-08-21** als
+  `ci/sitzungsstart.sh`, registriert in `.claude/settings.json`. Speist
+  Zweig, Arbeitsbaum, Stand zum Upstream, die letzten fünf Commits und die
+  Überschriften der offenen Entscheidungen ein, dazu die Zahl der bewusst
+  ausgeschlossenen Punkte. Bewusst nur die Überschriften: Ein Hook, der bei
+  jedem Sitzungsstart siebzig Zeilen einspeist, wird überlesen. Der Grund
+  war eine falsche Reihenfolge — die Regel „nichts stillschweigend
+  festlegen" verlangte bis dahin, dass der Agent die Datei liest, also
+  genau dann nachschlägt, wenn er ohnehin schon ahnt, dass eine Frage offen
+  ist. Wer stillschweigend festlegt, schlägt vorher nicht nach.
 
 Ausdrücklich **kein** Hook, der nach jedem Edit `check` anwirft: Das macht die
 Sitzung unbenutzbar. Dafür ist `/pruefen` da.
@@ -193,6 +200,17 @@ Ein Audit, das nur mit diesem Raster fragt, kann bei unstrukturierter
 Quelle ausschließlich „nicht prüfbar" ausgeben. Deshalb steht die Frage
 jetzt hier: **Muss dieses Dokument so aussehen?** — vor der Frage, ob sich
 sein heutiges Aussehen prüfen lässt.
+
+**Nachtrag 2026-08-21, dritter Teil: die Beschreibungen der Skills.** Ein
+Skill wird nicht dadurch aufgerufen, dass es ihn gibt, sondern dadurch, dass
+seine Beschreibung zur Formulierung des Nutzers passt. Sieben der zehn
+beschrieben bis dahin, *was* sie tun, nicht *wann* sie dran sind — bei
+`pruefen`, `freigabe` und `invarianten-review` fiel das am stärksten ins
+Gewicht, weil ihr Anlass („vor dem Commit") gar nicht vorkam. Alle zehn
+beginnen jetzt mit dem Auslöser. Zusätzlich stand seit dem Bau von
+`schneiden` eine Zweideutigkeit im Weg: `triage` und `schneiden` begannen
+beide mit „eine rohe Idee". Beide nennen die Abgrenzung jetzt ausdrücklich —
+`triage` beantwortet „wohin gehört das", `schneiden` „wie zerlege ich es".
 
 ## Kontext-Ökonomie
 

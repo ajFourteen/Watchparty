@@ -82,6 +82,38 @@ cd frontend && npm run dev           # Frontend auf :5173, proxyt /ws
 gradle bootJar && java -jar build/libs/watchparty-0.1.0.jar
 ```
 
+## Wie hier gearbeitet wird
+
+Die **Reihenfolge** der Arbeit steckt in Skills unter `.claude/skills/`, das
+**Ergebnis** in Gradle-Gates an `check`. Skills brauchen Urteil und lassen
+sich überspringen; die Gates nicht.
+
+Die Kette: `triage` → `schneiden` → `feature` → `pruefen` →
+`invarianten-review` → `freigabe` → Commit → CI → Deploy.
+
+Drei Einstiege ab einer neuen Idee, je nachdem, was sie ist:
+
+| Die Idee… | geht nach | Skill |
+|---|---|---|
+| wirft eine offene Frage auf | `docs/offene-entscheidungen.md`, später zurück | `triage`, dann `entscheidung` |
+| ist eine getroffene technische Entscheidung | `docs/adrs.md` | `adr` |
+| ist einfach neues Verhalten (**der Regelfall**) | direkt in den Schnitt | `triage` → `schneiden` |
+
+Ein eigener ADR ist die Ausnahme: Feature 001, 002 und 003 haben keinen, sie
+zitieren bestehende; nur 004 bekam ADR-033, weil es eine frühere Entscheidung
+zurücknahm. Und die Anforderungen wachsen *im* Feature, nicht davor — die
+neuen Anhang-A-IDs entstehen mit dem Feature-Dokument, nicht als seine
+Vorbedingung.
+
+Ein übersprungener Skill ist kein Beinbruch, ein übersprungenes Gate gibt es
+nicht: `featuredoku`, `abdeckung`, `ArchitectureTest`, `pitest` und der
+`commit-msg`-Hook greifen unabhängig davon, ob jemand einen Skill aufgerufen
+hat. Umgekehrt prüft kein Gate, ob die Szenarien je rot waren und ob ein
+Schnitt vertikal war — dafür sind `feature` und `schneiden` da.
+
+Zu Sitzungsbeginn speist `ci/sitzungsstart.sh` (SessionStart-Hook)
+Arbeitsstand und offene Entscheidungen ein.
+
 ## Harte Invarianten
 
 Diese Regeln sind das Ergebnis expliziter Entscheidungen. Wenn eine Änderung
