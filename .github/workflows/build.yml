@@ -59,6 +59,30 @@ jobs:
       - name: check
         run: ./gradlew check -PskipFrontend
 
+      # Die E2E-Ebene (docs/teststrategie.md, Abschnitt 2.7) haengt bewusst
+      # nicht an `check` -- dort gilt ein Budget von zehn Minuten, ein
+      # Durchlauf durch einen echten Browser kostet Minuten. Sie steht
+      # deshalb hier als eigene Stufe: nach `check`, aber vor dem Release in
+      # release.yml. Faellt sie um, gibt es kein Deploy.
+      #
+      # Postgres kommt aus Testcontainers (Abschnitt 10); der GitHub-Runner
+      # bringt Docker mit, es braucht keinen Service-Container.
+      - name: Browser fuer E2E
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: E2E
+        run: ./gradlew e2eTest
+
+      - name: E2E-Bericht
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: build/reports/e2e
+
       - name: Testbericht
         if: always()
         uses: actions/upload-artifact@v4

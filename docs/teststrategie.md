@@ -26,13 +26,21 @@ die Teile zusammenpassen.
 Die Regel ist kein Stilwunsch. Sie ist der Grund, warum die Testmenge nicht
 mit jeder Ebene multipliziert wird, und sie ist messbar (Abschnitt 7.4).
 
-| Ebene | Frage | Werkzeug | JUnit-Tag |
+| Ebene | Frage | Werkzeug | Tag |
 |---|---|---|---|
 | Domäne | Stimmt die Regel? | JGiven + Property-Tests | `unit` |
 | Port-to-Port | Stimmt der Ablauf? | JGiven über `RoomCommands` | `port` |
 | Adapter | Kann der Adapter alles übertragen, was der Port ausdrückt? | JGiven am Port-Datentyp | `adapter` |
 | API | Passen die Teile zusammen, hält das System die NFR? | JGiven über echten Socket | `api` |
 | Struktur | Hält der Bau die Invarianten? | ArchUnit | `arch` |
+| Frontend | Zeigt die Oberfläche, was der Server liefert? | Vitest + Testing Library (jsdom) | `frontend/tests` |
+| E2E | Trägt das gebaute Jar, halten mehrere Geräte zusammen? | Playwright gegen das Jar | `e2e/tests` |
+
+Die beiden unteren Ebenen sind seit dem 2026-08-22 dabei. Sie ändern die
+Regel aus diesem Abschnitt nicht, sie werden von ihr regiert: Die
+Frontend-Ebene prüft *nur* die Projektion Serverdaten → sichtbare Ausgabe,
+die E2E-Ebene fügt — wie die API-Ebene — **keine neue fachliche Abdeckung**
+hinzu. Wer dort eine Punkteregel nachrechnet, hat die Regel verletzt.
 
 Getrennt wird über JUnit-Tags, nicht über eigene Source Sets: Die
 handgeschriebenen Test Doubles (`FakeClock`, `FakeScheduler`,
@@ -135,6 +143,33 @@ Anforderungen" — das hat die Ebene darunter schon entschieden. Sie lautet:
   fehlt — dabei fällt kein Szenario um, weil kein Szenario das Feld kennt.
   Vollständigkeit ist hier eine strukturelle Eigenschaft, kein Beispiel.
 - `time`: Der Scheduler feuert, sagt ab und läuft nicht auf dem Raum-Thread.
+- `db`: Der Round-Trip über ein echtes Postgres aus Testcontainers — und
+  **gleichzeitige Schreibzugriffe**, siehe unten.
+
+**Gleichzeitige Schreibzugriffe sind hier eine eigene Kategorie**, und zwar
+nur für das Tippspiel. Bei den Live-Wetten schließt Invariante 1 sie
+strukturell aus: Aller Zustand wird auf dem Raum-Thread verändert, ArchUnit
+hält das nach, und Abschnitt 2.2 sagt deshalb ausdrücklich, dass echte
+Thread-Rennen nicht geprüft werden. Für `application/league` gilt das
+**nicht** — es läuft auf Request-Threads gegen eine Datenbank. Diese Lücke
+stand bis zum 2026-08-21 offen und war kein Detail: Ein verlorener
+Liga-Beitritt (13.6-b) lag darin verborgen, nachgewiesen und behoben am
+selben Tag.
+
+Geprüft wird **ohne Threads, mit ausgeschriebener Verschränkung**: Zwei
+Aufrufer lesen denselben Stand, danach schreiben beide. Das ist genau die
+Reihenfolge, an der ein Lese-Ändere-Schreibe-Zyklus verliert — nur
+reproduzierbar statt zufällig. Echte Threads träfen denselben Fall
+gelegentlich und wären damit ein sporadisch fehlschlagender Test, den
+Abschnitt 10 verbietet. Es ist dieselbe Antwort wie beim `FakeScheduler` auf
+der Live-Wetten-Seite: Die Verschränkung wird *gesetzt*, nicht abgewartet.
+
+Daraus folgt eine zweite Regel, gelernt am selben Fund: **Ein Test Double
+darf nicht nachsichtiger sein als die Wirklichkeit, wo es um die geprüfte
+Zusage geht.** `FakeLeagueRepository` gab dieselbe Instanz heraus, die es
+gespeichert hatte; damit konnte ein Lese-Ändere-Schreibe-Zyklus gar nichts
+verlieren, und der Fehler blieb auf der Port-Ebene unsichtbar. Es gibt
+seither Kopien heraus, wie der echte Adapter.
 
 Daraus folgt eine Bauvorschrift: **Adapter-Tests konstruieren ihren Fall am
 Port-Datentyp**, sie erzeugen ihn nicht durch die Domäne. Sonst würden sie
@@ -178,6 +213,92 @@ dieser Strategie:
 - Die als sehr kritisch annotierten Klassen sind genau die, die im
   Mutationslauf konfiguriert sind (Abschnitt 7.2).
 
+### 2.6 Frontend (`frontend/tests`)
+
+Die Frage dieser Ebene lautet: **Zeigt die Oberfläche, was der Server
+liefert?** Nicht mehr. Ob die Punkte stimmen, hat `Settlement` entschieden;
+ob ein Tipp verdeckt bleibt, entscheidet der Server (Invariante 4) und nicht
+die Anzeige. Ein Frontend-Test, der prüft, dass ein *empfangener* fremder
+Tipp nicht angezeigt wird, würde die Invariante sogar verwässern — der
+Server darf ihn gar nicht erst senden.
+
+Was hierher gehört, sind die Regeln, die in Anhang A die Marke `frontend`
+tragen: das Leaderboard mit den Kontoständen (3-d), die sichtbaren
+Anmerkungen (4-f), der hervorgehobene Nicht-Tipper samt Strafe (8.1-g), der
+Screen Wake Lock (10.1-d) und die gesamte Höhepunkt-Bildung im
+Spieltags-Report (13.9-f bis 13.9-m) — mit 261 Zeilen die größte Menge
+echter Logik im Frontend dieses Projekts.
+
+Werkzeug ist Vitest mit Testing Library in jsdom. Getrieben wird über die
+Datenschnittstelle, nicht über Klicks im Innern: `useRoom` bzw. `leagueApi`
+werden ersetzt, hereingereicht wird ein Serverzustand in der Form, in der er
+über die Leitung kommt. Damit ist jeder Test buchstäblich „Nachricht rein,
+Ausgabe raus".
+
+**Die Feldnamen dieser Zustände sind keine zweite Wahrheit.** Sie stehen in
+`frontend/tests/zustand.js`, und der Gradle-Task `protokollvertrag` gleicht
+jeden Feldnamen der Nachrichtentypen mit dem Frontend ab — eine Umbenennung
+auf einer Seite bricht den Bau. Für das Tippspiel leistet
+`protokollvertragLiga` dasselbe an der REST-Grenze, Pfade eingeschlossen.
+
+Jedes Szenario trägt seine Anforderungs-ID über den Helfer
+`anforderung("3-d", …)` — das Gegenstück zu `@Anforderung` im Backend.
+Daran hängt die Messung aus Abschnitt 7.5.
+
+### 2.7 E2E (`e2e/tests`)
+
+Echter Browser, echtes Jar, echtes Postgres. Diese Ebene fügt — wie die
+API-Ebene — **keine neue fachliche Abdeckung** hinzu. Sie beantwortet drei
+Fragen, die keine andere Ebene beantworten kann:
+
+1. **Trägt der Auslieferungsstand?** Die ins Jar gepackte React-App, die
+   Weiterleitung von `/join/CODE` durch `WebConfig`, der WebSocket auf
+   derselben Herkunft. Gefahren wird deshalb gegen das gebaute Jar, nicht
+   gegen `vite dev` — ein Dev-Server beantwortet genau diese Fragen nicht.
+2. **Halten mehrere Geräte zusammen?** Zwei Browser-Kontexte sind Host und
+   Mitspieler. Das ist die einzige Ebene, auf der Invariante 4 dort geprüft
+   wird, wo sie fachlich gilt: im zweiten Browser, während das Fenster offen
+   ist.
+3. **Überlebt der Beitritt den Browser?** Neuladen des Tabs, Token im
+   `localStorage`.
+
+Gefahren werden die **kritischen Pfade**, nicht ein Katalog: der volle
+Rundenablauf der Live-Wetten von zwei Seiten, der Beitrittslink, das
+Neuladen — und im Tippspiel der ganze Weg von der Anmeldung per Magic Link
+über den Tipp bis zur Liga-Rangliste. Letzterer war bis zum 2026-08-22 der
+am schlechtesten abgesicherte Weg des Projekts; CLAUDE.md führte ihn als
+„nur manuell per curl durchgespielt, nicht in einem echten Browser".
+
+**Diese Durchläufe dienen zugleich der Vorführung.** Video und Trace laufen
+immer mit, nicht nur bei Fehlschlägen, und `npm run vorfuehren` spielt sie
+sichtbar und verlangsamt ab. Wer zeigen will, was die Anwendung tut, startet
+sie — statt einen Abend nachzustellen. Daraus folgt eine kleine
+Gestaltungsregel: sprechende, feste Namen in den Szenarien („Anna", „Ben",
+„E2E-Liga"), keine Zeitstempel. Die Unabhängigkeit vom vorherigen Lauf
+leistet die frische Datenbank, nicht ein Wegwerfname.
+
+Drei Festlegungen, die aus Abschnitt 10 folgen und hier besonders wehtun:
+
+- **Keine Wiederholungen** (`retries: 0`). E2E ist die Ebene, auf der die
+  Regel „ein sporadisch fehlschlagender Test ist ein Fehlschlag" zuerst
+  unbequem wird. Wer hier Wiederholungen einschaltet, schafft sie faktisch
+  ab.
+- **Kein Rennen gegen eine echte Uhr.** Das Wettfenster ist deshalb
+  konfigurierbar (`watchparty.betting-window-seconds`, Vorgabe unverändert
+  15 Sekunden) und im E2E-Lauf lang. Die *deterministische* Behandlung von
+  Zeit und Reihenfolge bleibt Sache der Port-Ebene (`FakeClock`,
+  `FakeScheduler`, Abschnitt 2.2) — eine steuerbare Uhr im ausgelieferten
+  Jar wäre eine Steuerfläche in der Produktion und würde obendrein auf zwei
+  Ebenen dasselbe prüfen.
+- **Nicht an `check`.** Ein Durchlauf durch einen echten Browser kostet
+  Minuten, das Budget in Abschnitt 10 sind zehn für alles. Die Ebene läuft
+  als eigene Pipeline-Stufe vor dem Deploy — dort, wo ihre Frage überhaupt
+  erst sinnvoll ist.
+
+Was hier **nicht** hingehört: der Countdown-Rahmen und die Animationen
+(10-d) — sie tragen seit dem 2026-08-22 die Marke `gestaltung`, weil kein
+Test entscheidet, ob eine Animation gefällt.
+
 ## 3. Leck-Tests und die Invariantenprüfung
 
 Beides sind **Allaussagen über jeden Ablauf**, keine Szenarien. Sie laufen
@@ -211,6 +332,15 @@ Leck-Tests gibt es auf **zwei** Ebenen, und beide werden gebraucht:
   entsteht — ein Feld, das das Nachrichtenobjekt selbst nicht offensichtlich
   preisgibt.
 
+**Das gilt für beide Modi.** Kriterium 19/20 im Tippspiel ist dieselbe Art
+Regel wie Invariante 4 — ein fremder Tipp darf vor dem Anstoß nicht Teil der
+Antwort sein — und hatte bis zum 2026-08-21 nur die obere Hälfte:
+`PredictionViewTest` mit Mutation Score 100 %, aber keine einzige Behauptung
+über das tatsächlich übertragene JSON. Dieselbe HIGH-Regel, dieselbe
+Fehlerart, halbe Absicherung. Der Leck-Test am REST-Rohtext gehört seither
+dazu, mitsamt der **Gegenprobe ab Anstoß**: Ohne sie ginge ein dauerhaft
+leeres `otherPredictions` als bestandener Leck-Test durch.
+
 ### 3.2 Invariantenprüfung nach jedem Port-to-Port-Schritt
 
 Nach **jedem** Schritt eines Port-to-Port-Szenarios gilt:
@@ -240,6 +370,15 @@ härtesten Anforderungen dieses Projekts sind aber Allaussagen. Property-Tests
 - Das Größte-Reste-Verfahren verteilt genau den Rest, nie mehr, nie weniger
   (7.2), und die Zuteilung hängt nicht von der Eingabereihenfolge ab.
 - Die gekappte Strafe (8.1) sammelt nie mehr ein, als vorhanden war.
+
+Im Tippspiel dieselbe Bauart für `Scoring` und — seit dem 2026-08-21 —
+`Standings`: Die Reihenfolge, in der die Mitglieder hereingereicht werden,
+darf die Rangliste nicht verändern, und die Formel-1-Zählung muss für *jede*
+Gruppengröße stimmen (13.6-g). Beides sind Allaussagen, an denen
+Beispieltests vorbeilaufen — ein Sortierverfahren, das bei Gleichstand die
+Eingabereihenfolge durchschlagen lässt, rankt dieselbe Liga je nach
+Datenbankantwort verschieden, und an einem einzelnen Beispiel fällt das nie
+auf.
 
 Nebeneffekt, der zum Mutationsziel passt: Ein Property-Test tötet ganze
 Mutantenklassen, an denen ein Beispieltest vorbeiläuft. 99 % Mutation Score
@@ -424,6 +563,22 @@ Abschnitt 10 dadurch voll, wird gegengesteuert, statt die Prüfung
 stillschweigend fallen zu lassen: zuerst über die Häufigkeit (nur auf
 `master` statt bei jedem Lauf), danach über den Umfang.
 
+### 7.5 Frontend-Abdeckung: 100 %, harte Schranke
+
+Über alle `frontend`-markierten Regeln aus Anhang A (Abschnitt 5), gemessen
+vom Gradle-Task `abdeckungFrontend`. Die Zahl gibt es seit dem 2026-08-22;
+vorher zählten diese Regeln zu gar keiner.
+
+Gelesen werden die `anforderung(...)`-Aufrufe aus `frontend/tests` **und**
+`e2e/tests` — welche Ebene die richtige ist, entscheidet die Regel und nicht
+der Task. Geprüft wird in beide Richtungen: Eine Regel ohne Szenario ist ein
+Fehler, eine ID im Test, die Anhang A nicht kennt, ebenso. Ein Tippfehler
+soll nicht als Abdeckung durchgehen.
+
+**Kein Mutation Score auf dieser Ebene.** Die `HIGH`-Einstufungen liegen
+sämtlich im Backend, und die Einstufung folgt der Kritikalität, nicht der
+Verfügbarkeit eines Werkzeugs.
+
 ## 8. Der Report
 
 **Zielleser ist eine Fachabteilung**, die `anforderungen.md` kennt und
@@ -541,7 +696,9 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
   die Verabredungen zu Regeln machen: `abdeckung` (Feature-Abdeckung),
   `ebenenDisjunktheit`, `ausnahmenregister` (Abschnitt 10),
   `protokollvertrag` (Abschnitt 11), `aufbaudoku` (CLAUDE.md gegen den
-  Baum) und seit 2026-08-20 `featuredoku` (Abschnitt 9.1: sieben
+  Baum), seit 2026-08-22 `protokollvertragLiga` (die REST-Grenze des
+  Tippspiels, Pfade und Feldnamen), `npmTest` (die Frontend-Ebene) und
+  `abdeckungFrontend` (Abschnitt 7.5), und seit 2026-08-20 `featuredoku` (Abschnitt 9.1: sieben
   Pflichtabschnitte, seit 2026-08-21 zusätzlich genau eine
   Kritikalitätsstufe, die ID-Tabelle gegen Anhang A, höchstens zwölf
   Akzeptanzkriterien und keine eigene Baustufentabelle — drei Dokumente
@@ -554,6 +711,17 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
 - **Zeitbudget: 10 Minuten** für den vollständigen Lauf einschließlich
   Mutationstests. Wird es enger, wird zuerst der Mutations-Scope
   hinterfragt, nicht die Feature-Abdeckung.
+- **Datenbanken kommen immer aus Testcontainers.** Auf jeder Ebene, auch in
+  E2E — kein selbst abgesetztes `docker run` in einem Start- oder CI-Skript.
+  Der Grund ist nicht Bequemlichkeit, sondern Isolierung: Testcontainers
+  wirft die Datenbank mit dem Lauf weg und macht damit zur Eigenschaft des
+  Aufbaus, woran sonst jemand denken müsste. Die Regel steht hier, weil ihr
+  Bruch am 2026-08-22 sofort Folgen hatte: Die erste Fassung der E2E-Ebene
+  startete Postgres selbst und ließ Playwright einen laufenden Server
+  weiterverwenden — jeder Lauf trug den Zustand des vorherigen mit sich, und
+  die Szenarien wurden voneinander abhängig. Backend:
+  `PostgresAdapterSupport` (ein Container je JVM-Lauf, `TRUNCATE` vor jedem
+  Test). Node: `@testcontainers/postgresql` im globalen Aufbau.
 - **Kein `Thread.sleep` in Tests.** Auf Zustand wird mit Zeitgrenze
   gewartet. Ein sporadisch fehlschlagender Test ist ein Fehlschlag, kein
   Wiederholungsfall — Wiederholungen werden nicht eingebaut.
@@ -566,21 +734,25 @@ Nach dieser Aktion gilt für alles Weitere Abschnitt 9.1.
 
 ## 11. Was diese Strategie nicht abdeckt
 
-- **Das Frontend.** `useRoom.js`, `App.jsx` und `Guide.jsx` sind außerhalb.
-  Das betrifft echte Anforderungen — dass die Anmerkungen zu den Ausgängen
-  sichtbar sind (4), dass das Leaderboard die Kontostände zeigt (3). Sie
-  tragen die Marke `frontend` und zählen nicht zur Feature-Abdeckung.
-- **Das Verhalten des Frontends am Protokoll.** Die *Namen* gleicht der
-  Gradle-Task `protokollvertrag` seit 2026-08-20 ab: Frame-Typen, Phasen,
-  Annullierungsgründe und die Feldnamen der Nachrichtentypen müssen auf
-  beiden Seiten dieselben sein, sonst bricht der Build. Was er nicht sieht,
-  ist die *Bedeutung* — ob das Frontend ein korrekt benanntes Feld auch
-  richtig interpretiert, bleibt außerhalb. Geprüft wird nur die
-  Live-Wetten-App; das Tippspiel spricht REST mit eigenem Vertrag
-  (ADR-039).
-- **Was nur am Spielabend sichtbar wird.** Tab-Suspend auf dem Handy, Wake
-  Lock, das Verhalten des Fly-Volumes, die Kalibrierung der drei Parameter
-  aus 3.1. Dafür ist `probelauf.md` da. Diese Punkte gelten als *beobachtet*,
+- ~~**Das Frontend.**~~ Nicht mehr: Seit dem 2026-08-22 gibt es dafür eine
+  eigene Ebene (Abschnitt 2.6) mit eigener, harter Abdeckungszahl
+  (Abschnitt 7.5). Was bleibt, ist enger und benannt: **Gestaltungsfragen**.
+  Ob der Zurücksetzen-Knopf wirklich unauffällig wirkt (8.7-b) und ob eine
+  Animation gefällt (10-d), entscheidet kein Test — diese Regeln tragen
+  seither die Marke `gestaltung` und werden im Review beurteilt. Sie stehen
+  damit ausdrücklich außerhalb, statt eine Zahl dauerhaft unter 100 % zu
+  halten.
+- ~~**Das Verhalten des Frontends am Protokoll.**~~ Ebenfalls geschlossen.
+  Die *Namen* gleichen `protokollvertrag` (WebSocket, seit 2026-08-20) und
+  `protokollvertragLiga` (REST, seit 2026-08-22, Pfade eingeschlossen) ab.
+  Die *Bedeutung* — ob ein korrekt benanntes Feld auch richtig interpretiert
+  wird — prüft jetzt die Frontend-Ebene, und dass die Kette als Ganzes hält,
+  die E2E-Ebene.
+- **Was nur am Spielabend sichtbar wird.** Tab-Suspend auf dem Handy, das
+  Verhalten des Fly-Volumes, die Kalibrierung der drei Parameter aus 3.1.
+  Der Wake Lock ist inzwischen zur Hälfte geprüft — dass er angefordert wird
+  und dass sein Fehlen folgenlos bleibt (10.1-d, Abschnitt 2.6); ob das
+  Handy dadurch tatsächlich wach bleibt, bleibt Beobachtung. Dafür ist `probelauf.md` da. Diese Punkte gelten als *beobachtet*,
   nicht als *getestet*, und dürfen nicht durch eine grüne Abdeckung als
   erledigt erscheinen.
 
@@ -594,6 +766,15 @@ sind entschieden:
 - **Kritikalitätseinstufung des Bestands** — bestätigt (Abschnitt 6.4).
 - **Sprachausnahme für die JGiven-Stufen** — entschieden (Abschnitt 8),
   strukturell durch ArchUnit eingehegt; als ADR festzuhalten.
+
+**Erweiterung vom 2026-08-22.** Zwei Ebenen sind dazugekommen (Frontend und
+E2E, Abschnitt 2.6/2.7) und vier Lücken im Bestand geschlossen: der
+Leck-Test am JSON des Tippspiels (Abschnitt 3.1), der Protokollvertrag an
+der REST-Grenze (Abschnitt 11), gleichzeitige Schreibzugriffe im Tippspiel
+(Abschnitt 2.3 — dabei ein verlorener Liga-Beitritt gefunden und behoben)
+und Property-Tests für `Standings` (Abschnitt 4). Der Grundsatz aus
+Abschnitt 1 ist dabei unverändert geblieben; er hat die Zuschnitte der
+neuen Ebenen bestimmt.
 
 Die Umsetzung ist inzwischen abgeschlossen (fünf Phasen, zuletzt
 ADR-030/ADR-031) — der dafür verwendete Arbeitsplan

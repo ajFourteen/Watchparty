@@ -106,9 +106,12 @@ neuen Anhang-A-IDs entstehen mit dem Feature-Dokument, nicht als seine
 Vorbedingung.
 
 Ein übersprungener Skill ist kein Beinbruch, ein übersprungenes Gate gibt es
-nicht: `featuredoku`, `abdeckung`, `ArchitectureTest`, `pitest` und der
-`commit-msg`-Hook greifen unabhängig davon, ob jemand einen Skill aufgerufen
-hat. Umgekehrt prüft kein Gate, ob die Szenarien je rot waren, ob ein
+nicht: `featuredoku`, `abdeckung`, `abdeckungFrontend`, `npmTest`,
+`protokollvertrag`, `protokollvertragLiga`, `ArchitectureTest`, `pitest` und
+der `commit-msg`-Hook greifen unabhängig davon, ob jemand einen Skill
+aufgerufen hat. Die E2E-Ebene (`e2eTest`) hängt bewusst nicht an `check`,
+sondern läuft als eigene Pipeline-Stufe vor dem Deploy — ein Browser-Durchlauf
+sprengt sonst das Zehn-Minuten-Budget. Umgekehrt prüft kein Gate, ob die Szenarien je rot waren, ob ein
 Schnitt vertikal war und ob das Ergebnis den Akzeptanzkriterien entspricht
 — dafür sind `feature`, `schneiden` und `abnahme` da.
 
@@ -528,6 +531,15 @@ frontend/src/
     LeaguesScreen.jsx        Meine Ligen, anlegen, per Code beitreten
     LeagueDetailScreen.jsx   Beitrittscode zum Weitergeben, Mitglieder,
                            Saison- und Spieltagsrangliste (Kriterium 33/35)
+frontend/tests/            Frontend-Ebene (Vitest + Testing Library, jsdom):
+                           Serverdaten rein, sichtbare Ausgabe raus. zustand.js
+                           hält die Nachrichtenform, anforderung.js den
+                           Anforderungs-Tag
+e2e/                       E2E-Ebene (Playwright gegen das gebaute Jar):
+                           kritische Pfade beider Modi mit zwei Geräten,
+                           zugleich Vorführung (Video/Trace immer an,
+                           `npm run vorfuehren`). Postgres aus Testcontainers
+                           über tests/umgebung.js
 docs/                      Anforderungen, ADRs, offene Entscheidungen,
                            Beobachtungsbogen für den Probelauf,
                            Teststrategie, Feature-Vorlage und die
@@ -562,7 +574,19 @@ selbst, die sich nicht am Schreibtisch simulieren lassen.
   erzwingt es: Ein `Share` lässt sich nicht versehentlich als `Points`
   auszahlen.
 - Test Doubles werden von Hand geschrieben, kein Mockito (ADR-025) — vom
-  Test-Classpath ausgeschlossen.
+  Test-Classpath ausgeschlossen. Ein Test Double darf dabei nicht
+  nachsichtiger sein als die Wirklichkeit, wo es um die geprüfte Zusage geht:
+  `FakeLeagueRepository` gab lange dieselbe Instanz heraus, die es
+  gespeichert hatte, und verbarg damit einen echten Datenverlust
+  (`docs/teststrategie.md`, Abschnitt 2.3).
+- **Datenbanken in Tests kommen immer aus Testcontainers** — auf jeder Ebene,
+  auch in E2E. Kein selbst abgesetztes `docker run` in einem Start- oder
+  CI-Skript (`docs/teststrategie.md`, Abschnitt 10).
+- Frontend-Verhalten hat seit dem 2026-08-22 eine eigene Ebene: Regeln mit
+  der Marke `frontend` in Anhang A brauchen ein Szenario unter
+  `frontend/tests` oder `e2e/tests`, getaggt mit `anforderung("3-d", …)`.
+  `abdeckungFrontend` misst das. Was keine Prüfung entscheiden kann, trägt
+  die Marke `gestaltung` statt stillschweigend zu fehlen.
 - Ein neuer Domänentyp in `domain/model` bekommt sofort seinen
   jMolecules-Stereotyp (`@AggregateRoot`, `@Entity` oder `@ValueObject`,
   ADR-027) — `ArchitectureTest` schlägt sonst fehl, nicht erst beim nächsten
