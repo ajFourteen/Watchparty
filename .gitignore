@@ -22,3 +22,8 @@ frontend/dist/
 # JGiven-Rohdaten ausserhalb von build/ (Default-Ablage des Plugins fuer
 # Laeufe, die nicht ueber die konfigurierten Test-Tasks gehen) -- Bauartefakt.
 jgiven-reports/
+
+# E2E: Playwright-Artefakte und Abhaengigkeiten
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/

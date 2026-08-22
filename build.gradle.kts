@@ -495,7 +495,7 @@ tasks.register("abdeckung") {
 
     doLast {
         val zeilePattern = Regex(
-            """^\|\s*([0-9]+(?:\.[0-9]+)?(?:-[a-z])?)\s*\|.*\|\s*(backend|frontend|organisatorisch|beobachtung)\s*\|\s*$""")
+            """^\|\s*([0-9]+(?:\.[0-9]+)?(?:-[a-z])?)\s*\|.*\|\s*(backend|frontend|organisatorisch|beobachtung|gestaltung)\s*\|\s*$""")
         var inAnhangA = false
         val backendRegeln = linkedSetOf<String>()
         anforderungenDatei.asFile.forEachLine { zeile ->
@@ -1380,4 +1380,132 @@ tasks.named<ProcessResources>("processResources") {
             into("static")
         }
     }
+}
+
+// --- Frontend-Ebene: Testlauf und Abdeckung (Abschnitt 2.6/7.5) -----------
+//
+// Bis 2026-08-21 sagte die Teststrategie in Abschnitt 11 selbst: "Das
+// Frontend ist ausserhalb." Das betraf echte Anforderungen -- dass das
+// Leaderboard die Kontostaende zeigt (3-d), dass die Anmerkungen sichtbar
+// sind (4-f), die ganze Hoehepunkt-Bildung im Spieltags-Report (13.9-f..m).
+// Sie trugen die Marke `frontend` und zaehlten damit zu gar keiner Zahl.
+//
+// Jetzt sind sie eine eigene Ebene mit eigener Abdeckung. Der Grundsatz aus
+// Abschnitt 1 gilt dort unveraendert: Geprueft wird nur die Projektion
+// Serverdaten -> sichtbare Ausgabe, keine fachliche Regel ein zweites Mal.
+val npmTest = tasks.register<Exec>("npmTest") {
+    group = "verification"
+    description = "Frontend-Ebene: Vitest ueber frontend/tests (Abschnitt 2.6)."
+    dependsOn(npmInstall)
+    workingDir = frontendDir.asFile
+    commandLine(npm, "run", "test")
+    inputs.dir(frontendDir.dir("src"))
+    inputs.dir(frontendDir.dir("tests"))
+    inputs.file(frontendDir.file("package.json"))
+    inputs.file(frontendDir.file("vite.config.js"))
+    outputs.file(layout.buildDirectory.file("reports/frontend-tests.json"))
+}
+
+tasks.named("check") {
+    dependsOn(npmTest)
+}
+
+// Dieselbe Messung wie `abdeckung`, nur fuer die andere Haelfte von Anhang A:
+// Jede Regel mit der Marke `frontend` braucht mindestens ein Szenario, das
+// ihre ID traegt -- auf der Frontend-Ebene (frontend/tests) oder in E2E
+// (e2e/tests). Beide Orte werden gelesen, weil beide Frontend-Verhalten
+// pruefen; welcher der richtige ist, entscheidet die Regel, nicht der Task.
+//
+// Die Gegenrichtung wird mitgeprueft: Eine ID im Test, die es in Anhang A
+// nicht gibt, ist ein Tippfehler oder eine geloeschte Regel -- beides soll
+// auffallen, nicht stillschweigend als Abdeckung zaehlen.
+tasks.register("abdeckungFrontend") {
+    group = "verification"
+    description = "Vergleicht die frontend-Regeln aus Anhang A mit den anforderung()-Szenarien."
+    dependsOn(npmTest)
+
+    val anforderungenDatei = layout.projectDirectory.file("docs/anforderungen.md")
+    val frontendTests = layout.projectDirectory.dir("frontend/tests")
+    val e2eTests = layout.projectDirectory.dir("e2e/tests")
+    val berichtsDatei = layout.buildDirectory.file("reports/abdeckung-frontend.txt")
+
+    inputs.file(anforderungenDatei)
+    inputs.dir(frontendTests)
+    outputs.file(berichtsDatei)
+
+    doLast {
+        val zeilePattern = Regex(
+            """^\|\s*([0-9]+(?:\.[0-9]+)?(?:-[a-z])?)\s*\|.*\|\s*(backend|frontend|organisatorisch|beobachtung|gestaltung)\s*\|\s*$""")
+        var inAnhangA = false
+        val frontendRegeln = linkedSetOf<String>()
+        val alleRegeln = linkedSetOf<String>()
+        anforderungenDatei.asFile.forEachLine { zeile ->
+            if (zeile.startsWith("## Anhang A")) {
+                inAnhangA = true
+            } else if (inAnhangA) {
+                val treffer = zeilePattern.matchEntire(zeile)
+                if (treffer != null) {
+                    alleRegeln += treffer.groupValues[1]
+                    if (treffer.groupValues[2] == "frontend") {
+                        frontendRegeln += treffer.groupValues[1]
+                    }
+                }
+            }
+        }
+
+        // Die IDs aus den anforderung(...)-Aufrufen -- erstes Argument, als
+        // Zeichenkette oder als Liste von Zeichenketten.
+        val getaggt = linkedSetOf<String>()
+        val aufruf = Regex("""anforderung\(\s*(\[[^\]]*\]|"[^"]*")""")
+        val einzelneId = Regex(""""([^"]+)"""")
+        listOf(frontendTests.asFile, e2eTests.asFile)
+            .filter { it.isDirectory }
+            .forEach { verzeichnis ->
+                verzeichnis.walkTopDown()
+                    .filter { it.isFile && (it.extension == "js" || it.extension == "jsx") }
+                    .forEach { datei ->
+                        aufruf.findAll(datei.readText()).forEach { treffer ->
+                            einzelneId.findAll(treffer.groupValues[1]).forEach { getaggt += it.groupValues[1] }
+                        }
+                    }
+            }
+
+        val ohneSzenario = (frontendRegeln - getaggt).sorted()
+        val unbekannteIds = (getaggt - alleRegeln).sorted()
+
+        val bericht = buildString {
+            appendLine("Frontend-Abdeckung: ${frontendRegeln.size - ohneSzenario.size} von " +
+                "${frontendRegeln.size} frontend-Regel(n) haben ein Szenario.")
+            if (ohneSzenario.isEmpty() && unbekannteIds.isEmpty()) {
+                appendLine("Jede frontend-Regel aus Anhang A ist geprueft.")
+            }
+            if (ohneSzenario.isNotEmpty()) {
+                appendLine("Ohne Szenario (${ohneSzenario.size}):")
+                ohneSzenario.forEach { appendLine("  - $it") }
+            }
+            if (unbekannteIds.isNotEmpty()) {
+                appendLine("IDs in Tests, die Anhang A nicht kennt (${unbekannteIds.size}):")
+                unbekannteIds.forEach { appendLine("  - $it") }
+            }
+        }
+        println(bericht)
+        val datei = berichtsDatei.get().asFile
+        datei.parentFile.mkdirs()
+        datei.writeText(bericht)
+
+        val fehler = mutableListOf<String>()
+        if (ohneSzenario.isNotEmpty()) {
+            fehler += "frontend-Regeln ohne Szenario: ${ohneSzenario.joinToString(", ")}"
+        }
+        if (unbekannteIds.isNotEmpty()) {
+            fehler += "unbekannte Anforderungs-IDs in Tests: ${unbekannteIds.joinToString(", ")}"
+        }
+        if (fehler.isNotEmpty()) {
+            throw GradleException("Frontend-Abdeckung unvollstaendig -- " + fehler.joinToString("; "))
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("abdeckungFrontend")
 }

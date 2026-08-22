@@ -588,9 +588,10 @@ stillschweigend leer laufen lassen.
 | Marke | Bedeutung |
 |---|---|
 | `backend` | im Backend prüfbar, zählt zur Feature-Abdeckung |
-| `frontend` | Sache der Oberfläche, außerhalb der Backend-Teststrategie |
+| `frontend` | in der Oberfläche prüfbar; zählt zur Frontend-Abdeckung (Frontend-Ebene oder E2E, Teststrategie 2.6/2.7) |
 | `organisatorisch` | Verantwortung von Menschen oder des Betriebs; kein Programm kann das prüfen |
 | `beobachtung` | erst am echten Spielabend feststellbar; gehört auf den Beobachtungsbogen in `probelauf.md` |
+| `gestaltung` | eine Frage des Augenmaßes, die kein Test entscheiden kann (wie unauffällig ein Knopf wirkt, ob eine Animation gefällt); wird im Review beurteilt |
 
 Eine Regel trägt genau eine Marke. Wo eine Aussage im Text zwei Seiten hat —
 der Server liefert etwas, die Oberfläche zeigt es —, ist sie hier in zwei
@@ -708,7 +709,7 @@ die Marke.
 | 8.6-b | Nach dem Auflösen ist Annullieren nicht mehr möglich. | Live-Wetten | backend |
 | 8.7 | Der Host kann den Raum zurücksetzen — Spieler, Punktestände und laufende Runde in einem Schritt, in jeder Phase. | Live-Wetten | backend |
 | 8.7-a | Nach dem Zurücksetzen gibt es kein automatisches Wiederbeitreten. | Live-Wetten | backend |
-| 8.7-b | Der Zurücksetzen-Knopf ist bewusst unscheinbar. | Live-Wetten | frontend |
+| 8.7-b | Der Zurücksetzen-Knopf ist bewusst unscheinbar. | Live-Wetten | gestaltung |
 
 ### 9. Ablauf einer Runde
 
@@ -726,7 +727,7 @@ die Marke.
 | 10-a | Der Host hat zusätzlich die Steuerknöpfe: Wette öffnen, jetzt schließen, auflösen, annullieren, zurücksetzen. Ansonsten ist er normaler Spieler. | Live-Wetten | backend |
 | 10-b | Ein Spieler ohne Host-Rolle kann diese Kommandos nicht auslösen. | Live-Wetten | backend |
 | 10-c | Spieler sehen Countdown, aufgedeckte Tipps, Ergebnisse und Leaderboard. | Live-Wetten | frontend |
-| 10-d | Der Countdown ist zusätzlich als ablaufender Rahmen sichtbar; Phasenwechsel sind animiert. | Live-Wetten | frontend |
+| 10-d | Der Countdown ist zusätzlich als ablaufender Rahmen sichtbar; Phasenwechsel sind animiert. | Live-Wetten | gestaltung |
 | 10.1 | Host ist immer der am frühesten beigetretene verbundene Spieler. | Live-Wetten | backend |
 | 10.1-a | Verliert der Host die Verbindung, wandert die Rolle sofort weiter — in jeder Phase. | Live-Wetten | backend |
 | 10.1-b | Kehrt ein früher beigetretener Spieler während eines offenen oder geschlossenen Fensters zurück, wird die Übergabe vorgemerkt und erst im Leerlauf bzw. nach dem Auflösen ausgeführt. | Live-Wetten | backend |
