@@ -1,0 +1,20 @@
+{
+  "name": "watchparty-e2e",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "playwright test",
+    "vorfuehren": "playwright test --headed --project=chromium -- --slow-mo=400",
+    "bericht": "playwright show-report ../build/reports/e2e"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@testcontainers/postgresql": "^12.1.0",
+    "pg": "^8.23.0"
+  },
+  "private": true
+}

@@ -71,7 +71,7 @@ public class RoomActor implements RoomCommands {
     private static final Logger log = LoggerFactory.getLogger(RoomActor.class);
 
     /** Anforderung 5: 15 Sekunden zwischen Oeffnen und automatischem Schluss. */
-    private static final Duration BETTING_WINDOW = Duration.ofSeconds(15);
+    public static final Duration DEFAULT_BETTING_WINDOW = Duration.ofSeconds(15);
 
     /** Anforderung 3.1: Startguthaben, Mindesteinsatz, Strafe an einer Stelle im Code. */
     private static final Params PARAMS = Params.DEFAULT;
@@ -150,11 +150,33 @@ public class RoomActor implements RoomCommands {
     private final SnapshotRepository snapshots;
     private final ClientGateway clients;
 
+    private final Duration bettingWindow;
+
     public RoomActor(Clock clock, Scheduler scheduler, SnapshotRepository snapshots, ClientGateway clients) {
+        this(clock, scheduler, snapshots, clients, DEFAULT_BETTING_WINDOW);
+    }
+
+    /**
+     * Dieselbe Verdrahtung mit einstellbarer Fensterlaenge.
+     *
+     * Der Grund ist ausschliesslich technisch: Die E2E-Ebene fuehrt einen
+     * ganzen Rundenablauf durch einen echten Browser, und 15 Sekunden echte
+     * Uhrzeit reichen dafuer auf einer belasteten Maschine nicht -- das
+     * Fenster schloss mitten im Szenario, und der Test wurde sporadisch rot
+     * (Abschnitt 10 verbietet genau das).
+     *
+     * Ausdruecklich <em>keine</em> Antwort auf die offene Frage nach der
+     * fachlichen Fensterlaenge je Wette (docs/offene-entscheidungen.md):
+     * Die Vorgabe bleibt unveraendert bei 15 Sekunden, es gibt nur einen
+     * Weg, sie fuer einen Testlauf zu setzen.
+     */
+    public RoomActor(Clock clock, Scheduler scheduler, SnapshotRepository snapshots, ClientGateway clients,
+            Duration bettingWindow) {
         this.clock = clock;
         this.scheduler = scheduler;
         this.snapshots = snapshots;
         this.clients = clients;
+        this.bettingWindow = bettingWindow;
     }
 
     /**
@@ -471,10 +493,10 @@ public class RoomActor implements RoomCommands {
         if (previous != null) {
             previous.cancel();
         }
-        Round round = room.openBet(bet, clock.instant(), BETTING_WINDOW);
+        Round round = room.openBet(bet, clock.instant(), bettingWindow);
         RoundId roundId = round.getId();
         autoCloseTasks.put(roomCode,
-                scheduler.schedule(() -> loop.execute(() -> handleAutoClose(roomCode, roundId)), BETTING_WINDOW));
+                scheduler.schedule(() -> loop.execute(() -> handleAutoClose(roomCode, roundId)), bettingWindow));
 
         broadcastState(roomCode, room);
     }

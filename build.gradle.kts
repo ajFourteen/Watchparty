@@ -1509,3 +1509,29 @@ tasks.register("abdeckungFrontend") {
 tasks.named("check") {
     dependsOn("abdeckungFrontend")
 }
+
+// --- E2E-Ebene (docs/teststrategie.md, Abschnitt 2.7) ---------------------
+//
+// Bewusst **nicht** an `check`: Das Zeitbudget dort sind 10 Minuten
+// einschliesslich Mutationstests (Abschnitt 10), und ein Durchlauf durch
+// einen echten Browser kostet Minuten. Die E2E-Ebene laeuft in der Pipeline
+// als eigene Stufe vor dem Deploy -- der Ort, an dem ihre Frage
+// ("traegt das gebaute Jar?") ueberhaupt erst sinnvoll ist.
+//
+// Die Datenbank kommt aus Testcontainers, wie ueberall in diesem Projekt
+// (Abschnitt 10); der globale Aufbau in e2e/tests/umgebung.js startet sie
+// und die Anwendung davor.
+val e2eInstall = tasks.register<Exec>("e2eInstall") {
+    workingDir = layout.projectDirectory.dir("e2e").asFile
+    commandLine(npm, "install")
+    inputs.file(layout.projectDirectory.file("e2e/package.json"))
+    outputs.dir(layout.projectDirectory.dir("e2e/node_modules"))
+}
+
+tasks.register<Exec>("e2eTest") {
+    group = "verification"
+    description = "E2E-Ebene: gebautes Jar, echter Browser, zwei Geraete (Abschnitt 2.7)."
+    dependsOn(e2eInstall, tasks.named("bootJar"))
+    workingDir = layout.projectDirectory.dir("e2e").asFile
+    commandLine(npm, "run", "test")
+}
