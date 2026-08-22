@@ -44,9 +44,13 @@ jobs:
       # und GitHub-Release waeren draussen, Produktion bliebe auf der alten
       # Version, und die Versionsnummer behauptete eine neue. Genau dieser
       # stille Auseinanderlauf wird hier abgefangen.
+      # Node 22, nicht 20: Die Frontend-Ebene laeuft in jsdom, und dessen
+      # undici verlangt eine neuere Node-Fassung -- unter 20 bricht schon das
+      # Laden mit "webidl.util.markAsUncloneable is not a function" ab, bevor
+      # ein einziger Test lief. release.yml stand ohnehin schon auf 22.
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
