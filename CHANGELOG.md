@@ -1,3 +1,10 @@
+## [3.19.1](https://github.com/ajFourteen/Watchparty/compare/v3.19.0...v3.19.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* verlorener Liga-Beitritt bei gleichzeitigem Einloesen (13.6-b) ([95549d9](https://github.com/ajFourteen/Watchparty/commit/95549d9346c844f61536c5b080d2741d6e6324c1))
+
 # [3.19.0](https://github.com/ajFourteen/Watchparty/compare/v3.18.0...v3.19.0) (2026-08-21)
 
 
