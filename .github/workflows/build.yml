@@ -48,7 +48,7 @@ jobs:
       # undici verlangt eine neuere Node-Fassung -- unter 20 bricht schon das
       # Laden mit "webidl.util.markAsUncloneable is not a function" ab, bevor
       # ein einziger Test lief. release.yml stand ohnehin schon auf 22.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
