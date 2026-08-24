@@ -10,7 +10,7 @@ import org.w3c.dom.Element
 
 plugins {
     java
-    id("org.springframework.boot") version "3.5.16"
+    id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     // Setzen JSpecify durch: ein @Nullable an der falschen Stelle ist ein
     // Compile-Fehler, keine Doku (ADR-026).
