@@ -1,0 +1,55 @@
+name: CodeQL
+
+# Unabhaengig von build.yml: CodeQL braucht Bytecode/Quelltext, keinen
+# gruenen Testlauf, und soll auch dann laufen, wenn build.yml aus anderen
+# Gruenden rot ist. Der woechentliche Cron findet neue Advisories auch fuer
+# unveraenderten Code, nicht nur bei einem Push.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
+
+jobs:
+  analyze:
+    name: Analyse (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # Nur kompilieren, nicht "check": CodeQL analysiert Bytecode, ein
+      # gruener Testlauf (Pitest, JGiven, ArchUnit) traegt dazu nichts bei
+      # und wuerde den Workflow unnoetig verlangsamen.
+      - if: matrix.build-mode == 'manual'
+        run: ./gradlew compileJava compileTestJava -PskipFrontend
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

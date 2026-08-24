@@ -1,0 +1,75 @@
+# Versionsupdates fuer alle Oekosysteme im Repo. Der Commit-Typ "chore" ist
+# bewusst gewaehlt: Er ist in ci/commit-format-pruefen.sh erlaubt, loest aber
+# laut Semantic Release (ADR-019) keinen Release aus -- eine Abhaengigkeit zu
+# bumpen soll nicht automatisch deployen. github-actions bekommt "ci", weil
+# genau das die Betreffzeile des Skripts selbst fuer Workflow-Aenderungen
+# vorschlaegt.
+#
+# minor/patch-Updates werden je Oekosystem zu einer PR gebuendelt, damit die
+# Zahl der PRs beherrschbar bleibt; major-Updates bleiben einzeln, weil sie
+# eher brechende Aenderungen tragen und einzeln geprueft werden sollten.
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+    labels:
+      - "dependencies"
+      - "java"
+    groups:
+      minor-und-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+    labels:
+      - "dependencies"
+      - "frontend"
+    groups:
+      minor-und-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/e2e"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+    labels:
+      - "dependencies"
+      - "e2e"
+    groups:
+      minor-und-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      minor-und-patch:
+        update-types:
+          - "minor"
+          - "patch"
