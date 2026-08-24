@@ -15,6 +15,6 @@
   },
   // Reicht ein auf dem Host gesetztes GH_TOKEN in den Container durch.
   "remoteEnv": {
-    "GH_TOKEN": "${localEnv:GH_TOKEN_WATCHPARTY}"
+    "GH_TOKEN": "${localEnv:GH_TOKEN}"
   }
 }
