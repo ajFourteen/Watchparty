@@ -62,7 +62,7 @@ dependencies {
 
     // Die Annotationen selbst (ADR-026): @NullMarked, @Nullable. Reine
     // Deklarationen ohne Laufzeitverhalten -- die Durchsetzung macht NullAway.
-    implementation("org.jspecify:jspecify:1.0.0")
+    implementation("org.jspecify:jspecify:1.0.1")
 
     // DDD-Stereotypen (@AggregateRoot, @Entity, @ValueObject, @Identity,
     // @Service) und die Onion-Ring-Annotationen (ADR-027). Reine Marker ohne
@@ -93,13 +93,13 @@ dependencies {
     // -onion-architecture) sind reine Marker ohne diese Abhaengigkeit;
     // geprueft werden sie unten mit denselben, stabilen ArchUnit-Bausteinen,
     // die der Rest dieser Klasse schon benutzt.
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
 
     // Report- und Szenariowerkzeug der Teststrategie (docs/teststrategie.md).
     // jgiven-junit5 bringt die JUnit5-Erweiterung fuer ScenarioTest mit;
     // jqwik die Property-Tests (Abschnitt 4).
     testImplementation("com.tngtech.jgiven:jgiven-junit5:2.0.3")
-    testImplementation("net.jqwik:jqwik:1.9.3")
+    testImplementation("net.jqwik:jqwik:1.10.1")
 
     // Adapter-Tests gegen echtes Postgres statt einer Attrappe (Abschnitt
     // 2.3): derselbe SQL-Dialekt wie die Produktion, kein H2-Drift. Versionen
@@ -112,7 +112,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     errorprone("com.google.errorprone:error_prone_core:2.50.0")
-    errorprone("com.uber.nullaway:nullaway:0.13.8")
+    errorprone("com.uber.nullaway:nullaway:0.14.0")
 }
 
 // jgiven-junit5 und jqwik-engine haengen direkt (nicht nur ueber eine
