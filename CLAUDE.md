@@ -8,7 +8,10 @@ zu beobachten ist, steht in `docs/probelauf.md`. Wie getestet wird — Ebenen,
 Kritikalität, Metriken, Vorgehen bei neuen Features — steht in
 `docs/teststrategie.md`. Ideen zum Entwicklungsprozess selbst, die noch nicht
 umgesetzt sind, sammelt `docs/prozess-optimierung.md` — auch dort gilt:
-vorgeschlagen, nicht beschlossen.
+vorgeschlagen, nicht beschlossen. Wie der bereits umgesetzte Ablauf von der
+Idee bis zum Deploy zusammenhängt — Skills, Gates, Hooks, die tägliche
+Dependabot-Routine —, zeigt `docs/entwicklungsprozess.html` als Übersicht zum
+Öffnen im Browser.
 
 ## Was das ist
 

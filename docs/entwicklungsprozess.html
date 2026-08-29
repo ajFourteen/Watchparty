@@ -1,0 +1,1347 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Watchparty-Entwicklungsprozess</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --paper:      #EDF0EC;
+    --surface:    #FBFCFA;
+    --surface-2:  #E3E8E2;
+    --ink:        #161C18;
+    --muted:      #5B6660;
+    --line:       #CDD6CE;
+    --line-soft:  #DEE4DE;
+    --skill:      #92560F;
+    --skill-bg:   #F4E9D8;
+    --gate:       #2C6E49;
+    --gate-bg:    #DDEBE1;
+    --stop:       #A83A2A;
+    --stop-bg:    #F2E0DC;
+    --routine:    #2C5A7A;
+    --routine-bg: #DCE7EE;
+
+    --sans: 'Familjen Grotesk', 'Segoe UI', system-ui, sans-serif;
+    --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #121613;
+      --surface:   #1A201C;
+      --surface-2: #232B26;
+      --ink:       #E5EAE4;
+      --muted:     #9AA79E;
+      --line:      #2E3831;
+      --line-soft: #262E29;
+      --skill:     #E0A455;
+      --skill-bg:  #2A2318;
+      --gate:      #6BC793;
+      --gate-bg:   #17281E;
+      --stop:      #E88A78;
+      --stop-bg:   #2B1D19;
+      --routine:    #7EB8DE;
+      --routine-bg: #172530;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #121613;
+    --surface:   #1A201C;
+    --surface-2: #232B26;
+    --ink:       #E5EAE4;
+    --muted:     #9AA79E;
+    --line:      #2E3831;
+    --line-soft: #262E29;
+    --skill:     #E0A455;
+    --skill-bg:  #2A2318;
+    --gate:      #6BC793;
+    --gate-bg:   #17281E;
+    --stop:      #E88A78;
+    --stop-bg:   #2B1D19;
+    --routine:    #7EB8DE;
+    --routine-bg: #172530;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 60px 24px 90px;
+    display: flex;
+    flex-direction: column;
+    gap: 64px;
+  }
+
+  /* ---------- Typografie ---------- */
+
+  h1, h2, h3, .eyebrow, .chip, .rail-step, .mono { font-family: var(--sans); }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--skill);
+    margin: 0;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(34px, 5.6vw, 52px);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(22px, 3vw, 27px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
+  p { margin: 0; }
+
+  .lead {
+    max-width: 62ch;
+    font-size: 20px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  .lead b { color: var(--ink); font-weight: 600; }
+
+  code, .mono { font-family: var(--mono); }
+
+  code {
+    font-size: 0.87em;
+    background: var(--surface-2);
+    padding: 0.1em 0.34em;
+    border-radius: 3px;
+    overflow-wrap: anywhere;
+  }
+
+  a { color: var(--skill); }
+  :focus-visible { outline: 2px solid var(--skill); outline-offset: 3px; }
+
+  header.top { display: flex; flex-direction: column; gap: 18px; }
+
+  section { display: flex; flex-direction: column; gap: 22px; }
+
+  .section-head { display: flex; flex-direction: column; gap: 8px; }
+  .section-head p { max-width: 68ch; color: var(--muted); font-size: 16.5px; }
+
+  /* ---------- Chips: die drei Arten von Regeln ---------- */
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.35;
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+  }
+
+  .chip b {
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    font-size: 10.5px;
+  }
+
+  .chip.skill { color: var(--skill); background: var(--skill-bg); border-color: var(--skill); }
+  .chip.gate  { color: var(--gate);  background: var(--gate-bg);  border-color: var(--gate); }
+  .chip.hook  { color: var(--muted); background: var(--surface-2); border-color: var(--line); }
+  .chip.none  { color: var(--muted); background: transparent; border: 1px dashed var(--line); font-style: italic; }
+  .chip.stop  { color: var(--stop);  background: var(--stop-bg);  border-color: var(--stop); }
+  .chip.routine { color: var(--routine); background: var(--routine-bg); border-color: var(--routine); }
+
+  /* ---------- Legende: drei Karten ---------- */
+
+  .kinds {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+  }
+
+  .kind {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .kind p { font-size: 15.5px; line-height: 1.55; color: var(--muted); }
+  .kind p b { color: var(--ink); font-weight: 600; }
+
+  .kind .where {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    border-top: 1px solid var(--line-soft);
+    padding-top: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- Übersichtsleiste ---------- */
+
+  .rail-wrap { overflow-x: auto; padding-bottom: 6px; }
+
+  .rail {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-width: 720px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .rail-step {
+    flex: 1 1 0;
+    padding: 13px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border-right: 1px solid var(--line-soft);
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .rail-step:last-child { border-right: 0; }
+
+  .rail-step .n {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .rail-step .mark {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+  }
+  .rail-step.is-gate { background: var(--gate-bg); }
+  .rail-step.is-gate .mark { color: var(--gate); }
+  .rail-step.is-auto .mark { color: var(--muted); font-style: italic; }
+
+  /* ---------- Einstiegswege ---------- */
+
+  .paths {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 14px;
+  }
+
+  .path {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .path.regel { border-color: var(--skill); box-shadow: inset 3px 0 0 var(--skill); }
+
+  .path .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .path.regel .tag { color: var(--skill); }
+
+  .path h3 { font-size: 17px; }
+  .path p { font-size: 15.5px; color: var(--muted); }
+  .path p b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Stufen ---------- */
+
+  .stages { display: flex; flex-direction: column; gap: 0; }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    gap: 20px;
+  }
+
+  .stage-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stage-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    flex: none;
+  }
+
+  .stage-line {
+    flex: 1;
+    width: 1px;
+    background: var(--line);
+    min-height: 12px;
+  }
+
+  .stage-body {
+    padding: 0 0 34px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .stage-head { display: flex; flex-direction: column; gap: 6px; }
+
+  .stage-head .where {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+
+  .stage-body > p { max-width: 68ch; font-size: 16.5px; }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 2px 22px;
+    background: transparent;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.75;
+  }
+  .facts span::before { content: "· "; color: var(--line); }
+
+  .aside {
+    border-left: 2px solid var(--line);
+    padding: 2px 0 2px 16px;
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 66ch;
+  }
+  .aside b { color: var(--ink); font-weight: 600; }
+
+  .backflow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--stop);
+    background: var(--stop-bg);
+    border: 1px dashed var(--stop);
+    border-radius: 4px;
+    padding: 6px 10px;
+    align-self: flex-start;
+  }
+
+  /* Klammer: ein /feature-Durchlauf über mehrere Stufen */
+
+  .bracket {
+    border-left: 2px solid var(--skill);
+    border-radius: 2px;
+    padding-left: 18px;
+    margin-left: -20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .bracket-label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    padding-bottom: 16px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .bracket-label b { color: var(--skill); font-weight: 700; }
+
+  @media (max-width: 620px) {
+    .stage { grid-template-columns: 34px 1fr; gap: 14px; }
+    .bracket { margin-left: 0; padding-left: 12px; }
+  }
+
+  /* ---------- CI / Deploy ---------- */
+
+  .cards3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card .when {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .card ul {
+    margin: 0;
+    padding-left: 18px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+  .card ul li::marker { color: var(--line); }
+  .card ul li.g { color: var(--gate); }
+
+  .fork {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 14px;
+  }
+  @media (max-width: 640px) { .fork { grid-template-columns: 1fr; } }
+
+  .fork .no-release {
+    border: 1px dashed var(--line);
+    background: transparent;
+    color: var(--muted);
+  }
+  .fork .deploy { border-color: var(--gate); box-shadow: inset 3px 0 0 var(--gate); }
+
+  /* ---------- Hooks ---------- */
+
+  .hooks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .hook {
+    background: var(--surface);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .hook .ev {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--skill);
+  }
+  .hook .file { font-family: var(--mono); font-size: 11.5px; overflow-wrap: anywhere; }
+  .hook .what { font-size: 15px; color: var(--muted); line-height: 1.5; }
+
+  /* ---------- Checks ---------- */
+
+  .checks { display: flex; flex-direction: column; gap: 0; margin: 0; }
+
+  .check {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    gap: 20px;
+    padding: 18px 0;
+    border-top: 1px solid var(--line);
+  }
+  .check:last-child { border-bottom: 1px solid var(--line); }
+
+  .check dt {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gate);
+    overflow-wrap: anywhere;
+  }
+
+  .check dd { margin: 0; font-size: 16px; line-height: 1.58; max-width: 62ch; }
+
+  @media (max-width: 640px) {
+    .check { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---------- Repo-Referenz ---------- */
+
+  .refs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0;
+  }
+
+  .ref { background: var(--surface); padding: 15px 17px; display: flex; flex-direction: column; gap: 5px; }
+  .ref dt { font-size: 15px; font-weight: 600; font-family: var(--sans); }
+  .ref dd { margin: 0; font-family: var(--mono); font-size: 11.5px; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+
+  /* ---------- Fassungen ---------- */
+
+  .versions { display: flex; flex-direction: column; gap: 18px; }
+
+  .version {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .version .v {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .version p { font-size: 15.5px; line-height: 1.6; color: var(--muted); max-width: 66ch; }
+  .version p b { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .version { grid-template-columns: 1fr; gap: 8px; }
+  }
+
+  footer.closing {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head><body>
+
+<div class="page">
+
+  <header class="top">
+    <p class="eyebrow">Watchparty · Entwicklungsprozess</p>
+    <h1>Von Anlass zu Deploy</h1>
+    <p class="lead">
+      Der Weg einer Änderung, von der ersten Idee bis zur laufenden Instanz auf
+      Fly.io. Jede Stufe beantwortet zwei Fragen: <b>Wer führt hierher?</b> und
+      <b>Was wird hier geprüft — oder ausdrücklich nicht?</b> Was in
+      <code>docs/prozess-optimierung.md</code> vorgeschlagen, aber noch nicht
+      entschieden ist, steht bewusst nicht auf dieser Seite.
+    </p>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <h2>Vier Arten von Regeln — der Schlüssel zum Rest</h2>
+      <p>
+        Alles auf dieser Seite ist genau eines von vieren. Wer die Unterscheidung
+        einmal hat, liest jede Stufe darunter ohne weitere Erklärung.
+      </p>
+    </div>
+
+    <div class="kinds">
+      <div class="kind">
+        <div class="chips"><span class="chip skill"><b>Skill</b> /schneiden</span></div>
+        <p>
+          Trägt einen <b>Übergang</b>: die Reihenfolge, die man dem fertigen Code
+          nicht mehr ansieht. Braucht Urteil, läuft als gemeinsame Arbeit mit dir —
+          und lässt sich überspringen. Ein übersprungener Skill ist kein Beinbruch.
+        </p>
+        <p class="where">.claude/skills/*/SKILL.md</p>
+      </div>
+
+      <div class="kind">
+        <div class="chips"><span class="chip gate"><b>Gate</b> featuredoku</span></div>
+        <p>
+          Ein <b>deterministischer Check</b> an einer Stufe. Greift unabhängig
+          davon, ob jemand den Skill aufgerufen hat, und lässt sich nicht
+          überspringen: rot ist rot.
+        </p>
+        <p class="where">build.gradle.kts · Task check · Git-Hooks</p>
+      </div>
+
+      <div class="kind">
+        <div class="chips"><span class="chip hook"><b>Hook</b> Stop</span></div>
+        <p>
+          Greift <b>ohne Zutun</b>, weil er an einem Ereignis hängt: Sitzungsbeginn,
+          ein Bash-Aufruf, das Ende einer Antwort. Ein schmaler Ausschnitt, nicht der
+          ganze Prozess — und nur im Agent-Betrieb.
+        </p>
+        <p class="where">.claude/settings.json · ci/*.sh</p>
+      </div>
+
+      <div class="kind">
+        <div class="chips"><span class="chip routine"><b>Routine</b> Dependabot-PRs sichten und mergen</span></div>
+        <p>
+          Läuft <b>ohne offene Sitzung</b>: ein Cloud-Agent, zeitgesteuert statt an
+          ein Ereignis einer Agent-Sitzung gebunden wie ein Hook. Kein Ja/Nein-Check
+          wie ein Gate — sie <b>entscheidet</b> (mergen oder liegen lassen) und
+          handelt selbst.
+        </p>
+        <p class="where">claude.ai/code/routines · trig_01SgSa2dwKv7cpiirFASUDyz</p>
+      </div>
+    </div>
+
+    <p class="aside">
+      Dazu kommt eine vierte Angabe, die genauso ernst gemeint ist:
+      <span class="chip none"><b>keine Prüfung</b></span> heißt nicht „vergessen",
+      sondern <b>Urteilssache</b> — an dieser Stelle gibt es nichts, was eine
+      Maschine entscheiden könnte. Diese Stellen sind unten einzeln begründet.
+    </p>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Der Weg auf einen Blick</h2>
+      <p>Grün hinterlegt: Hier steht ein Gate. Ab dem Push ist kein Skill mehr beteiligt.</p>
+    </div>
+
+    <div class="rail-wrap">
+      <div class="rail">
+        <div class="rail-step"><span class="n">01</span>Schnitte<span class="mark">Urteil</span></div>
+        <div class="rail-step is-gate"><span class="n">02</span>Feature-Dokument<span class="mark">featuredoku</span></div>
+        <div class="rail-step"><span class="n">03</span>Szenarien rot<span class="mark">Urteil</span></div>
+        <div class="rail-step is-gate"><span class="n">04</span>Produktivcode<span class="mark">ArchitectureTest</span></div>
+        <div class="rail-step is-gate"><span class="n">05</span>gradle check<span class="mark">alle Tasks</span></div>
+        <div class="rail-step is-gate"><span class="n">06</span>Commit<span class="mark">commit-msg</span></div>
+        <div class="rail-step is-auto"><span class="n">07</span>Push → CI<span class="mark">automatisch</span></div>
+        <div class="rail-step is-auto"><span class="n">08</span>Deploy<span class="mark">automatisch</span></div>
+      </div>
+    </div>
+
+    <p class="aside">
+      <b>Ein zweiter Einstieg, der diese Schiene nicht durchläuft.</b> Ein von
+      Dependabot geöffneter Pull-Request hat kein Feature-Dokument und keine
+      Schnitte hinter sich — er steigt direkt bei Stufe 05/06 ein, mit der
+      Merge-Routine anstelle eines Menschen an der Commit-Stufe. Details im
+      nächsten Abschnitt.
+    </p>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Davor: Wo die Idee überhaupt hingehört</h2>
+      <p>
+        Anlass ist eine neue Idee, eine fachliche oder technische Frage, oder eine
+        Beobachtung vom Spielabend (<code>docs/probelauf.md</code>).
+        <code>/triage</code> ordnet sie einem von drei Wegen zu — die Einordnung
+        selbst prüft nichts, sie ist reine Urteilssache.
+      </p>
+    </div>
+
+    <div class="paths">
+      <div class="path regel">
+        <span class="tag">Regelfall</span>
+        <h3>Einfach neues Verhalten</h3>
+        <p>
+          Geht ohne Umweg in den Schnitt. Der Beleg steht im Repo: Feature 001, 002
+          und 003 haben keinen eigenen ADR, sie zitieren bestehende.
+        </p>
+        <div class="chips">
+          <span class="chip skill"><b>Skill</b> /triage → /schneiden</span>
+        </div>
+      </div>
+
+      <div class="path">
+        <span class="tag">Sonderfall</span>
+        <h3>Wirft eine offene Frage auf</h3>
+        <p>
+          Wandert nach <code>docs/offene-entscheidungen.md</code> und bleibt dort
+          <b>offen</b> — nachfragen, nicht stillschweigend festlegen. Ist sie
+          beantwortet, zieht <code>/entscheidung</code> die Vier-Dokumente-Kette nach
+          und die Idee kommt zurück in den Ablauf.
+        </p>
+        <div class="chips">
+          <span class="chip skill"><b>Skill</b> /triage</span>
+          <span class="chip skill"><b>Skill</b> /entscheidung</span>
+        </div>
+      </div>
+
+      <div class="path">
+        <span class="tag">Sonderfall</span>
+        <h3>Ist eine getroffene Entscheidung</h3>
+        <p>
+          Technisch nach <code>docs/adrs.md</code>, fachlich nach
+          <code>docs/anforderungen.md</code>. Nur 004 bekam einen eigenen ADR
+          (ADR-033) — und nur, weil es eine frühere Entscheidung zurücknahm.
+        </p>
+        <div class="chips">
+          <span class="chip skill"><b>Skill</b> /adr</span>
+          <span class="chip none"><b>keine Prüfung</b> direkt</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="aside">
+      <b>Warum an „Entscheidung dokumentiert" kein Gate steht.</b> Die Anforderungen
+      wachsen <i>im</i> Feature, nicht davor: Die neuen Anhang-A-IDs entstehen als
+      Teil des Feature-Dokuments, nicht als seine Vorbedingung. Geprüft wird deshalb
+      später und anders — <code>abdeckung</code> bleibt rot, bis ein grün gelaufenes
+      Szenario die Regel belegt.
+    </p>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Ein zweiter Anlass: automatisierte Updates</h2>
+      <p>
+        Nicht jede Änderung beginnt bei einer Idee. Ein von Dependabot geöffneter
+        Pull-Request ist bereits ein fertiger, mechanisch erzeugter Diff — dafür
+        gibt es nichts zu triagieren, <code>/triage</code> und <code>/schneiden</code>
+        bleiben außen vor. CodeQL läuft unabhängig davon als zweite, ständig
+        mitlaufende Prüfung. Was aus beidem einen Merge macht, ist seit dem
+        29.08.2026 eine eigene Routine.
+      </p>
+    </div>
+
+    <div class="hooks">
+      <div class="hook">
+        <span class="ev">Dependabot</span>
+        <span class="file">.github/dependabot.yml</span>
+        <span class="what">
+          Wöchentlich je Ökosystem (gradle, npm/frontend, npm/e2e, github-actions).
+          Minor-/Patch-Updates bündelt eine Gruppe zu einer PR, Major-Updates
+          bleiben einzeln — bewusst, weil sie eher brechende Änderungen tragen.
+          Commit-Präfix <code>chore</code>/<code>ci</code>, löst laut ADR-019
+          keinen Release aus.
+        </span>
+      </div>
+      <div class="hook">
+        <span class="ev">CodeQL</span>
+        <span class="file">.github/workflows/codeql.yml</span>
+        <span class="what">
+          Unabhängig von build.yml: läuft bei jedem Push/PR auf main und
+          zusätzlich wöchentlich, auch wenn der Testlauf aus anderen Gründen rot
+          ist. Analysiert Bytecode (Java/Kotlin, nach reinem
+          <code>compileJava</code>/<code>compileTestJava</code>, kein voller
+          <code>check</code>) und JavaScript/TypeScript — kein Gate im Sinne von
+          <code>check</code>, meldet Advisories statt einen lokalen Ablauf zu
+          blockieren.
+        </span>
+      </div>
+      <div class="hook">
+        <span class="ev">Routine</span>
+        <span class="file">claude.ai/code/routines · täglich 05:00 UTC</span>
+        <span class="what">
+          Sichtet offene Dependabot-PRs. Nur Minor-/Patch-Sprünge gelten als
+          unkritisch und werden nach grüner CI direkt (squash) gemergt; jeder
+          Major-Sprung bleibt liegen und bekommt einen erklärenden Kommentar
+          statt eines Merges. Nach jedem Merge beobachtet sie den ausgelösten
+          CI-Lauf auf main und macht einen Fehlschlag über einen
+          Commit-Kommentar sichtbar.
+        </span>
+      </div>
+    </div>
+
+    <p class="aside">
+      <b>Wo das wieder auf die bekannten Gates trifft.</b> Die Routine fügt
+      selbst keine neue Prüfung hinzu — sie entscheidet nur, <i>wann</i> ein
+      schon bestehendes Ergebnis (grüner build.yml-Lauf) zu einem Merge führt.
+      Der lokale <code>commit-msg</code>-Hook aus Stufe 06 greift dabei nicht:
+      Ein serverseitiger Squash-Merge ist kein lokaler Commit. Das Format prüft
+      stattdessen <code>ci/commit-format-pruefen.sh</code> in
+      <code>build.yml</code> — dort für jeden Push und jede PR, nicht nur für
+      von Menschen gemachte.
+    </p>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Die Stufen bis zum Commit</h2>
+      <p>
+        Jede Stufe nennt den Skill, der in sie hineinführt, und die Prüfung, die an
+        ihr steht.
+      </p>
+    </div>
+
+    <div class="stages">
+
+      <div class="stage">
+        <div class="stage-rail"><div class="stage-num">01</div><div class="stage-line"></div></div>
+        <div class="stage-body">
+          <div class="stage-head">
+            <h3>Schnitte</h3>
+            <p class="where">eine Idee → mehrere vertikale Scheiben · eine Scheibe = ein Dokument</p>
+          </div>
+          <p>
+            Jede Scheibe geht dünn durch alle Ringe und ist für sich benutzbar. Das
+            Gegenteil ist Feature 005, wo bis Stufe 7 von 9 niemand etwas tun konnte.
+          </p>
+          <div class="chips">
+            <span class="chip skill"><b>Skill</b> /schneiden</span>
+            <span class="chip none"><b>keine Prüfung</b> — die Schnittrichtung ist Urteil</span>
+          </div>
+          <p class="aside">
+            <b>Was die fünf Regeln von <code>featuredoku</code> nicht können.</b> Sie
+            messen die <i>Größe</i> eines Schnitts, nicht seine <i>Richtung</i>. Ein
+            Dokument „Persistenz für das Tippspiel" — eine Stufe MEDIUM, fünf
+            Kriterien, keine Baustufen — besteht alle fünf und ist trotzdem kein
+            Slice, sondern Schicht 2 von 005: Nach seiner Fertigstellung kann niemand
+            etwas tun, was vorher nicht ging. Eine Schicht darf klein sein. Deshalb
+            zerlegt <code>/schneiden</code> nach Fähigkeiten („ich kann ein Spiel
+            tippen") statt nach Bauteilen („Persistenz", „Oberfläche") — und das
+            bleibt Urteilssache.
+          </p>
+        </div>
+      </div>
+
+      <div class="bracket">
+        <div class="bracket-label">
+          <b>SKILL: /feature</b>
+          <span>Stufen 02–04 sind <b>ein</b> Durchlauf, nicht drei Aufrufe.</span>
+          <span>Kern: die Szenarien laufen rot, bevor es Produktivcode gibt.</span>
+        </div>
+
+        <div class="stage">
+          <div class="stage-rail"><div class="stage-num">02</div><div class="stage-line"></div></div>
+          <div class="stage-body">
+            <div class="stage-head">
+              <h3>Feature-Dokument</h3>
+              <p class="where">docs/features/NNN-kurzname.md · Vorlage: docs/features/_vorlage.md</p>
+            </div>
+            <div class="facts">
+              <span>Anlass</span>
+              <span>Betroffene Anforderungen · ID-Tabelle</span>
+              <span>Akzeptanzkriterien · höchstens zwölf</span>
+              <span>Szenarien · Angenommen–Wenn–Dann</span>
+              <span>Kritikalität · genau eine Stufe</span>
+              <span>Umgesetzt in</span>
+              <span>Offene Fragen</span>
+            </div>
+            <div class="chips">
+              <span class="chip gate"><b>Gate</b> featuredoku — sieben Pflichtabschnitte</span>
+              <span class="chip gate"><b>Gate</b> genau eine Kritikalitätsstufe</span>
+              <span class="chip gate"><b>Gate</b> höchstens zwölf Kriterien</span>
+              <span class="chip gate"><b>Gate</b> ID-Tabelle gegen Anhang A</span>
+              <span class="chip gate"><b>Gate</b> keine eigene Baustufentabelle</span>
+            </div>
+            <p class="aside">
+              <b>Ein Dokument, ein Feature — seit dem 21.08.2026 gemessen.</b>
+              <code>featuredoku</code> prüfte vorher nur, ob die sieben Abschnitte da
+              sind. Anlass für die vier neuen Regeln war Feature 005: 38 Kriterien,
+              acht Kritikalitätsbereiche und neun Baustufen in einer Datei, dazu ein
+              <code>feat:</code>-Commit je Stufe. Die Teilung hatte stattgefunden, nur
+              im Dokument statt in Dokumenten. Damit wurde auch der Abgleich
+              „Feature-Dokument ↔ Anhang A" möglich, der zuvor als nicht baubar
+              abgelegt war: Der Abschnitt trägt jetzt eine Pflichttabelle
+              <code>| ID | Bezug |</code>, Fließtext steht darunter und bleibt
+              ungeparst. 002, 004 und 005 liegen über der Grenze und sind namentlich
+              als Bestandsschutz eingetragen.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="stage-rail"><div class="stage-num">03</div><div class="stage-line"></div></div>
+          <div class="stage-body">
+            <div class="stage-head">
+              <h3>Szenarien laufen <span style="color:var(--stop)">rot</span></h3>
+              <p class="where">Szenarien des Dokuments eins zu eins als JGiven-Stufen</p>
+            </div>
+            <p>
+              Vor jeder Zeile Produktivcode. Das ist der Kern von <code>/feature</code>
+              — und die einzige Stelle des ganzen Ablaufs, an der die Reihenfolge selbst
+              das Ergebnis ist.
+            </p>
+            <div class="chips">
+              <span class="chip none"><b>keine Prüfung</b> — Reihenfolge ist nicht nachträglich prüfbar</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="stage-rail"><div class="stage-num">04</div><div class="stage-line"></div></div>
+          <div class="stage-body">
+            <div class="stage-head">
+              <h3>Produktivcode: Domain → Application → Adapter → Config</h3>
+              <p class="where">Abhängigkeiten zeigen ausschließlich nach innen (ADR-024)</p>
+            </div>
+            <div class="chips">
+              <span class="chip skill"><b>Skill</b> /domaenentyp</span>
+              <span class="chip gate"><b>Gate</b> ArchitectureTest — Ringe (ADR-024)</span>
+              <span class="chip gate"><b>Gate</b> DDD-Stereotypen (ADR-025/027)</span>
+              <span class="chip gate"><b>Gate</b> NullAway beim Kompilieren</span>
+            </div>
+            <div class="facts">
+              <span>Invariante 1: kein java.util.concurrent, synchronized, volatile in domain</span>
+              <span>Invariante 2: keine blockierenden Aufrufe im Anwendungsring</span>
+            </div>
+            <p class="aside">
+              <b>Warum hier nur Invariante 1 und 2 stehen.</b> Weil nur die beiden eine
+              einzelne, benannte ArchUnit-Regel haben — nicht, weil die anderen fünf
+              ungeprüft blieben. Invariante 3 ist ein Entwurfsprinzip, keine einzelne
+              Regel. Invariante 4 und 5 laufen über dedizierte JGiven-Szenarien und
+              <code>pitest</code> auf den HIGH-Klassen (<code>RoomView</code>,
+              <code>Settlement</code>) — innerhalb desselben <code>gradle check</code>,
+              nur ohne eigenen Namen. Invariante 6 steht im Deploy
+              (<code>eine-maschine-pruefen.sh</code>), Invariante 7 in den vier
+              Trennungsregeln unter <code>archTest — Spielmodus-Trennung</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-rail"><div class="stage-num">05</div><div class="stage-line"></div></div>
+        <div class="stage-body">
+          <div class="stage-head">
+            <h3>gradle check</h3>
+            <p class="where">lokal, jederzeit wiederholbar — hier laufen die Szenarien und werden bewertet</p>
+          </div>
+          <p>
+            Die wichtigste Reihenfolge-Aussage der ganzen Seite: Die JGiven-Szenarien
+            werden nicht <i>vor</i> <code>check</code> grün, sondern <i>innerhalb</i>
+            davon — über <code>test</code>, <code>adapterTest</code> und
+            <code>apiTest</code>. <code>/pruefen</code> staffelt das nur, damit man
+            nicht blind den vollen Build startet.
+          </p>
+          <div class="chips">
+            <span class="chip skill"><b>Skill</b> /pruefen</span>
+          </div>
+          <div class="facts">
+            <span>compileJava (NullAway)</span>
+            <span>test · adapterTest · apiTest · archTest</span>
+            <span>jacoco (3 Ebenen)</span>
+            <span>ebenenDisjunktheit</span>
+            <span>pitest — HIGH-Klassen, 99 %</span>
+            <span>abdeckung (Kompass)</span>
+            <span>aufbaudoku</span>
+            <span>featuredoku</span>
+            <span>protokollvertrag</span>
+            <span>ausnahmenregister</span>
+            <span>jgivenTestReport</span>
+          </div>
+          <span class="backflow">rot → zurück zu Stufe 04, beheben, erneut prüfen</span>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-rail"><div class="stage-num">06</div><div class="stage-line"></div></div>
+        <div class="stage-body">
+          <div class="stage-head">
+            <h3>Commit</h3>
+            <p class="where">direkt auf main — keine Feature-Branches</p>
+          </div>
+          <p>
+            Conventional Commits: <code>feat</code> · <code>fix</code> ·
+            <code>docs</code> · <code>chore</code> · <code>refactor</code> ·
+            <code>test</code>. Der Typ ist keine Beschriftung, sondern eine
+            Deployment-Entscheidung — er entscheidet über das Release (ADR-019).
+          </p>
+          <div class="chips">
+            <span class="chip skill"><b>Skill</b> /freigabe</span>
+            <span class="chip skill"><b>Skill</b> /invarianten-review</span>
+            <span class="chip gate"><b>Gate</b> commit-msg — Format</span>
+            <span class="chip gate"><b>Gate</b> commit-msg — releasender Typ ⇒ Anwendungsdatei</span>
+            <span class="chip hook"><b>Hook</b> PreToolUse — kein Branch, Pull (nur Agent)</span>
+          </div>
+          <p class="aside">
+            <b>Freigabe jetzt auch als Check.</b> Der <code>commit-msg</code>-Hook lehnt
+            jeden releasenden Commit (<code>feat:</code>/<code>fix:</code>/<code>perf:</code>)
+            ab, der keine einzige Datei unter <code>src/main/</code>,
+            <code>frontend/src/</code>, <code>build.gradle.kts</code>,
+            <code>Dockerfile</code> oder <code>fly.toml</code> ändert — die enge,
+            pfadbasierte Fassung von <code>/freigabe</code>, nicht die verworfene
+            Vollversion „Typ passt zum Diff-Inhalt". Die Gegenprobe gegen die eigene
+            Historie fand sofort einen echten Treffer.
+          </p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-rail"><div class="stage-num">07</div></div>
+        <div class="stage-body">
+          <div class="stage-head">
+            <h3>Push</h3>
+            <p class="where">startet drei CI-Läufe — ab hier ist kein Skill mehr beteiligt</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Ab dem Push läuft es allein</h2>
+      <p>
+        Vier Workflows reagieren auf denselben Push, einer davon zusätzlich auf
+        jede PR und wöchentlich ganz unabhängig davon. Nur einer kann ein Deploy
+        auslösen.
+      </p>
+    </div>
+
+    <div class="cards3">
+      <div class="card">
+        <h3>build.yml</h3>
+        <p class="when">jeder Push &amp; jede PR</p>
+        <ul>
+          <li class="g">commit-format-pruefen.sh</li>
+          <li>Frontend bauen (npm ci · build)</li>
+          <li class="g">gradle check -PskipFrontend</li>
+          <li>Test-/JGiven-Bericht (Artifact)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>release.yml</h3>
+        <p class="when">nur Push auf main</p>
+        <ul>
+          <li>ruft build.yml auf</li>
+          <li class="g">Semantic Release</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>pages.yml</h3>
+        <p class="when">Push auf main, unabhängig von release.yml</p>
+        <ul>
+          <li>ruft build.yml auf</li>
+          <li>JGiven-Bericht</li>
+          <li>→ GitHub Pages (Teststrategie §8)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>codeql.yml</h3>
+        <p class="when">Push &amp; PR auf main, zusätzlich wöchentlich (Mo 04:23 UTC)</p>
+        <ul>
+          <li>unabhängig von build.yml — läuft auch bei rotem Testlauf</li>
+          <li>nur compileJava/compileTestJava, kein voller check</li>
+          <li>CodeQL-Analyse Java/Kotlin + JavaScript/TypeScript</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="fork">
+      <div class="card no-release">
+        <h3>Kein Release</h3>
+        <p class="when">kein feat/fix/perf</p>
+        <p style="font-size:15.5px;color:var(--muted)">
+          <code>chore:</code>, <code>docs:</code> und der Rest ändern nichts an der
+          laufenden Instanz (ADR-019).
+        </p>
+      </div>
+      <div class="card deploy">
+        <h3>Deploy</h3>
+        <p class="when">nur wenn ein Release veröffentlicht wurde</p>
+        <ul>
+          <li>fly deploy --ha=false --remote-only</li>
+          <li class="g">ci/eine-maschine-pruefen.sh — Invariante 6</li>
+          <li class="g">Rauchtest über WebSocket — ci/rauchtest.mjs</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Die Hooks — die schmale automatische Spur</h2>
+      <p>
+        Sie hängen je an einem Ereignis der Agent-Sitzung und greifen ohne Zutun.
+        Skills wirken vorher, Hooks danach. Für CI oder manuelles Editieren gelten
+        sie nicht.
+      </p>
+    </div>
+
+    <div class="hooks">
+      <div class="hook">
+        <span class="ev">SessionStart</span>
+        <span class="file">ci/sitzungsstart.sh</span>
+        <span class="what">Speist Arbeitsstand und offene Entscheidungen zu Sitzungsbeginn ein.</span>
+      </div>
+      <div class="hook">
+        <span class="ev">PreToolUse</span>
+        <span class="file">ci/git-regeln-hook.sh</span>
+        <span class="what">Kein Branch, Pull vor dem Commit.</span>
+      </div>
+      <div class="hook">
+        <span class="ev">PostToolUse</span>
+        <span class="file">ci/pipeline-beobachten.sh</span>
+        <span class="what">Beobachtet den CI-Lauf asynchron weiter.</span>
+      </div>
+      <div class="hook">
+        <span class="ev">Stop</span>
+        <span class="file">ci/stop-arbeit-abschliessen.sh</span>
+        <span class="what">Zwei Fälle: unsauberer Arbeitsbaum → prüfen, committen, pushen. Sauber, aber Commits vor dem Upstream → pushen.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Die acht ungewöhnlichen Checks</h2>
+      <p>
+        Compiler, JUnit und ArchUnit prüfen, was man von ihnen erwartet. Diese acht
+        laufen genauso deterministisch mit, sind aber eigens für dieses Projekt
+        geschrieben — jeder ersetzt eine Regel, die sonst nur als Konvention im Kopf
+        stünde.
+      </p>
+    </div>
+
+    <dl class="checks">
+      <div class="check">
+        <dt>abdeckung</dt>
+        <dd>
+          Vergleicht die Anhang-A-Regeln aus <code>anforderungen.md</code> nicht mit
+          annotierten, sondern mit <b>grün gelaufenen</b>
+          <code>@Anforderung</code>-Testmethoden: Es parst die JUnit-XML-Berichte aller
+          drei Ebenen und gleicht sie per Reflection über die kompilierten Testklassen
+          ab. Ein rot gelaufenes oder auskommentiertes Szenario zählt nicht als Beleg.
+        </dd>
+      </div>
+      <div class="check">
+        <dt>ebenenDisjunktheit</dt>
+        <dd>
+          Liest die JaCoCo-XML-Berichte von <code>test</code>, <code>adapterTest</code>
+          und <code>apiTest</code> und prüft: Jede Domänenzeile, die ein Adapter- oder
+          API-Test abdeckt, muss auch ein Unit-/Port-Test abdecken. Deckt nur die äußere
+          Ebene eine innere Zeile ab, ist das eine Lücke weiter innen, kein Verdienst
+          der äußeren Ebene.
+        </dd>
+      </div>
+      <div class="check">
+        <dt>protokollvertrag</dt>
+        <dd>
+          Extrahiert per Regex alle Frame-Typen, Phasenwerte und Annullierungsgründe aus
+          <code>Messages.java</code>, <code>GameWebSocketHandler.java</code>,
+          <code>Phase.java</code>, <code>RoomView.java</code> sowie alle Record-Feldnamen
+          per Reflection, und gleicht sie mit den Literalen im Frontend-Quellcode ab — in
+          beide Richtungen: unbekannte Frontend-Token, unbenutzte Frame-Typen und
+          unbenutzte Feldnamen sind alle drei ein roter Build.
+        </dd>
+      </div>
+      <div class="check">
+        <dt>ausnahmenregister</dt>
+        <dd>
+          Sammelt jede <code>@AequivalenterMutant</code>- und <code>@Disabled</code>-Annotation
+          per Reflection und gleicht sie bidirektional mit
+          <code>docs/test-ausnahmen.md</code> ab: eine Unterdrückung ohne Eintrag ist ein
+          Fehler, ein Eintrag ohne Unterdrückung — eine Karteileiche — ebenso.
+        </dd>
+      </div>
+      <div class="check">
+        <dt>featuredoku</dt>
+        <dd>
+          Fünf Regeln, alle mit demselben Zweck: dass ein Dokument <b>ein</b> Feature
+          beschreibt und nicht acht. Die sieben Pflichtabschnitte der Vorlage; genau eine
+          Kritikalitätsstufe als maschinenlesbare Zeile <code>**Stufe:** …</code>; die
+          Pflichttabelle <code>| ID | Bezug |</code>, deren IDs mit
+          <code>Bezug != neu</code> in Anhang A stehen müssen; höchstens zwölf
+          Akzeptanzkriterien; keine eigene Baustufentabelle. 002, 004 und 005 liegen über
+          der Kriteriengrenze und sind namentlich im Task eingetragen —
+          Feature-Dokumente werden nach der Umsetzung nicht mehr gepflegt. Ungeprüft
+          bleibt, ob „Umgesetzt in" existierende Klassen nennt (zu viele andere
+          Backtick-Wörter im Fließtext) — und die Schnittrichtung: Ein horizontaler
+          Schnitt besteht alle fünf Regeln.
+        </dd>
+      </div>
+      <div class="check">
+        <dt>pitest</dt>
+        <dd>
+          Läuft nicht projektweit, sondern ausschließlich auf den mit
+          <code>@Criticality(HIGH)</code> markierten Klassen — die Zielmenge wird per
+          Reflection direkt aus der Annotation abgeleitet, keine gepflegte Kopie mehr —,
+          dafür mit 99 % Mutationsschwelle statt einer üblichen Prozent-Zeilenabdeckung.
+        </dd>
+      </div>
+      <div class="check">
+        <dt>archTest — Spielmodus-Trennung</dt>
+        <dd>
+          Vier Regeln, die in beide Richtungen verbieten, dass ein Ligatyp einen
+          Live-Wetten-Typ kennt oder umgekehrt — sowohl auf der Domänen- als auch auf der
+          Anwendungsebene, mit einer einzigen benannten Ausnahme (der geteilte
+          <code>Scheduler</code>-Port, ADR-037). Ohne diese Regel wäre die in CLAUDE.md
+          behauptete Trennung der beiden Spielmodi nur eine Absicht.
+        </dd>
+      </div>
+      <div class="check">
+        <dt>archTest — awaitIdle</dt>
+        <dd>
+          <code>RoomActor.awaitIdle()</code> muss <code>public</code> sein, damit
+          JGiven-Testcode auf einen leeren Raum-Thread warten kann — genau diese
+          Sichtbarkeit machte die Methode aber auch aus einem WebSocket-Handler
+          erreichbar, wo sie Invariante 2 bräche (ein Request-Thread wartet auf den
+          Raum-Thread). Diese Regel stellt sicher, dass ausschließlich Testcode sie
+          aufruft.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Woran das im Repo hängt</h2>
+    </div>
+    <dl class="refs">
+      <div class="ref"><dt>Offene Fragen</dt><dd>docs/offene-entscheidungen.md</dd></div>
+      <div class="ref"><dt>Entscheidungen</dt><dd>docs/adrs.md · docs/anforderungen.md</dd></div>
+      <div class="ref"><dt>Feature-Vorlage &amp; Testvorgehen</dt><dd>docs/features/_vorlage.md · docs/teststrategie.md (9.1)</dd></div>
+      <div class="ref"><dt>Lokale Gates</dt><dd>build.gradle.kts — Task check (u. a. featuredoku) · ArchitectureTest.java</dd></div>
+      <div class="ref"><dt>Skills</dt><dd>.claude/skills/*/SKILL.md — triage, entscheidung, adr, schneiden, feature, domaenentyp, pruefen, invarianten-review, freigabe, probelauf</dd></div>
+      <div class="ref"><dt>Agent-Hooks</dt><dd>ci/sitzungsstart.sh · ci/git-regeln-hook.sh · ci/pipeline-beobachten.sh · ci/stop-arbeit-abschliessen.sh · .claude/settings.json</dd></div>
+      <div class="ref"><dt>CI-Workflows</dt><dd>.github/workflows/build.yml · release.yml · pages.yml · codeql.yml</dd></div>
+      <div class="ref"><dt>Deploy-Absicherung</dt><dd>ci/eine-maschine-pruefen.sh · ci/rauchtest.mjs</dd></div>
+      <div class="ref"><dt>Commit-Konvention</dt><dd>Conventional Commits · ci/commit-format-pruefen.sh (ADR-019)</dd></div>
+      <div class="ref"><dt>Dependabot-Konfiguration</dt><dd>.github/dependabot.yml</dd></div>
+      <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_01SgSa2dwKv7cpiirFASUDyz</dd></div>
+    </dl>
+  </section>
+
+  <section class="versions">
+    <div class="section-head">
+      <h2>Zur Fassung</h2>
+      <p>Was sich von Fassung zu Fassung geändert hat — und warum.</p>
+    </div>
+
+    <div class="version">
+      <span class="v">Fünfte Fassung<br>2026-08-29</span>
+      <p>
+        <b>Ein zweiter Anlass kam dazu, der bislang fehlte.</b> Dependabot öffnet
+        seit Projektbeginn PRs und CodeQL läuft seit dem Setup mit — beide
+        standen bisher nicht auf dieser Seite, obwohl sie regelmäßig Commits auf
+        <code>main</code> bringen bzw. Sicherheits-Advisories melden. Dazu kam am
+        selben Tag eine neue Kategorie von Regel: die <b>Routine</b>, ein
+        Cloud-Agent, der ohne offene Sitzung zeitgesteuert läuft und selbst
+        entscheidet statt nur zu prüfen — anders als jeder Hook, der an ein
+        Sitzungsereignis gebunden ist. Die Vier-Regeln-Karte am Anfang der Seite
+        und der Abschnitt „Ein zweiter Anlass" tragen das nach.
+      </p>
+    </div>
+
+    <div class="version">
+      <span class="v">Vierte Fassung<br>2026-08-21</span>
+      <p>
+        <b>Der Stop-Hook prüfte nur die Hälfte seiner eigenen Regel.</b> Er soll
+        erzwingen, dass fertige Arbeit committet <i>und gepusht</i> wird — geprüft hat
+        er aber nur den Arbeitsbaum und stieg bei einem sauberen sofort aus. Acht
+        fertige, ungepushte Commits waren für ihn unsichtbar; aufgefallen ist es, weil
+        das Pushen als Frage angeboten statt getan wurde. Er blockt jetzt in beiden
+        Fällen und heißt <code>ci/stop-arbeit-abschliessen.sh</code> — der alte Name
+        <code>stop-unclean-worktree.sh</code> war nach dem Umbau nur noch die halbe
+        Wahrheit. Innerhalb von zwei Tagen der dritte Fall desselben Musters: Die
+        Regel war weiter formuliert als ihre Prüfung.
+      </p>
+    </div>
+
+    <div class="version">
+      <span class="v">Dritte Fassung<br>2026-08-21</span>
+      <p>
+        <b>Gleicher Inhalt, andere Form.</b> Das eine große Diagramm ist in Stufen
+        aufgelöst: Es zwang jede Aussage in 10-Punkt-Text auf 940 Pixel Mindestbreite,
+        und die Erklärungen dazu standen als Blocktext darunter, zehn Absätze weit weg
+        von der Stelle, die sie erklärten. Jetzt steht jede Begründung bei ihrer Stufe.
+        Vorangestellt ist die Unterscheidung, die den Rest lesbar macht — Skill, Gate,
+        Hook — und eine Übersichtsleiste für den schnellen Blick. Sachlich ist nichts
+        weggefallen.
+      </p>
+    </div>
+
+    <div class="version">
+      <span class="v">Zweite Fassung</span>
+      <p>
+        Neu war der Schritt <b>Schnitte</b> mit <code>/schneiden</code> vor dem
+        Feature-Dokument — er fehlte, weil <code>/feature</code> beim fertigen Schnitt
+        anfing und <code>/triage</code> nur einordnet. Dazu die vier neuen Regeln in
+        <code>featuredoku</code>. <code>/feature</code> stand vorher dreimal als
+        Pfeil-Label da und las sich wie drei Aufrufe; es ist ein Durchlauf. Und der
+        kurze Weg fehlte ganz: Bis dahin lief jeder Pfeil vom Auslöser durch
+        „Entscheidung dokumentiert", als bräuchte jede Idee erst einen ADR. Der
+        <b>SessionStart</b>-Hook ist seither gebaut: <code>ci/sitzungsstart.sh</code>
+        speist Arbeitsstand und offene Entscheidungen ein — die Regel „dort nichts
+        stillschweigend festlegen" verlangte bis dahin, dass man die Datei liest, also
+        genau dann nachschlägt, wenn man ohnehin schon ahnt, dass eine Frage offen ist.
+        Zwei Prüfungen, die ein Prozess-Audit am Vortag als „nicht baubar" bzw. „nicht
+        schließbar" abgelegt hatte, sind damit gebaut: Beide Befunde stimmten, aber sie
+        zeigten auf einen Formatmangel, der als Naturgesetz verbucht wurde.
+      </p>
+    </div>
+
+    <div class="version">
+      <span class="v">Erste Fassung</span>
+      <p>
+        Die Skill-Angaben wanderten an die Übergänge statt an die Stufen — ein Skill
+        beschreibt den Weg von A nach B, keine Eigenschaft von B. Die Reihenfolge
+        zwischen Implementierung und Prüfung war falsch benannt: Die JGiven-Szenarien
+        werden nicht vor <code>gradle check</code> grün, sondern durch
+        <code>check</code> selbst. Der Kasten „Agent-Sitzung" hieß so, als wäre nur er
+        der agentisch begleitete Teil — er heißt jetzt „Hooks" und ist als schmaler
+        Ausschnitt markiert. Die Commit-Stufe prüft das Format seither auch lokal über
+        einen echten Git-<code>commit-msg</code>-Hook, nicht mehr erst in CI. Und die
+        ungewöhnlichen Checks stehen ausformuliert da, nicht nur als Name im Diagramm.
+      </p>
+    </div>
+  </section>
+
+  <footer class="closing">
+    Stand 2026-08-29 · Watchparty · beschreibt den umgesetzten Prozess, keine Vorschläge
+  </footer>
+
+</div>
+</body>
+</html>
