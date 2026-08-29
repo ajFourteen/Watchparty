@@ -36,7 +36,7 @@ jobs:
 
       - name: Semantic Release
         id: semrelease
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@v6
         with:
           extra_plugins: |
             @semantic-release/changelog@6
