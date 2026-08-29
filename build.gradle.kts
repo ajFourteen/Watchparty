@@ -14,7 +14,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     // Setzen JSpecify durch: ein @Nullable an der falschen Stelle ist ein
     // Compile-Fehler, keine Doku (ADR-026).
-    id("net.ltgt.errorprone") version "4.1.0"
+    id("net.ltgt.errorprone") version "5.1.0"
     id("net.ltgt.nullaway") version "3.1.0"
     // Erzeugt den JGiven-HTML-Report aus den JSON-Ergebnissen, die
     // jgiven-junit5 beim Testlauf schreibt (docs/teststrategie.md, Abschnitt 8).
@@ -1335,7 +1335,7 @@ tasks.withType<JavaCompile>().configureEach {
 // deshalb ohnehin durch, aber ohne Error Prone ueberhaupt erst anzuwerfen
 // spart das Zeit und macht die Abgrenzung im Build sichtbar.
 tasks.named<JavaCompile>("compileTestJava") {
-    options.errorprone.isEnabled.set(false)
+    options.errorprone.enabled.set(false)
 }
 
 // Die Wett-Texte und Fehlermeldungen gehen unveraendert in die Oberflaeche,
