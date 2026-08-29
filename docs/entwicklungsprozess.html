@@ -643,8 +643,8 @@
         <p>
           Läuft <b>ohne offene Sitzung</b>: ein Cloud-Agent, zeitgesteuert statt an
           ein Ereignis einer Agent-Sitzung gebunden wie ein Hook. Kein Ja/Nein-Check
-          wie ein Gate — sie <b>entscheidet</b> (mergen oder liegen lassen) und
-          handelt selbst.
+          wie ein Gate — sie <b>entscheidet und handelt selbst</b>: mergen, für einen
+          Major-Sprung selbst Code anpassen und dann mergen, oder liegen lassen.
         </p>
         <p class="where">claude.ai/code/routines · trig_01SgSa2dwKv7cpiirFASUDyz</p>
       </div>
@@ -791,12 +791,14 @@
         <span class="ev">Routine</span>
         <span class="file">claude.ai/code/routines · täglich 05:00 UTC</span>
         <span class="what">
-          Sichtet offene Dependabot-PRs. Nur Minor-/Patch-Sprünge gelten als
-          unkritisch und werden nach grüner CI direkt (squash) gemergt; jeder
-          Major-Sprung bleibt liegen und bekommt einen erklärenden Kommentar
-          statt eines Merges. Nach jedem Merge beobachtet sie den ausgelösten
-          CI-Lauf auf main und macht einen Fehlschlag über einen
-          Commit-Kommentar sichtbar.
+          Sichtet offene Dependabot-PRs. Minor-/Patch-Sprünge gelten als
+          unkritisch und werden nach grüner CI direkt (squash) gemergt. Bei
+          einem Major-Sprung checkt sie den PR-Branch aus, liest die Release
+          Notes und versucht — bis zu zwei Zyklen — den Sprung durch eigene,
+          minimal-invasive Codeänderungen wieder grün zu bekommen; erst dann
+          mergt sie. Nach jedem Merge beobachtet sie den ausgelösten CI-Lauf
+          auf main und macht einen Fehlschlag über einen Commit-Kommentar
+          sichtbar.
         </span>
       </div>
     </div>
@@ -810,6 +812,24 @@
       stattdessen <code>ci/commit-format-pruefen.sh</code> in
       <code>build.yml</code> — dort für jeden Push und jede PR, nicht nur für
       von Menschen gemachte.
+    </p>
+
+    <p class="aside">
+      <b>Seit dem 29.08.2026 auch mit Schreibrecht auf Produktivcode — mit
+      Leitplanken.</b> Ursprünglich rührte die Routine bei einem Major-Sprung
+      nichts an. Jetzt darf sie reparieren, dafür gilt strenger als für jeden
+      von Hand gemachten Commit: <code>./gradlew check</code> muss vollständig
+      grün sein, kein Gate darf dafür geschwächt werden (kein
+      <code>@Disabled</code>, keine abgesenkte Mutationsschwelle, keine
+      aufgeweichte <code>ArchitectureTest</code>-Regel), und der Commit-Typ
+      bleibt zwingend <code>chore</code>/<code>ci</code> — nie
+      <code>fix</code>/<code>feat</code>/<code>perf</code>, sonst würde
+      ADR-019 automatisch deployen. Berührt die Reparatur Code unter
+      <code>domain</code>, <code>application</code> oder <code>adapter</code>,
+      ruft sie zusätzlich <code>/invarianten-review</code> selbst auf. Bleibt
+      es nach zwei Versuchen rot oder verlangt es eine echte Designentscheidung
+      statt einer mechanischen Anpassung, mergt sie weiterhin nicht — dann wie
+      zuvor nur ein Kommentar.
     </p>
   </section>
 
@@ -1257,6 +1277,23 @@
     <div class="section-head">
       <h2>Zur Fassung</h2>
       <p>Was sich von Fassung zu Fassung geändert hat — und warum.</p>
+    </div>
+
+    <div class="version">
+      <span class="v">Sechste Fassung<br>2026-08-29</span>
+      <p>
+        <b>Die Routine darf jetzt auch kritische PRs reparieren, nicht nur
+        liegen lassen.</b> Noch am selben Tag, wenige Stunden nach der
+        fünften Fassung: Auf ausdrücklichen Wunsch merged sie Major-Sprünge
+        jetzt aktiv — inklusive eigener Codeänderungen — statt sie
+        grundsätzlich einem Menschen zu überlassen. Das ist eine echte
+        Risikoerhöhung (Schreibzugriff auf Produktivcode, unbeaufsichtigt,
+        täglich), deshalb die ausführlichen Leitplanken in der Routine- und
+        in der Gates-Karte oben: <code>./gradlew check</code> als Pflicht statt
+        als Empfehlung, <code>/invarianten-review</code> bei domain-naher
+        Änderung, keine geschwächten Gates, Commit-Typ bleibt hart auf
+        chore/ci verdrahtet.
+      </p>
     </div>
 
     <div class="version">
