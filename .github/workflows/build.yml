@@ -18,7 +18,7 @@ jobs:
     steps:
       # Volle Historie: Die Commit-Format-Pruefung unten braucht die Commits
       # zwischen Basis und Kopf, ein flacher Klon haette nur den letzten.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
