@@ -1,7 +1,16 @@
 # Die Dependabot-Routine
 
-Der Prompt der täglichen Routine „Dependabot-PRs sichten und mergen"
-(claude.ai/code/routines, `trig_01SgSa2dwKv7cpiirFASUDyz`, täglich 05:00 UTC).
+Der Prompt der täglichen Routine „Dependabot-PRs sichten und mergen
+(OpenRewrite)" (claude.ai/code/routines, `trig_01DNECwWbfL5oRRXpAmsmFMc`,
+täglich 05:00 UTC).
+
+Sie hat am 2026-08-30 die ältere Routine `trig_01SgSa2dwKv7cpiirFASUDyz`
+abgelöst — gleicher Zeitplan, gleiche Umgebung, neuer Prompt. Der Grund für
+den Neubau statt einer Änderung ist eine Schranke der Plattform: Eine über
+die Weboberfläche angelegte Routine kann ein Agent nicht ändern, nur eine
+selbst angelegte. **Die alte Routine muss von Hand deaktiviert werden** —
+solange beide aktiv sind, laufen zwei Agenten um 05:00 auf dieselben
+Pull-Requests.
 
 Die Routine selbst lebt nicht im Repository, sondern in der Cloud — sie
 läuft ohne offene Sitzung. Damit stand ihr Text bislang an keiner Stelle,
