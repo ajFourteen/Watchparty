@@ -857,6 +857,46 @@
       Der Rezeptlauf ist ein Vorschlag, über grün entscheiden weiter
       <code>check</code> und <code>/invarianten-review</code>.
     </p>
+
+    <div class="section-head" style="margin-top:8px">
+      <h3>Was daran deterministisch ist</h3>
+      <p>
+        Nicht der Umstieg — der bleibt teilweise Handarbeit. Deterministisch ist
+        die <b>Zuordnung</b>: Aus dem Versionssprung, den Dependabot im PR-Titel
+        nennt, folgt ohne Ermessen ein Rezeptname. Kein Urteil, kein
+        Zwischenschritt, in dem etwas interpretiert wird — eine
+        Nachschlagetabelle in <code>ci/openrewrite-anwenden.sh</code>, gefüttert
+        mit <code>&lt;koordinate&gt; &lt;von&gt; &lt;nach&gt;</code>. Was das
+        Rezept dann tut, ist ebenfalls festgelegt: ein Programm auf dem
+        Syntaxbaum, gleicher Eingang, gleicher Diff. Deshalb steht der Katalog
+        hier vollständig — er ist kurz genug dafür, und seine Lücken sind der
+        eigentliche Inhalt.
+      </p>
+    </div>
+
+    <dl class="refs">
+      <div class="ref"><dt>Spring Boot → 4.x</dt><dd>org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0</dd></div>
+      <div class="ref"><dt>Spring Framework → 7.x</dt><dd>org.openrewrite.java.spring.framework.UpgradeSpringFramework_7_0</dd></div>
+      <div class="ref"><dt>JUnit → 6.x</dt><dd>org.openrewrite.java.testing.junit6.JUnit5to6Migration</dd></div>
+      <div class="ref"><dt>Testcontainers → 2.x</dt><dd>org.openrewrite.java.testing.testcontainers.Testcontainers2Migration</dd></div>
+      <div class="ref"><dt>Flyway → 10.x</dt><dd>org.openrewrite.java.flyway.MigrateToFlyway10</dd></div>
+      <div class="ref"><dt>ArchUnit → 1.x</dt><dd>org.openrewrite.java.testing.archunit.ArchUnit0to1Migration — längst hinter uns, steht im Katalog als Beispiel wonach gesucht wird</dd></div>
+      <div class="ref"><dt>Java-Toolchain → 25</dt><dd>org.openrewrite.java.migrate.UpgradeToJava25 — kommt nicht von Dependabot, nimmt aber denselben Weg</dd></div>
+      <div class="ref"><dt>npm (frontend/, e2e/) · Actions-Tags</dt><dd>kein Rezept — dafür gibt es keine vergleichbare Sammlung. Bleibt Handarbeit aus den Release Notes.</dd></div>
+    </dl>
+
+    <p class="aside">
+      <b>Ein Sprung ohne Eintrag ist eine Auskunft, kein Fehlschlag.</b> Das
+      Skript beendet sich dann mit <code>4</code> und sagt, welcher Sprung ohne
+      Rezept blieb; die Routine macht an dieser Stelle weiter wie vor ADR-042.
+      <code>0</code> heißt angewandt (oder mit <code>--trocken</code>
+      durchgerechnet, Patch unter
+      <code>build/reports/rewrite/rewrite.patch</code>), <code>1</code> ist ein
+      echter Fehler. Ausgeführt wird über <code>./gradlew rewriteRun
+      -PrewriteRezepte=…</code>; ohne diese Property ist kein Rezept aktiv, und
+      an <code>check</code> hängt die Aufgabe an keiner Stelle — sie ist
+      Werkzeug, kein Gate, und rührt das Zehn-Minuten-Budget nicht an.
+    </p>
   </section>
 
   <section>
