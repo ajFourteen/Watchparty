@@ -682,8 +682,10 @@
       <b>Ein zweiter Einstieg, der diese Schiene nicht durchläuft.</b> Ein von
       Dependabot geöffneter Pull-Request hat kein Feature-Dokument und keine
       Schnitte hinter sich — er steigt direkt bei Stufe 05/06 ein, mit der
-      Merge-Routine anstelle eines Menschen an der Commit-Stufe. Details im
-      nächsten Abschnitt.
+      Merge-Routine anstelle eines Menschen an der Commit-Stufe. Er landet dort
+      auch nicht als Commit, sondern als Squash-Merge eines Pull-Requests — der
+      einzige Weg, den die Branch Protection auf <code>main</code> offen lässt.
+      Details im nächsten Abschnitt.
     </p>
   </section>
 
@@ -1087,8 +1089,29 @@
             <span class="chip skill"><b>Skill</b> /invarianten-review</span>
             <span class="chip gate"><b>Gate</b> commit-msg — Format</span>
             <span class="chip gate"><b>Gate</b> commit-msg — releasender Typ ⇒ Anwendungsdatei</span>
+            <span class="chip gate"><b>Gate</b> Branch Protection auf main — serverseitig</span>
             <span class="chip hook"><b>Hook</b> PreToolUse — kein Branch, Pull (nur Agent)</span>
           </div>
+
+          <p class="aside">
+            <b>„Direkt auf main" gilt nicht für jeden, der pusht.</b> Diese Seite
+            behauptete den Satz bis zum 30.08.2026 ohne Einschränkung — bis ein
+            Push aus einer Agent-Sitzung mit
+            <code>protected branch hook declined</code> abgewiesen wurde.
+            <code>main</code> ist geschützt; der Projektinhaber kommt durch, ein
+            Agent mit App-Token nicht. Für ihn heißt „auf main arbeiten" deshalb:
+            Branch, Pull-Request, Merge — und der lokale
+            <code>ci/git-regeln-hook.sh</code>, der das Anlegen von Branches
+            verbietet, steht dazu in einer Spannung, die man kennen muss statt sie
+            im Einzelfall neu zu entdecken. Die Branch Protection ist dabei der
+            <b>härteste deterministische Check des ganzen Ablaufs</b>: Sie sitzt
+            serverseitig, greift auch ohne Agent, ohne Hook und ohne Gradle, und
+            lässt sich durch nichts lokal umgehen. Genau deshalb gehört sie auf
+            diese Seite — die welche Regeln sie im Einzelnen durchsetzt
+            (Pflicht-Checks, Reviews, kein Force-Push), steht in den
+            Repository-Einstellungen und nicht im Repo; hier steht nur, dass es
+            sie gibt und was sie in der Praxis erzwingt.
+          </p>
           <p class="aside">
             <b>Freigabe jetzt auch als Check.</b> Der <code>commit-msg</code>-Hook lehnt
             jeden releasenden Commit (<code>feat:</code>/<code>fix:</code>/<code>perf:</code>)
@@ -1334,6 +1357,7 @@
       <div class="ref"><dt>CI-Workflows</dt><dd>.github/workflows/build.yml · release.yml · pages.yml · codeql.yml</dd></div>
       <div class="ref"><dt>Deploy-Absicherung</dt><dd>ci/eine-maschine-pruefen.sh · ci/rauchtest.mjs</dd></div>
       <div class="ref"><dt>Commit-Konvention</dt><dd>Conventional Commits · ci/commit-format-pruefen.sh (ADR-019)</dd></div>
+      <div class="ref"><dt>Branch Protection</dt><dd>GitHub · Settings → Branches → main (nicht im Repo versioniert)</dd></div>
       <div class="ref"><dt>Dependabot-Konfiguration</dt><dd>.github/dependabot.yml</dd></div>
       <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_01FHkz4oeYEVXVqM12YWM5EU (löst trig_01SgSa2dwKv7cpiirFASUDyz ab) — Prompt als Quelle: docs/dependabot-routine.md</dd></div>
       <div class="ref"><dt>Major-Sprung als Rezept</dt><dd>ci/openrewrite-anwenden.sh · build.gradle.kts (Task rewriteRun) — ADR-042</dd></div>
