@@ -1,42 +1,48 @@
 # Die Dependabot-Routine
 
-Der Prompt der täglichen Routine „Dependabot-PRs sichten und mergen"
-(claude.ai/code/routines, `trig_01SgSa2dwKv7cpiirFASUDyz`, täglich 05:00 UTC).
+Der Prompt der täglichen Routine „Dependabot-PRs sichten und mergen
+(OpenRewrite)" (claude.ai/code/routines, `trig_01JeTucqAFUM6ZaxjZggg4xp`,
+täglich 05:00 UTC). Sie weckt keine frische Sitzung, sondern immer dieselbe:
+`session_01Bnqk9B4NNgedJCoyJ3YQeX`, „Dependabot-Wartung (Routine-Sitzung,
+mit Repo-Quelle)".
 
-**Achtung: Die Routine trägt diesen Text noch nicht.** Sie wurde über die
-Weboberfläche angelegt, und ein Agent darf nur Routinen ändern, die er selbst
-angelegt hat — der OpenRewrite-Schritt aus ADR-042 steht deshalb hier, aber
-noch nicht in der laufenden Routine. Bis der Text dort eingetragen ist,
-arbeitet sie beim Major-Sprung weiter nach der alten Fassung.
+**Die alte Routine `trig_01SgSa2dwKv7cpiirFASUDyz` muss von Hand
+deaktiviert werden** — solange beide aktiv sind, laufen zwei Agenten
+morgens auf dieselben Pull-Requests. Ein Agent kann sie nicht abschalten;
+sie wurde über die Weboberfläche angelegt, und dort Angelegtes darf nur ein
+Mensch ändern.
 
-Der Umweg über eine vom Agenten selbst angelegte Routine
-(`trig_01DNECwWbfL5oRRXpAmsmFMc`, am 2026-08-30 angelegt und noch am selben
-Tag wieder deaktiviert) ist gescheitert und der Vollständigkeit halber
-festgehalten: `create_trigger` kennt keinen Parameter für eine Git-Quelle,
-und `update_trigger` auch nicht. Die gefeuerte Sitzung stand ohne Checkout
-da und konnte nichts tun. Eine Routine bekommt ihr Repository ausschließlich
-beim Anlegen über die Weboberfläche — das ist die einzige Stelle, an der
-sich eine Quelle setzen lässt.
+## Warum eine feste Sitzung statt einer frischen je Lauf
 
-Die Routine selbst lebt nicht im Repository, sondern in der Cloud — sie
-läuft ohne offene Sitzung. Damit stand ihr Text bislang an keiner Stelle,
-an der er sich mitlesen, mitdenken oder mitändern ließe: Er war der einzige
-Teil des Entwicklungsprozesses ohne Fassung im Git. Diese Datei schließt die
-Lücke.
+Nicht aus Überzeugung, sondern weil es der einzige Weg war, der das
+Repository in die Routine bekommt. Eine Routine erhält ihre Git-Quelle
+ausschließlich beim Anlegen über die Weboberfläche; die Werkzeuge, mit
+denen ein Agent Routinen anlegt und ändert, kennen dafür schlicht keinen
+Parameter. Der erste Versuch (`trig_01DNECwWbfL5oRRXpAmsmFMc`, am
+2026-08-30 angelegt und wieder gelöscht) fiel genau darüber: Die gefeuerte
+Sitzung stand ohne Checkout da und konnte nichts tun.
 
-**Sie ist die Quelle, nicht die Kopie.** Wer den Ablauf ändert, ändert ihn
-hier, committet und trägt den Text danach in der Routine nach (claude.ai/code
-→ Routines → „Dependabot-PRs sichten und mergen" → Prompt ersetzen). Der
-umgekehrte Weg — erst dort, dann vielleicht hier — führt genau zu dem stillen
-Auseinanderlaufen, gegen das der Rest dieses Projekts seine Gates hat. Ein
-Gate gibt es hier nicht: Ob der Text in der Cloud noch derselbe ist, kann von
-hier aus niemand prüfen.
+Beim Anlegen einer *Sitzung* gibt es den Parameter dagegen sehr wohl. Also
+bekommt eine dauerhafte Sitzung das Repository, und die Routine weckt
+diese Sitzung täglich. Der Preis steht im Prompt und ist dort der erste
+Absatz: Die Sitzung ist am nächsten Morgen nicht frisch — Arbeitsverzeichnis
+und Gesprächsverlauf tragen den Vortag noch. Deshalb beginnt jeder Lauf mit
+einem harten Rücksetzen auf `origin/main`, und deshalb steht der volle Text
+der Regeln bei jedem Weckruf noch einmal da, statt sich auf „steht weiter
+oben" zu verlassen.
+
+## Diese Datei ist die Quelle, nicht die Kopie
+
+Wer den Ablauf ändert, ändert ihn hier, committet und trägt den Text danach
+in der Routine nach. Der umgekehrte Weg — erst dort, dann vielleicht hier —
+führt genau zu dem stillen Auseinanderlaufen, gegen das der Rest dieses
+Projekts seine Gates hat. Ein Gate gibt es hier nicht: Ob der Text in der
+Cloud noch derselbe ist, kann von hier aus niemand prüfen.
 
 Der Prompt selbst steht bewusst ohne Umlaute — anders als der übrige
-Quelltext dieses Projekts (siehe Konventionen in `CLAUDE.md`). Er wird in ein
-Web-Formular kopiert und von dort an eine Umgebung weitergereicht, deren
-Kodierung nirgends festgenagelt ist; „ae" statt „ä" ist hier die
-Vorsichtsmaßnahme, nicht die Nachlässigkeit.
+Quelltext dieses Projekts (siehe Konventionen in `CLAUDE.md`). Er wird durch
+ein Web-Formular gereicht, dessen Kodierung nirgends festgenagelt ist;
+„ae" statt „ä" ist hier die Vorsichtsmaßnahme, nicht die Nachlässigkeit.
 
 Was die Routine im Prozess ist und warum sie seit ADR-042 beim Major-Sprung
 nicht mehr rät, steht in `docs/entwicklungsprozess.html`.
@@ -44,6 +50,14 @@ nicht mehr rät, steht in `docs/entwicklungsprozess.html`.
 ---
 
 ```text
+WIEDERKEHRENDER WECKRUF IN DERSELBEN SITZUNG. Diese Sitzung ist die feste Wartungssitzung fuer ajFourteen/Watchparty; sie hat das Repository als Quelle und wird jeden Tag erneut mit genau diesem Text geweckt. Drei Dinge folgen daraus:
+
+Erstens: Das Arbeitsverzeichnis kann vom Lauf des Vortags veraendert sein -- ein ausgecheckter PR-Branch, ein Rest vom Rezeptlauf. Bring es deshalb ZUERST in einen sauberen Ausgangszustand, bevor irgendetwas anderes passiert: `git status` ansehen, ungestagte Aenderungen verwerfen, `git checkout main`, `git fetch origin main`, `git reset --hard origin/main`. Was vom Vortag noch uncommittet herumliegt, ist per Definition nichts Wertvolles -- der Ablauf unten committet und pusht, bevor er merged.
+
+Zweitens: Dieses Projekt hat einen eigenen PreToolUse-Hook (ci/git-regeln-hook.sh). Er verbietet das Anlegen von Branches (`git checkout -b`, `git switch -c`, `git worktree add`, `git branch <name>`) und lehnt einen Commit ab, solange der lokale Branch hinter seinem Upstream steht. Fuer diesen Ablauf ist beides kein Hindernis: `gh pr checkout <n>` holt den Branch ueber gh und faellt nicht unter die Regel, und vor einem Commit auf einem PR-Branch gehoert ohnehin ein `git pull`. Versuche nicht, den Hook zu umgehen -- er ist eine Vorgabe des Projektinhabers, kein Versehen.
+
+Drittens: Behandle den folgenden Text bei jedem Weckruf als vollstaendig und verbindlich, auch wenn Teile davon schon weiter oben im Gespraechsverlauf stehen oder dort zusammengefasst wurden. Insbesondere die harten Grenzen am Ende gelten unveraendert bei jedem einzelnen Lauf; sie verjaehren nicht dadurch, dass sie gestern schon dastanden.
+
 Du bist ein taeglicher Wartungsagent fuer das Repository ajFourteen/Watchparty (Git-Checkout liegt bereits vor). Aufgabe: offene Dependabot-Pull-Requests sichten und mergen - unkritische direkt, kritische auch, aber nur nachdem du sie durch OpenRewrite-Rezepte und, wo noetig, eigene Codeanpassungen gruen bekommen hast. Lies zuerst CLAUDE.md im Repo-Wurzelverzeichnis fuer Architektur- und Konventionskontext (Onion-Architektur, DDD-Stereotypen, Testkultur, die sieben harten Invarianten), bevor du irgendetwas aenderst.
 
 Kontext: .github/dependabot.yml buendelt Minor-/Patch-Updates je Oekosystem (gradle, npm/frontend, npm/e2e, github-actions) zu einer PR mit Label "minor-und-patch"; Major-Updates bleiben absichtlich einzeln, weil sie eher brechende Aenderungen tragen. Commit-Praefixe sind "chore" (gradle/npm) bzw. "ci" (github-actions) - beide loesen laut ADR-019 (Semantic Release) keinen Deploy aus, nur "fix"/"feat"/"perf" tun das. Das ist eine harte Nebenbedingung fuer alles Folgende: JEDER Merge dieser Routine bleibt beim chore/ci-Praefix der Dependabot-PR, egal wie viel Code du dafuer anpassen musstest - ein releasender Typ wuerde automatisch auf Fly.io deployen, das darf diese Routine nie ungefragt ausloesen.
