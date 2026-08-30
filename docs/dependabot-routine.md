@@ -1,7 +1,7 @@
 # Die Dependabot-Routine
 
 Der Prompt der täglichen Routine „Dependabot-PRs sichten und mergen
-(OpenRewrite)" (claude.ai/code/routines, `trig_01JeTucqAFUM6ZaxjZggg4xp`,
+(OpenRewrite)" (claude.ai/code/routines, `trig_01FHkz4oeYEVXVqM12YWM5EU`,
 täglich 05:00 UTC). Sie weckt keine frische Sitzung, sondern immer dieselbe:
 `session_01Bnqk9B4NNgedJCoyJ3YQeX`, „Dependabot-Wartung (Routine-Sitzung,
 mit Repo-Quelle)".
@@ -31,6 +31,13 @@ einem harten Rücksetzen auf `origin/main`, und deshalb steht der volle Text
 der Regeln bei jedem Weckruf noch einmal da, statt sich auf „steht weiter
 oben" zu verlassen.
 
+Eine Nebenwirkung dieser Bauweise: Sobald eine Routine in eine *fremde*
+Sitzung feuert, lässt sich ihr Prompt nicht mehr bearbeiten — jede
+Textänderung heißt löschen und neu anlegen, und die `trig_`-ID wechselt
+dabei. Wer die ID hier sucht und sie nicht findet, hat vermutlich eine
+Fassung von vorgestern vor sich; maßgeblich ist die Routine mit diesem
+Namen in der Übersicht.
+
 ## Diese Datei ist die Quelle, nicht die Kopie
 
 Wer den Ablauf ändert, ändert ihn hier, committet und trägt den Text danach
@@ -54,7 +61,7 @@ WIEDERKEHRENDER WECKRUF IN DERSELBEN SITZUNG. Diese Sitzung ist die feste Wartun
 
 Erstens: Das Arbeitsverzeichnis kann vom Lauf des Vortags veraendert sein -- ein ausgecheckter PR-Branch, ein Rest vom Rezeptlauf. Bring es deshalb ZUERST in einen sauberen Ausgangszustand, bevor irgendetwas anderes passiert: `git status` ansehen, ungestagte Aenderungen verwerfen, `git checkout main`, `git fetch origin main`, `git reset --hard origin/main`. Was vom Vortag noch uncommittet herumliegt, ist per Definition nichts Wertvolles -- der Ablauf unten committet und pusht, bevor er merged.
 
-Zweitens: Dieses Projekt hat einen eigenen PreToolUse-Hook (ci/git-regeln-hook.sh). Er verbietet das Anlegen von Branches (`git checkout -b`, `git switch -c`, `git worktree add`, `git branch <name>`) und lehnt einen Commit ab, solange der lokale Branch hinter seinem Upstream steht. Fuer diesen Ablauf ist beides kein Hindernis: `gh pr checkout <n>` holt den Branch ueber gh und faellt nicht unter die Regel, und vor einem Commit auf einem PR-Branch gehoert ohnehin ein `git pull`. Versuche nicht, den Hook zu umgehen -- er ist eine Vorgabe des Projektinhabers, kein Versehen.
+Zweitens: Dieses Projekt hat einen eigenen PreToolUse-Hook (ci/git-regeln-hook.sh). Er verbietet das Anlegen NEUER Branches (`git checkout -b <name>` ohne Startpunkt, `git switch -c <name>`, `git worktree add`, `git branch <name>`) und lehnt einen Commit ab, solange der lokale Branch hinter seinem Upstream steht. Einen BESTEHENDEN Branch auszuchecken ist ausdruecklich erlaubt: `git checkout <branch>` direkt, `git checkout -b <lokal> origin/<branch>` fuer einen, den es nur auf dem Remote gibt, und `gh pr checkout <n>` ohnehin. Fuer diesen Ablauf ist der Hook damit kein Hindernis, und vor einem Commit auf einem PR-Branch gehoert ohnehin ein `git pull`. Versuche nicht, den Hook zu umgehen -- er ist eine Vorgabe des Projektinhabers, kein Versehen.
 
 Drittens: Behandle den folgenden Text bei jedem Weckruf als vollstaendig und verbindlich, auch wenn Teile davon schon weiter oben im Gespraechsverlauf stehen oder dort zusammengefasst wurden. Insbesondere die harten Grenzen am Ende gelten unveraendert bei jedem einzelnen Lauf; sie verjaehren nicht dadurch, dass sie gestern schon dastanden.
 
