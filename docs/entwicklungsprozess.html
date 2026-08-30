@@ -644,7 +644,8 @@
           Läuft <b>ohne offene Sitzung</b>: ein Cloud-Agent, zeitgesteuert statt an
           ein Ereignis einer Agent-Sitzung gebunden wie ein Hook. Kein Ja/Nein-Check
           wie ein Gate — sie <b>entscheidet und handelt selbst</b>: mergen, für einen
-          Major-Sprung selbst Code anpassen und dann mergen, oder liegen lassen.
+          Major-Sprung ein Rezept laufen lassen bzw. selbst Code anpassen und dann
+          mergen, oder liegen lassen.
         </p>
         <p class="where">claude.ai/code/routines · trig_01SgSa2dwKv7cpiirFASUDyz</p>
       </div>
@@ -793,10 +794,13 @@
         <span class="what">
           Sichtet offene Dependabot-PRs. Minor-/Patch-Sprünge gelten als
           unkritisch und werden nach grüner CI direkt (squash) gemergt. Bei
-          einem Major-Sprung checkt sie den PR-Branch aus, liest die Release
-          Notes und versucht — bis zu zwei Zyklen — den Sprung durch eigene,
-          minimal-invasive Codeänderungen wieder grün zu bekommen; erst dann
-          mergt sie. Nach jedem Merge beobachtet sie den ausgelösten CI-Lauf
+          einem Major-Sprung checkt sie den PR-Branch aus und wendet zuerst
+          das passende <b>OpenRewrite-Rezept</b> an
+          (<code>ci/openrewrite-anwenden.sh</code>, ADR-042) — erst was das
+          Rezept nicht abdeckt oder was es gar nicht gibt, macht sie wie
+          bisher von Hand aus den Release Notes. Dann versucht sie — bis zu
+          zwei Zyklen — den Sprung wieder grün zu bekommen; erst dann mergt
+          sie. Nach jedem Merge beobachtet sie den ausgelösten CI-Lauf
           auf main und macht einen Fehlschlag über einen Commit-Kommentar
           sichtbar.
         </span>
@@ -830,6 +834,28 @@
       es nach zwei Versuchen rot oder verlangt es eine echte Designentscheidung
       statt einer mechanischen Anpassung, mergt sie weiterhin nicht — dann wie
       zuvor nur ein Kommentar.
+    </p>
+
+    <p class="aside">
+      <b>Seit dem 30.08.2026 rät sie beim Major-Sprung nicht mehr, sie führt
+      aus (ADR-042).</b> Die Reparatur eines Major-Sprungs hing bis dahin an
+      einer einzigen Quelle: den Release Notes im PR-Text. Aus Prosa schließen,
+      was der Bibliotheksautor als Umstieg gemeint hat, ist genau die Stelle,
+      an der ein Sprachmodell rät — und ein Missverständnis fällt frühestens
+      im nächsten Gate auf. <b>OpenRewrite</b> dreht die Richtung um: Der
+      Hersteller beschreibt den Umstieg einmal als ausführbares Rezept, das auf
+      dem Syntaxbaum arbeitet, und <code>ci/openrewrite-anwenden.sh</code>
+      sucht zum konkreten Sprung das passende heraus
+      (<code>UpgradeSpringBoot_4_0</code>, <code>JUnit5to6Migration</code>,
+      <code>Testcontainers2Migration</code> …) und wendet es an. Drei Grenzen
+      bleiben, ausdrücklich: Es gilt nur für Gradle/Java — für npm und
+      Actions-Tags gibt es keine Rezepte. Der Katalog ist unvollständig; ein
+      Sprung ohne Eintrag ist eine Auskunft, kein Fehlschlag, und die Routine
+      macht dort weiter wie zuvor. Und ein Rezept kennt die Regeln
+      <i>dieses</i> Projekts nicht — Ringe, Stereotypen, die sieben
+      Invarianten —, deshalb ändert es an den Leitplanken oben keine Zeile:
+      Der Rezeptlauf ist ein Vorschlag, über grün entscheiden weiter
+      <code>check</code> und <code>/invarianten-review</code>.
     </p>
   </section>
 
@@ -1269,7 +1295,8 @@
       <div class="ref"><dt>Deploy-Absicherung</dt><dd>ci/eine-maschine-pruefen.sh · ci/rauchtest.mjs</dd></div>
       <div class="ref"><dt>Commit-Konvention</dt><dd>Conventional Commits · ci/commit-format-pruefen.sh (ADR-019)</dd></div>
       <div class="ref"><dt>Dependabot-Konfiguration</dt><dd>.github/dependabot.yml</dd></div>
-      <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_01SgSa2dwKv7cpiirFASUDyz</dd></div>
+      <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_01SgSa2dwKv7cpiirFASUDyz — Prompt als Quelle: docs/dependabot-routine.md</dd></div>
+      <div class="ref"><dt>Major-Sprung als Rezept</dt><dd>ci/openrewrite-anwenden.sh · build.gradle.kts (Task rewriteRun) — ADR-042</dd></div>
     </dl>
   </section>
 
@@ -1277,6 +1304,22 @@
     <div class="section-head">
       <h2>Zur Fassung</h2>
       <p>Was sich von Fassung zu Fassung geändert hat — und warum.</p>
+    </div>
+
+    <div class="version">
+      <span class="v">Siebte Fassung<br>2026-08-30</span>
+      <p>
+        <b>Die Reparatur eines Major-Sprungs hing an einer gelesenen
+        Prosaquelle.</b> Die sechste Fassung gab der Routine Schreibrecht auf
+        Produktivcode und umgab es mit Leitplanken — aber die Leitplanken
+        prüfen nur das <i>Ergebnis</i>. Woher die Änderung kam, blieb
+        ungeprüft: aus den Release Notes im PR-Text, interpretiert. Seit
+        ADR-042 steht davor ein ausführbares Rezept
+        (<code>ci/openrewrite-anwenden.sh</code>), das der Bibliotheksautor
+        selbst geschrieben hat. Die Handarbeit verschwindet damit nicht, sie
+        wird kleiner — und was bleibt, ist sichtbar das, wofür es kein Rezept
+        gibt.
+      </p>
     </div>
 
     <div class="version">
