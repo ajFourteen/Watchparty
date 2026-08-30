@@ -1,16 +1,22 @@
 # Die Dependabot-Routine
 
-Der Prompt der täglichen Routine „Dependabot-PRs sichten und mergen
-(OpenRewrite)" (claude.ai/code/routines, `trig_01DNECwWbfL5oRRXpAmsmFMc`,
-täglich 05:00 UTC).
+Der Prompt der täglichen Routine „Dependabot-PRs sichten und mergen"
+(claude.ai/code/routines, `trig_01SgSa2dwKv7cpiirFASUDyz`, täglich 05:00 UTC).
 
-Sie hat am 2026-08-30 die ältere Routine `trig_01SgSa2dwKv7cpiirFASUDyz`
-abgelöst — gleicher Zeitplan, gleiche Umgebung, neuer Prompt. Der Grund für
-den Neubau statt einer Änderung ist eine Schranke der Plattform: Eine über
-die Weboberfläche angelegte Routine kann ein Agent nicht ändern, nur eine
-selbst angelegte. **Die alte Routine muss von Hand deaktiviert werden** —
-solange beide aktiv sind, laufen zwei Agenten um 05:00 auf dieselben
-Pull-Requests.
+**Achtung: Die Routine trägt diesen Text noch nicht.** Sie wurde über die
+Weboberfläche angelegt, und ein Agent darf nur Routinen ändern, die er selbst
+angelegt hat — der OpenRewrite-Schritt aus ADR-042 steht deshalb hier, aber
+noch nicht in der laufenden Routine. Bis der Text dort eingetragen ist,
+arbeitet sie beim Major-Sprung weiter nach der alten Fassung.
+
+Der Umweg über eine vom Agenten selbst angelegte Routine
+(`trig_01DNECwWbfL5oRRXpAmsmFMc`, am 2026-08-30 angelegt und noch am selben
+Tag wieder deaktiviert) ist gescheitert und der Vollständigkeit halber
+festgehalten: `create_trigger` kennt keinen Parameter für eine Git-Quelle,
+und `update_trigger` auch nicht. Die gefeuerte Sitzung stand ohne Checkout
+da und konnte nichts tun. Eine Routine bekommt ihr Repository ausschließlich
+beim Anlegen über die Weboberfläche — das ist die einzige Stelle, an der
+sich eine Quelle setzen lässt.
 
 Die Routine selbst lebt nicht im Repository, sondern in der Cloud — sie
 läuft ohne offene Sitzung. Damit stand ihr Text bislang an keiner Stelle,
