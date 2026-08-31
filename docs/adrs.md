@@ -1842,3 +1842,25 @@ dann reproduzierbar und nachlesbar, nicht interpretiert.
 - Der Katalog braucht Pflege. Fehlt zu einem Sprung das Rezept, obwohl es
   eines gibt, macht die Routine unnötig Handarbeit — sichtbar wird das nur
   im Abschlussbericht des Laufs, nicht durch ein Gate.
+- **Nachtrag vom 2026-08-31, erster scharfer Einsatz:** Die Rezeptaufgabe
+  hängt von Haus aus am Kompilieren — und stolpert damit über genau den
+  Zustand, für den sie gebaut ist. Am Sprung Spring Boot 3.5.16 → 4.1.1
+  brach `rewriteDryRun` mit denselben 31 Compile-Fehlern ab, die das Rezept
+  hätte beheben sollen; der Lauf kam gar nicht erst zum Zug.
+  `ci/openrewrite-anwenden.sh` ruft Gradle deshalb mit
+  `-x compileJava -x compileTestJava` auf. Das kostet nichts, was das Rezept
+  braucht: Die Typinformationen holt OpenRewrite aus den Jars des
+  Compile-Classpath, nicht aus den eigenen `.class`-Dateien. Ohne diesen
+  Nachtrag wäre die Entscheidung praktisch wirkungslos gewesen — sie hätte
+  nur dort gegriffen, wo man sie am wenigsten braucht.
+- Derselbe Lauf hat den Nutzen belegt: Der alte Weg („Release Notes lesen")
+  hatte den Sprung am 2026-08-30 als *Designentscheidung* zurückgegeben —
+  Jackson 2 oder 3? Das Rezept beantwortet dieselbe Frage ohne Ermessen, mit
+  der Migration, die der Hersteller vorgesehen hat
+  (`com.fasterxml.jackson.*` → `tools.jackson.*`), und zieht die verschobenen
+  Autoconfigure-Pakete, die modularen Boot-4-Starter und die
+  Testcontainers-Artefakte gleich mit. Es zeigt aber auch die im
+  Entscheidungstext angekündigte Über-Reichweite: Es fügt
+  `javax.xml.bind:jaxb-api` als Laufzeitabhängigkeit hinzu — ein Rest aus
+  einem eingebetteten Jakarta-Teilrezept, den dieser Sprung nicht erzwingt
+  und der beim Durchsehen des Diffs zurückzunehmen ist.
