@@ -918,6 +918,27 @@
       braucht. Genau dafür steht im Ablauf der Schritt „den Diff lesen, nicht
       übernehmen".
     </p>
+
+    <p class="aside">
+      <b>Und was der vollständige Durchlauf desselben Sprungs zeigte.</b> Das
+      Rezept nahm 26 der 31 Fehler weg — die verbleibenden fünf waren
+      lehrreicher als die 26. Erstens wandert nicht mit, was der <i>alte</i>
+      Major festgeschrieben hat: Der JUnit-Pin in
+      <code>build.gradle.kts</code> stand weiter auf Boots 3er-Stand und
+      liess jeden <code>@SpringBootTest</code> mit
+      <code>NoSuchMethodError</code> abbrechen. Ein Rezept fasst Muster an,
+      keine projekteigenen Pins. Zweitens ist „kompiliert wieder" kein
+      Urteil über einen Rezeptlauf — dass <code>TestRestTemplate</code> in
+      Boot 4 eine eigene Annotation braucht, zeigte sich erst im Testlauf,
+      eine Stufe nach dem grünen Compiler. Drittens, und am teuersten: Wird
+      eine geprüfte Ausnahme ungeprüft (Jackson 3 wirft
+      <code>JacksonException</code> statt <code>JsonProcessingException</code>),
+      kompiliert der alte <code>catch</code>-Block weiter und fängt trotzdem
+      nichts mehr — in <code>SnapshotStore</code> hiesse das ein still
+      sterbender Schreib-Thread, Invariante 2. Ein Rezept sieht Signaturen,
+      keine Wirkung. Alle drei stehen seither als eigene Punkte im
+      Routine-Prompt (<code>docs/dependabot-routine.md</code>, Schritt 5d).
+    </p>
   </section>
 
   <section>
@@ -1502,7 +1523,7 @@
   </section>
 
   <footer class="closing">
-    Stand 2026-08-30 · Watchparty · beschreibt den umgesetzten Prozess, keine Vorschläge
+    Stand 2026-08-31 · Watchparty · beschreibt den umgesetzten Prozess, keine Vorschläge
   </footer>
 
 </div>
