@@ -45,13 +45,17 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
 
     // Mailversand des Tippspiels (ADR-036): Jakarta Mail ueber Spring, aber
     // ohne Spring Boots eigene MailSenderAutoConfiguration -- JavaMailSenderImpl
     // wird in config/league von Hand gebaut, wie DataSource fuer die Datenbank.
     implementation("org.springframework.boot:spring-boot-starter-mail")
+
+    // Boot 4 zerlegt spring-boot-starter-web in webmvc und restclient
+    // (Modulare Starter). EspnScheduleFeed spricht RestClient, deshalb beides.
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
 
     // Persistenz des Tippspiels (ADR-035): Standard-JDBC-Weg von Spring Boot,
     // kein Spring Data -- Repository-Adapter sprechen JdbcTemplate direkt,
@@ -61,7 +65,7 @@ dependencies {
     // RoomConfig/SnapshotConfig).
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     runtimeOnly("org.postgresql:postgresql")
-    implementation("org.flywaydb:flyway-core")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
 
     // Die Annotationen selbst (ADR-026): @NullMarked, @Nullable. Reine
@@ -81,6 +85,10 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.mockito")
     }
+
+    // Boot 4: TestRestTemplate liegt nicht mehr im Test-Starter, sondern in
+    // einem eigenen Modul (org.springframework.boot.resttestclient).
+    testImplementation("org.springframework.boot:spring-boot-resttestclient")
 
     // Haelt die Ringregel aus ADR-024 als Test fest.
     //
@@ -108,8 +116,8 @@ dependencies {
     // Adapter-Tests gegen echtes Postgres statt einer Attrappe (Abschnitt
     // 2.3): derselbe SQL-Dialekt wie die Produktion, kein H2-Drift. Versionen
     // stammen aus Spring Boots eigenem Dependency-Management.
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
 
     // Ab Gradle 9 liegt der Launcher nicht mehr automatisch auf dem
     // Test-Classpath; ohne ihn startet der Test-Executor gar nicht erst.
@@ -134,23 +142,29 @@ dependencies {
 }
 
 // jgiven-junit5 und jqwik-engine haengen direkt (nicht nur ueber eine
-// importierte BOM) hoehere org.junit.platform-Versionen an als Spring Boots
-// eigenes Dependency-Management fuer die uebrigen JUnit-Module durchsetzt
-// (5.12.2 / 1.12.2) -- fuer die meisten Module gewinnt Spring Boots
-// Verwaltung den Versionskonflikt, aber junit-platform-launcher verwaltet
-// Spring Boot ueberhaupt nicht selbst, dort gewinnt unwidersprochen die
-// hoehere Anfrage. Ergebnis: launcher (1.13.x) und -engine/-commons (1.12.x)
-// laufen auseinander -- ein NoSuchMethodError auf
+// importierte BOM) andere JUnit-Versionen an als Spring Boots eigenes
+// Dependency-Management fuer die uebrigen JUnit-Module durchsetzt -- fuer die
+// meisten Module gewinnt Spring Boots Verwaltung den Versionskonflikt, aber
+// junit-platform-launcher verwaltet Spring Boot ueberhaupt nicht selbst, dort
+// gewinnt unwidersprochen die hoehere Anfrage. Ergebnis: launcher und
+// -engine/-commons laufen auseinander -- ein NoSuchMethodError auf
 // NamespacedHierarchicalStore$CloseAction beim Testlauf, gefunden beim
 // Einbinden von PIT (Phase 4). eachDependency greift vor der
 // Konfliktaufloesung selbst und erzwingt denselben Stand ueberall.
+//
+// Die Zahlen sind der Stand, den Spring Boot managt, und wandern mit ihm:
+// Boot 4 bringt JUnit 6, in dem Jupiter und Platform dieselbe Versionslinie
+// tragen. Stehenbleiben ist hier keine Option, sondern ein Fehler --
+// SpringExtension aus Spring Framework 7 ruft ExtensionContext.Store
+// .computeIfAbsent in der JUnit-6-Signatur auf und findet sie unter JUnit 5
+// nicht (NoSuchMethodError in jedem @SpringBootTest).
 configurations.all {
     resolutionStrategy.eachDependency {
         if (requested.group == "org.junit.jupiter") {
-            useVersion("5.12.2")
+            useVersion("6.0.3")
         }
         if (requested.group == "org.junit.platform") {
-            useVersion("1.12.2")
+            useVersion("6.0.3")
         }
     }
 }

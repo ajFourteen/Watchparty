@@ -4,7 +4,8 @@ import de.fourteen.watchparty.application.port.out.SnapshotRepository;
 import de.fourteen.watchparty.criticality.Criticality;
 import de.fourteen.watchparty.domain.model.RoomSnapshot;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,7 +155,7 @@ public class SnapshotStore implements SnapshotRepository {
                 channel.force(true);
             }
             Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
+        } catch (IOException | JacksonException e) {
             // Ein volles Dateisystem oder ein fehlendes Volume darf das
             // Spiel nicht anhalten (Invariante 2) -- geloggt und geschluckt.
             log.error("Snapshot fuer Watchparty {} konnte nicht geschrieben werden", code, e);
@@ -197,7 +198,7 @@ public class SnapshotStore implements SnapshotRepository {
         RoomSnapshot snapshot;
         try {
             snapshot = mapper.readValue(file.toFile(), RoomSnapshot.class);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             log.error("Snapshot {} ist beschaedigt, wird uebersprungen", file.getFileName(), e);
             quarantine(file);
             return Optional.empty();

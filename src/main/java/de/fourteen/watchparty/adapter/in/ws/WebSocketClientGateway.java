@@ -1,7 +1,7 @@
 package de.fourteen.watchparty.adapter.in.ws;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import de.fourteen.watchparty.application.port.out.ClientGateway;
 import jakarta.annotation.PreDestroy;
 import org.jspecify.annotations.Nullable;
@@ -95,7 +95,7 @@ public class WebSocketClientGateway implements ClientGateway {
     private @Nullable String serialize(Object message) {
         try {
             return mapper.writeValueAsString(message);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Nachricht nicht serialisierbar", e);
             return null;
         }

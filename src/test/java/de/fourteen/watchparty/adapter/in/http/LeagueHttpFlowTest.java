@@ -11,13 +11,14 @@ import de.fourteen.watchparty.domain.model.league.Team;
 import de.fourteen.watchparty.domain.model.league.TeamId;
 import de.fourteen.watchparty.teststrategy.ApiTest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -59,6 +60,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "watchparty.league.login.rate-limit.max-attempts=100")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+// Boot 4 stellt TestRestTemplate nicht mehr allein wegen des Webservers
+// bereit -- die Bean kommt erst mit dieser Annotation.
+@AutoConfigureTestRestTemplate
 class LeagueHttpFlowTest {
 
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
@@ -337,9 +341,7 @@ class LeagueHttpFlowTest {
     }
 
     private Set<String> feldnamen(JsonNode knoten) {
-        return StreamSupport
-                .stream(java.util.Spliterators.spliteratorUnknownSize(knoten.fieldNames(), 0), false)
-                .collect(Collectors.toSet());
+        return Set.copyOf(knoten.propertyNames());
     }
 
 }

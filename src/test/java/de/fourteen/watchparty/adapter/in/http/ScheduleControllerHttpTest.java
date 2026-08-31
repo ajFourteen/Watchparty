@@ -14,7 +14,8 @@ import de.fourteen.watchparty.teststrategy.ApiTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -58,6 +59,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ApiTest
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+// Boot 4 stellt TestRestTemplate nicht mehr allein wegen des Webservers
+// bereit -- die Bean kommt erst mit dieser Annotation.
+@AutoConfigureTestRestTemplate
 class ScheduleControllerHttpTest {
 
     private static final String ADMIN_EMAIL = "admin@example.org";

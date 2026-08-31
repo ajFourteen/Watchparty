@@ -3,8 +3,8 @@ package de.fourteen.watchparty.adapter.in.ws;
 import de.fourteen.watchparty.domain.model.Phase;
 import de.fourteen.watchparty.teststrategy.ApiTest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -135,9 +134,7 @@ class WireProtocolSmokeTest {
         host.send("{\"type\":\"OPEN_BET\",\"betId\":\"" + betId + "\"}");
         JsonNode state = host.awaitState(s -> "OPEN".equals(s.path("phase").asText()));
 
-        Set<String> tatsaechlicheFelder = StreamSupport
-                .stream(java.util.Spliterators.spliteratorUnknownSize(state.fieldNames(), 0), false)
-                .collect(java.util.stream.Collectors.toSet());
+        Set<String> tatsaechlicheFelder = Set.copyOf(state.propertyNames());
         assertThat(waehrendOpenErlaubt).containsAll(tatsaechlicheFelder);
     }
 
