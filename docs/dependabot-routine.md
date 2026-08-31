@@ -6,11 +6,13 @@ täglich 05:00 UTC). Sie weckt keine frische Sitzung, sondern immer dieselbe:
 `session_01Bnqk9B4NNgedJCoyJ3YQeX`, „Dependabot-Wartung (Routine-Sitzung,
 mit Repo-Quelle)".
 
-**Die alte Routine `trig_01SgSa2dwKv7cpiirFASUDyz` muss von Hand
-deaktiviert werden** — solange beide aktiv sind, laufen zwei Agenten
-morgens auf dieselben Pull-Requests. Ein Agent kann sie nicht abschalten;
-sie wurde über die Weboberfläche angelegt, und dort Angelegtes darf nur ein
-Mensch ändern.
+Die Vorgängerin `trig_01SgSa2dwKv7cpiirFASUDyz` (ohne OpenRewrite) ist am
+2026-08-31 gelöscht — von Hand, weil ein Agent sie nicht abschalten konnte:
+Sie wurde über die Weboberfläche angelegt, und `update_trigger` lehnt genau
+das ab („Agents can only update routines they created"). Bis dahin liefen
+morgens zwei Agenten auf dieselben Pull-Requests. Der Punkt bleibt hier
+stehen, weil er für jede künftige Ablösung wieder gilt: Wer eine Routine
+ersetzt, muss die alte selbst abräumen — das erledigt kein Agent.
 
 ## Warum eine feste Sitzung statt einer frischen je Lauf
 
