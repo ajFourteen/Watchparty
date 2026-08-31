@@ -1,8 +1,8 @@
 package de.fourteen.watchparty.adapter.out.feed;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import de.fourteen.watchparty.application.league.port.out.ScheduleFeed;
 import de.fourteen.watchparty.domain.model.league.Game;
@@ -84,7 +84,7 @@ public class EspnScheduleFeed implements ScheduleFeed {
         JsonNode root;
         try {
             root = mapper.readTree(responseBody);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Antwort des Feeds ist kein gueltiges JSON", e);
         }
 
