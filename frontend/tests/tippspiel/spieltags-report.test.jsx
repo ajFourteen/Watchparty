@@ -79,7 +79,11 @@ describe("Der Spieltags-Report", () => {
     const ueberschrift = await screen.findByText(/Liga-Rangliste/);
     const block = within(ueberschrift.closest(".report-league-standings"));
     expect(block.getByText("Büro-Liga")).toBeInTheDocument();
-    expect(block.getByText("Ben")).toBeInTheDocument();
+    // "Liga-Rangliste" erscheint schon, sobald myLeagues() durch ist; die
+    // Rangliste selbst haengt an einem weiteren, spaeteren Effekt
+    // (matchdayStandings ueber selectedLeagueId). Ohne findByText hier lief
+    // die Pruefung unter CI-Last gelegentlich vor diesem zweiten Tick.
+    expect(await block.findByText("Ben")).toBeInTheDocument();
   });
 
   anforderung("13.9-g", "laesst bei mehreren Ligen waehlen, welche Rangliste erscheint", async () => {

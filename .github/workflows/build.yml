@@ -18,7 +18,7 @@ jobs:
     steps:
       # Volle Historie: Die Commit-Format-Pruefung unten braucht die Commits
       # zwischen Basis und Kopf, ein flacher Klon haette nur den letzten.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -31,7 +31,7 @@ jobs:
             "${{ github.event.pull_request.base.sha || github.event.before }}" \
             "${{ github.event.pull_request.head.sha || github.sha }}"
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
@@ -48,7 +48,7 @@ jobs:
       # undici verlangt eine neuere Node-Fassung -- unter 20 bricht schon das
       # Laden mit "webidl.util.markAsUncloneable is not a function" ab, bevor
       # ein einziger Test lief. release.yml stand ohnehin schon auf 22.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -82,14 +82,14 @@ jobs:
 
       - name: E2E-Bericht
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-report
           path: build/reports/e2e
 
       - name: Testbericht
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-report
           path: build/reports/tests/test
@@ -99,7 +99,7 @@ jobs:
       # ueber einen roten Lauf.
       - name: JGiven-Bericht
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jgiven-report
           path: build/reports/jgiven/test/html

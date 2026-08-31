@@ -1763,3 +1763,82 @@ er entstanden ist.
   Entscheidung als geltenden Text nach; `gradle abdeckung` läuft für diese
   drei Zeilen absichtlich rot, bis Schnitt 5 gebaut ist — entschieden, aber
   noch nicht umgesetzt.
+
+---
+
+## ADR-042: Major-Versionsupdates über OpenRewrite-Rezepte statt gelesener Release Notes
+
+**Status:** Akzeptiert
+
+**Kontext:** Seit dem 2026-08-29 darf die tägliche Dependabot-Routine
+(`docs/entwicklungsprozess.html`, Stufe „Routine") bei einem Major-Sprung
+auch Produktivcode anfassen, um die PR grün zu bekommen. Ihr einziger
+Anhaltspunkt dafür war bisher der PR-Text: Dependabot hängt die Release
+Notes des angehobenen Pakets an, die Routine liest sie und schließt daraus,
+was sich im Code ändern muss. Genau das ist die Stelle, an der ein
+Sprachmodell rät — es leitet aus Prosa ab, was der Bibliotheksautor als
+Umstieg gemeint hat, und ein Missverständnis fällt frühestens im nächsten
+Gate auf, schlimmstenfalls gar nicht (eine Änderung, die kompiliert und
+grün läuft, aber etwas anderes tut).
+
+OpenRewrite dreht die Richtung um: Der Hersteller beschreibt den Umstieg
+einmal als ausführbares Rezept (`UpgradeSpringBoot_4_0`,
+`JUnit5to6Migration`, `Testcontainers2Migration` …), das auf dem
+Syntaxbaum arbeitet statt auf Textersetzung. Was das Rezept ändert, ist
+dann reproduzierbar und nachlesbar, nicht interpretiert.
+
+**Entscheidung:**
+1. **Das OpenRewrite-Gradle-Plugin gehört in `build.gradle.kts`, nicht in
+   ein Init-Skript.** Ein Init-Skript hätte den regulären Build gar nicht
+   berührt, aber Dependabot pflegt nur, was es im Build sieht — das
+   Werkzeug für Versionsupdates würde selbst veralten. Die Rezeptsammlungen
+   (`rewrite-spring`, `rewrite-migrate-java`, `rewrite-testing-frameworks`)
+   liegen auf der eigenen Konfiguration `rewrite`, also weder auf dem
+   Compile- noch auf dem Test-Classpath.
+2. **`rewriteRun`/`rewriteDryRun` hängen an keiner Stelle an `check`.** Sie
+   sind Werkzeug, keine Prüfung. Das Zehn-Minuten-Budget aus
+   `docs/teststrategie.md` Abschnitt 10 bleibt unberührt, und ein
+   Rezeptlauf, der niemand angefordert hat, findet nicht statt.
+3. **Welches Rezept gilt, kommt je Lauf von außen**
+   (`-PrewriteRezepte=a,b`), nicht fest aus dem Build: Der Sprung ist in
+   jeder Dependabot-PR ein anderer. Ohne die Property ist kein Rezept aktiv
+   — ein versehentlicher `rewriteRun` schreibt nichts um.
+4. **Die Zuordnung Sprung → Rezept steht in `ci/openrewrite-anwenden.sh`**,
+   als kommentierter Katalog über Gruppe und Ziel-Major. Der Katalog ist
+   ausdrücklich unvollständig; ein Sprung ohne Eintrag ist eine Auskunft
+   (Exit 4), kein Fehlschlag.
+5. **Der Geltungsbereich ist Gradle/Java.** Für npm (`frontend/`, `e2e/`)
+   und für GitHub-Actions-Tags gibt es keine vergleichbaren Rezepte; dort
+   bleibt es beim bisherigen Weg der Routine.
+6. **Die Reihenfolge in der Routine ist: erst Rezept, dann Handarbeit.**
+   Das Rezept ersetzt die Handarbeit nicht, es verkleinert sie. Über
+   „grün" entscheiden weiterhin ausschließlich die bestehenden Gates.
+7. **Am Commit-Typ ändert das nichts** (ADR-019): `chore`/`ci`, auch wenn
+   ein Rezept viele Dateien angefasst hat. Ein Rezeptlauf ist kein
+   Grund zu deployen.
+
+**Konsequenzen:**
+- Der Build trägt eine neue Werkzeugabhängigkeit, die selbst Major-Sprünge
+  machen wird. Das ist gewollt: Dependabot hebt sie an, und die Routine
+  kann sich beim eigenen Werkzeug nicht auf ein Rezept stützen — dieser
+  eine Sprung bleibt Handarbeit.
+- Plugin und Rezeptsammlungen sind aneinander gebunden: Plugin 7.40.0 und
+  neuer verlangen `rewrite-bom` 8.91.0, das zum Zeitpunkt dieser
+  Entscheidung auf Maven Central nicht liegt. Deshalb ist 7.39.0 gepinnt.
+  Ein Dependabot-Bump des Plugins kann daran scheitern und ist dann kein
+  Codeproblem, sondern ein Veröffentlichungsrückstand — abwarten statt
+  reparieren.
+- OpenRewrite parst die Quellen mit einem eigenen Parser. Bei einem Sprung
+  der Java-Version kann dieser Parser hinterherhinken; der Rezeptlauf wird
+  dann rot, und die Routine fällt auf Handarbeit zurück. Das ist der
+  Preis dafür, dass ein Rezept mehr sieht als eine Textersetzung.
+- Ein Rezept schreibt in Quelldateien, ohne zu wissen, was dieses Projekt
+  über sich selbst festgelegt hat — Ringe (ADR-024), Stereotypen
+  (ADR-027), Nullness (ADR-026), die sieben harten Invarianten. Nichts
+  davon wird durch den Rezeptlauf geprüft. Deshalb bleibt die Regel der
+  Routine unverändert: erst `check`, bei Änderungen an `domain`,
+  `application` oder `adapter` zusätzlich `invarianten-review` — der
+  Rezeptlauf ist ein Vorschlag, kein Freibrief.
+- Der Katalog braucht Pflege. Fehlt zu einem Sprung das Rezept, obwohl es
+  eines gibt, macht die Routine unnötig Handarbeit — sichtbar wird das nur
+  im Abschlussbericht des Laufs, nicht durch ein Gate.

@@ -37,10 +37,39 @@ ablehnen() {
 # --- Regel 1: keine Branches anlegen --------------------------------------
 #
 # Erfasst werden nur die *erzeugenden* Formen. "git branch" ohne Argument
-# listet auf, "git branch -d alt" loescht -- beides bleibt erlaubt. Angelegt
-# wird, wenn auf "git branch" ein Wort folgt, das nicht mit "-" beginnt.
+# listet auf, "git branch -d alt" loescht, "git checkout <branch>" wechselt
+# nur -- all das bleibt erlaubt. Angelegt wird, wenn auf "git branch" ein
+# Wort folgt, das nicht mit "-" beginnt.
+#
+# Eine Ausnahme davon (2026-08-30): "git checkout -b lokal origin/xyz" legt
+# zwar formal einen lokalen Branch an, erzeugt aber nichts Neues -- der
+# Branch existiert bereits auf dem Remote, hier entsteht nur die lokale
+# Sicht darauf. Genau das braucht die Dependabot-Routine, um einen fremden
+# PR-Branch anzufassen; "gh pr checkout" tut ohnehin dasselbe und faellt gar
+# nicht erst unter diese Regel. Die Regel schuetzt vor *eigenen*
+# Feature-Branches neben main, nicht davor, Bestehendes anzusehen.
+#
+# Der Startpunkt muss dafuer wirklich ein Remote sein, nicht bloss ein Wort
+# mit Schraegstrich: geprueft wird gegen "git remote". Sonst waere
+# "git checkout -b feature/neu irgendwas/altes" ein Schlupfloch.
+ist_bestehender_remote_branch() {
+    local start remote
+    start="$(printf '%s' "$1" | sed -nE 's/.*git +(checkout|switch) +-[bBcC] +[^ ]+ +([^ ;&|]+).*/\2/p')"
+    [ -z "$start" ] && return 1
+    case "$start" in */*) ;; *) return 1 ;; esac
+    remote="${start%%/*}"
+    # Mit -C statt cd: Das Arbeitsverzeichnis des Hooks ist nicht zugesichert
+    # (Regel 2 unten wechselt es deshalb auch erst selbst).
+    git -C "${CLAUDE_PROJECT_DIR:-$PWD}" remote 2>/dev/null | grep -qx "$remote"
+}
+
+if echo "$befehl" | grep -Eq '(^|[;&|] *)git +(checkout +-[bB]|switch +-[cC])' \
+   && ist_bestehender_remote_branch "$befehl"; then
+    exit 0
+fi
+
 if echo "$befehl" | grep -Eq '(^|[;&|] *)git +(checkout +-[bB]|switch +-[cC]|worktree +add)'; then
-    ablehnen "Regel dieses Projekts: Es wird ausschliesslich auf main gearbeitet, keine Feature-Branches und keine Worktrees. Aenderungen gehen direkt auf main (release.yml und Semantic Release haengen daran). Bitte den Befehl ohne Branch-Anlage wiederholen."
+    ablehnen "Regel dieses Projekts: Es wird ausschliesslich auf main gearbeitet, keine Feature-Branches und keine Worktrees. Aenderungen gehen direkt auf main (release.yml und Semantic Release haengen daran). Bitte den Befehl ohne Branch-Anlage wiederholen. Einen bereits BESTEHENDEN Branch auszuchecken ist erlaubt: 'git checkout <branch>' direkt, 'git checkout -b <lokal> origin/<branch>' fuer einen, den es nur auf dem Remote gibt, oder 'gh pr checkout <nr>'."
 fi
 
 if echo "$befehl" | grep -Eq '(^|[;&|] *)git +branch +[^-]'; then
