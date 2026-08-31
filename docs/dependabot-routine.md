@@ -6,11 +6,13 @@ täglich 05:00 UTC). Sie weckt keine frische Sitzung, sondern immer dieselbe:
 `session_01Bnqk9B4NNgedJCoyJ3YQeX`, „Dependabot-Wartung (Routine-Sitzung,
 mit Repo-Quelle)".
 
-**Die alte Routine `trig_01SgSa2dwKv7cpiirFASUDyz` muss von Hand
-deaktiviert werden** — solange beide aktiv sind, laufen zwei Agenten
-morgens auf dieselben Pull-Requests. Ein Agent kann sie nicht abschalten;
-sie wurde über die Weboberfläche angelegt, und dort Angelegtes darf nur ein
-Mensch ändern.
+Die Vorgängerin `trig_01SgSa2dwKv7cpiirFASUDyz` (ohne OpenRewrite) ist am
+2026-08-31 gelöscht — von Hand, weil ein Agent sie nicht abschalten konnte:
+Sie wurde über die Weboberfläche angelegt, und `update_trigger` lehnt genau
+das ab („Agents can only update routines they created"). Bis dahin liefen
+morgens zwei Agenten auf dieselben Pull-Requests. Der Punkt bleibt hier
+stehen, weil er für jede künftige Ablösung wieder gilt: Wer eine Routine
+ersetzt, muss die alte selbst abräumen — das erledigt kein Agent.
 
 ## Warum eine feste Sitzung statt einer frischen je Lauf
 
@@ -89,7 +91,7 @@ Vorgehen:
    - Mindestens ein Check rot (und keine eigene Aenderung noetig, siehe Schritt 5 fuer den Reparaturfall): nicht mergen, einmalig kommentieren (Marker "[dependabot-routine]" pruefen, um Spam zu vermeiden).
 
 5. Kritische PRs danach einzeln abarbeiten, mit dem Ziel, sie tatsaechlich zu mergen:
-   a. `gh pr checkout <n>` - den PR-Branch auschecken.
+   a. `gh pr checkout <n>` - den PR-Branch auschecken. Danach SOFORT den Basis-Branch nachziehen: `git fetch origin main && git merge origin/main`. Dependabot baut den Branch auf dem main-Stand von damals; alles Folgende laeuft sonst gegen diesen alten Stand - einschliesslich `ci/openrewrite-anwenden.sh` selbst, das aus dem ausgecheckten Branch kommt und nicht von main. Genau daran waere der Lauf vom 31.08. an PR #7 ein zweites Mal gescheitert: Die Entkopplung vom Kompilieren lag auf main, auf dem PR-Branch stand noch die alte Fassung des Skripts. Laesst sich der Merge nicht ohne Ermessen aufloesen (beide Seiten haben dieselbe Stelle geaendert): abbrechen (`git merge --abort`) und weiter mit Schritt 6.
    b. `gh pr view <n> --json title,body` lesen. Zwei Dinge daraus: erstens die Versionsspruenge als Zeilen "<koordinate> <von> <nach>" (die Koordinate so, wie Dependabot sie nennt - Plugin-ID wie "org.springframework.boot" oder volle Koordinate wie "org.testcontainers:postgresql"); zweitens die Release Notes/den Changelog, die Dependabot dort meist anhaengt - sie bleiben die Quelle fuer alles, was kein Rezept abdeckt.
    c. Erst ohne eigene Aenderung pruefen, ob es schon durchlaeuft: bei gradle/npm-PRs gestuft wie der /pruefen-Skill (compileJava, dann test, dann archTest, dann voller `./gradlew check`), bei github-actions-PRs gibt es keinen lokalen Testlauf - hier zaehlt nur der Blick in die Release Notes auf Breaking Changes.
    d. Laeuft es nicht durch bzw. verlangen die Release Notes eine Anpassung: ZUERST das Rezept, nicht die Handarbeit.
@@ -102,7 +104,7 @@ Vorgehen:
    e. Was das Rezept nicht abgedeckt hat (oder wenn es keines gab): minimal-invasive Aenderung von Hand, die exakt das abbildet, was der Versionssprung erzwingt - kein Refactoring, keine Verbesserung nebenbei, keine neue Abstraktion ueber das Notwendige hinaus. Bestehende Konventionen aus CLAUDE.md einhalten (Ringe/Abhaengigkeitsrichtung, DDD-Stereotypen, JSpecify-Nullness, keine Mockito, Kommentare nur fuers Warum).
    f. Betrifft die Aenderung - vom Rezept erzeugt oder von Hand gemacht - Code unter src/main/java/de/fourteen/watchparty/domain, .../application oder .../adapter (nicht nur Build-/CI-Konfiguration wie build.gradle.kts oder .github/workflows): den Skill /invarianten-review ueber das Skill-Werkzeug aufrufen und die Aenderung gegen die sieben harten Invarianten aus CLAUDE.md pruefen lassen. Findet die Pruefung einen plausiblen, nicht restlos ausgeraeumten Verstoss: nicht mergen, weiter mit Schritt 6. Dass eine Aenderung aus einem Rezept stammt, ist dabei kein Freibrief - sie wird genauso geprueft wie eine handgemachte.
    g. Bis zu zwei Fix-und-erneut-pruefen-Zyklen pro PR versuchen, danach abbrechen, wenn weiterhin rot.
-   h. Laeuft `./gradlew check` vollstaendig gruen (und bei domain-nahen Aenderungen die Invarianten-Pruefung ohne Befund): eigene Aenderungen committen (Praefix chore/ci passend zum Oekosystem, NIEMALS fix/feat/perf - siehe Nebenbedingung oben; im Commit-Text nennen, welches Rezept gelaufen ist, falls eines lief) und auf den PR-Branch pushen (`git push`), danach `gh pr merge <n> --squash --subject "<Original-PR-Titel oder kurze eigene Zusammenfassung mit chore:/ci:-Praefix>" --delete-branch=false --repo ajFourteen/Watchparty`.
+   h. Laeuft `./gradlew check` vollstaendig gruen (und bei domain-nahen Aenderungen die Invarianten-Pruefung ohne Befund): eigene Aenderungen committen (auch wenn keine noetig waren, will der Merge-Commit aus Schritt a gepusht werden; Praefix chore/ci passend zum Oekosystem, NIEMALS fix/feat/perf - siehe Nebenbedingung oben; im Commit-Text nennen, welches Rezept gelaufen ist, falls eines lief) und auf den PR-Branch pushen (`git push`), danach `gh pr merge <n> --squash --subject "<Original-PR-Titel oder kurze eigene Zusammenfassung mit chore:/ci:-Praefix>" --delete-branch=false --repo ajFourteen/Watchparty`.
 
 6. Kritische PRs, die nicht gruen werden (Schritt 5g ausgeschoepft), deren noetige Aenderung eine echte Architektur-/Designentscheidung ist statt einer mechanischen Anpassung, oder bei denen die Invarianten-Pruefung einen Befund hat: NICHT mergen. Einmalig kommentieren (Marker "[dependabot-routine]" pruefen, um Spam zu vermeiden): welcher Sprung Major ist, ob ein Rezept lief und welches, was es abgedeckt hat und was nicht, woran es konkret hakt (z. B. welcher Test/welche Regel weiterhin rot ist oder welcher Invarianten-Befund offen ist), und dass ein Mensch das jetzt uebernehmen muss. Vor dem Verlassen der PR: `git checkout main` und einen ggf. lokal veraenderten Branch-Zustand nicht liegen lassen - insbesondere keine vom Rezept geschriebenen, nicht committeten Aenderungen und keinen Rebase-/Merge-Rest im Arbeitsverzeichnis (`git status` muss sauber sein).
 
