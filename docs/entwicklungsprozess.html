@@ -647,7 +647,7 @@
           Major-Sprung ein Rezept laufen lassen bzw. selbst Code anpassen und dann
           mergen, oder liegen lassen.
         </p>
-        <p class="where">claude.ai/code/routines · trig_01FHkz4oeYEVXVqM12YWM5EU</p>
+        <p class="where">claude.ai/code/routines · trig_019nySXHRAv9xJjDrgT8TCm7</p>
       </div>
     </div>
 
@@ -792,7 +792,7 @@
       </div>
       <div class="hook">
         <span class="ev">Routine</span>
-        <span class="file">claude.ai/code/routines · täglich 05:00 UTC</span>
+        <span class="file">claude.ai/code/routines · täglich 02:00 UTC</span>
         <span class="what">
           Sichtet offene Dependabot-PRs. Minor-/Patch-Sprünge gelten als
           unkritisch und werden nach grüner CI direkt (squash) gemergt. Bei
@@ -1399,7 +1399,7 @@
       <div class="ref"><dt>Commit-Konvention</dt><dd>Conventional Commits · ci/commit-format-pruefen.sh (ADR-019)</dd></div>
       <div class="ref"><dt>Branch Protection</dt><dd>GitHub · Settings → Branches → main (nicht im Repo versioniert)</dd></div>
       <div class="ref"><dt>Dependabot-Konfiguration</dt><dd>.github/dependabot.yml</dd></div>
-      <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_01FHkz4oeYEVXVqM12YWM5EU (seit dem 31.08. die einzige; die Vorgängerin ohne OpenRewrite ist gelöscht) — Prompt als Quelle: docs/dependabot-routine.md</dd></div>
+      <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_019nySXHRAv9xJjDrgT8TCm7 (löst am 31.08. innerhalb weniger Stunden zwei Vorgängerinnen ab: erst die ohne OpenRewrite, dann die mit fester Sitzung) — Prompt als Quelle: docs/dependabot-routine.md</dd></div>
       <div class="ref"><dt>Major-Sprung als Rezept</dt><dd>ci/openrewrite-anwenden.sh · build.gradle.kts (Task rewriteRun) — ADR-042</dd></div>
     </dl>
   </section>
@@ -1408,6 +1408,30 @@
     <div class="section-head">
       <h2>Zur Fassung</h2>
       <p>Was sich von Fassung zu Fassung geändert hat — und warum.</p>
+    </div>
+
+    <div class="version">
+      <span class="v">Achte Fassung<br>2026-08-31</span>
+      <p>
+        <b>Die Routine braucht keine dauerhafte Sitzung mehr, um an ihr
+        Repository zu kommen.</b> Die siebte Fassung hatte diese Frage noch
+        nicht — sie stand zwischen den Zeilen: Damit eine Routine bei jedem
+        Lauf ein Repository vorfindet, musste sie bislang eine bestehende,
+        dauerhaft gebundene Sitzung wecken, weil weder
+        <code>create_trigger</code> noch <code>update_trigger</code> dafür
+        einen Parameter kennen. Der Preis stand als erster Absatz im
+        Routine-Prompt: Arbeitsverzeichnis und Verlauf trugen den Vortag
+        noch, jeder Lauf begann deshalb mit einem harten Rücksetzen auf
+        <code>origin/main</code>. Am 31.08. zeigte sich, dass das nicht nötig
+        war: Über die Weboberfläche lässt sich ein Repository auch direkt an
+        eine Routine hängen, die bei jedem Lauf eine <i>neue</i> Sitzung
+        erzeugt — nur die Agent-Werkzeuge bieten dafür weiterhin keinen
+        Parameter. Die aktuelle Routine (<code>trig_019nySXHRAv9xJjDrgT8TCm7</code>,
+        02:00 statt 05:00 UTC) startet damit bei einem echten, sauberen
+        Checkout; der Weckruf-Vorspann mit Rücksetzen und Hook-Hinweis ist aus
+        dem Prompt gestrichen, nicht nur verkürzt — es gibt keinen
+        Vortagszustand mehr, auf den er sich bezöge.
+      </p>
     </div>
 
     <div class="version">
