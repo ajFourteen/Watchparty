@@ -14,8 +14,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     // Setzen JSpecify durch: ein @Nullable an der falschen Stelle ist ein
     // Compile-Fehler, keine Doku (ADR-026).
-    id("net.ltgt.errorprone") version "5.1.0"
-    id("net.ltgt.nullaway") version "3.1.0"
+    id("net.ltgt.errorprone") version "5.1.1"
+    id("net.ltgt.nullaway") version "3.2.0"
     // Erzeugt den JGiven-HTML-Report aus den JSON-Ergebnissen, die
     // jgiven-junit5 beim Testlauf schreibt (docs/teststrategie.md, Abschnitt 8).
     id("com.tngtech.jgiven.gradle-plugin") version "2.0.3"
@@ -28,7 +28,7 @@ plugins {
     // Fuehrt Major-Versionsupdates als Rezept aus statt von Hand (ADR-042).
     // Haengt bewusst an KEINER Stelle an `check` -- rewriteRun/rewriteDryRun
     // sind Werkzeuge fuer den Dependabot-Lauf, keine Pruefung.
-    id("org.openrewrite.rewrite") version "7.39.0"
+    id("org.openrewrite.rewrite") version "7.41.0"
 }
 
 group = "de.fourteen"
@@ -135,7 +135,7 @@ dependencies {
     // *erzwingt*. rewrite-static-analysis waere die vierte naheliegende, ist
     // aber Geschmacksverbesserung -- und die Routine darf laut ihren eigenen
     // Grenzen nichts anfassen, was der Sprung nicht verlangt.
-    rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:3.37.0"))
+    rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:3.38.0"))
     rewrite("org.openrewrite.recipe:rewrite-spring")
     rewrite("org.openrewrite.recipe:rewrite-migrate-java")
     rewrite("org.openrewrite.recipe:rewrite-testing-frameworks")
