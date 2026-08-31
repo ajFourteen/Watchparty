@@ -171,9 +171,21 @@ aufgabe="rewriteRun"
 
 # -PskipFrontend: Das Rezept fasst Java-, Gradle- und Property-Dateien an, nie
 # das Frontend. Der npm-Build waere hier reine Wartezeit.
+#
+# -x compileJava -x compileTestJava ist keine Bequemlichkeit, sondern die
+# Bedingung dafuer, dass dieses Skript ueberhaupt hilft. Die Rezeptaufgabe
+# haengt von Haus aus am Kompilieren -- und ein Major-Sprung, der eine
+# Anpassung erzwingt, hat den Compiler in aller Regel schon rot gemacht. Ohne
+# das Ueberspringen bricht der Lauf mit genau den Fehlern ab, die das Rezept
+# beheben soll (belegt am 2026-08-31 an Spring Boot 3.5.16 -> 4.1.1: 31
+# Compile-Fehler, Rezeptlauf kam gar nicht erst zum Zug).
+#
+# Die Typinformationen holt OpenRewrite aus den Jars des Compile-Classpath,
+# nicht aus den eigenen .class-Dateien; das Ueberspringen kostet also nichts,
+# was das Rezept braucht.
 echo
-echo "./gradlew $aufgabe -PrewriteRezepte=$liste -PskipFrontend"
-if ! ./gradlew "$aufgabe" "-PrewriteRezepte=$liste" -PskipFrontend; then
+echo "./gradlew $aufgabe -PrewriteRezepte=$liste -PskipFrontend -x compileJava -x compileTestJava"
+if ! ./gradlew "$aufgabe" "-PrewriteRezepte=$liste" -PskipFrontend -x compileJava -x compileTestJava; then
     echo "Gradle-Lauf rot -- kein Rezept angewandt." >&2
     exit 1
 fi

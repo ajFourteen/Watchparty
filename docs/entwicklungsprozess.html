@@ -899,6 +899,25 @@
       an <code>check</code> hängt die Aufgabe an keiner Stelle — sie ist
       Werkzeug, kein Gate, und rührt das Zehn-Minuten-Budget nicht an.
     </p>
+
+    <p class="aside">
+      <b>Was der erste scharfe Einsatz am 31.08.2026 gelehrt hat.</b> Die
+      Rezeptaufgabe hängt von Haus aus am Kompilieren — und stolperte damit
+      über genau den Zustand, für den sie gebaut ist: Am Sprung Spring Boot
+      3.5.16 → 4.1.1 brach sie mit denselben 31 Compile-Fehlern ab, die das
+      Rezept beheben sollte. Das Skript ruft Gradle deshalb mit
+      <code>-x compileJava -x compileTestJava</code> auf; die Typinformationen
+      holt OpenRewrite ohnehin aus den Jars des Compile-Classpath, nicht aus
+      den eigenen Klassendateien. Derselbe Lauf zeigte beide Seiten des
+      Werkzeugs an einem Fall: Was der alte Weg tags zuvor als
+      <i>Designentscheidung</i> zurückgegeben hatte — Jackson 2 oder 3? —
+      beantwortet das Rezept ohne Ermessen
+      (<code>com.fasterxml.jackson.*</code> → <code>tools.jackson.*</code>),
+      und es greift zugleich über den Sprung hinaus, indem es eine
+      <code>javax.xml.bind</code>-Abhängigkeit einträgt, die hier niemand
+      braucht. Genau dafür steht im Ablauf der Schritt „den Diff lesen, nicht
+      übernehmen".
+    </p>
   </section>
 
   <section>
