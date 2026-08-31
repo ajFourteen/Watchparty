@@ -644,9 +644,10 @@
           Läuft <b>ohne offene Sitzung</b>: ein Cloud-Agent, zeitgesteuert statt an
           ein Ereignis einer Agent-Sitzung gebunden wie ein Hook. Kein Ja/Nein-Check
           wie ein Gate — sie <b>entscheidet und handelt selbst</b>: mergen, für einen
-          Major-Sprung selbst Code anpassen und dann mergen, oder liegen lassen.
+          Major-Sprung ein Rezept laufen lassen bzw. selbst Code anpassen und dann
+          mergen, oder liegen lassen.
         </p>
-        <p class="where">claude.ai/code/routines · trig_01SgSa2dwKv7cpiirFASUDyz</p>
+        <p class="where">claude.ai/code/routines · trig_01FHkz4oeYEVXVqM12YWM5EU</p>
       </div>
     </div>
 
@@ -681,8 +682,10 @@
       <b>Ein zweiter Einstieg, der diese Schiene nicht durchläuft.</b> Ein von
       Dependabot geöffneter Pull-Request hat kein Feature-Dokument und keine
       Schnitte hinter sich — er steigt direkt bei Stufe 05/06 ein, mit der
-      Merge-Routine anstelle eines Menschen an der Commit-Stufe. Details im
-      nächsten Abschnitt.
+      Merge-Routine anstelle eines Menschen an der Commit-Stufe. Er landet dort
+      auch nicht als Commit, sondern als Squash-Merge eines Pull-Requests — der
+      einzige Weg, den die Branch Protection auf <code>main</code> offen lässt.
+      Details im nächsten Abschnitt.
     </p>
   </section>
 
@@ -793,10 +796,13 @@
         <span class="what">
           Sichtet offene Dependabot-PRs. Minor-/Patch-Sprünge gelten als
           unkritisch und werden nach grüner CI direkt (squash) gemergt. Bei
-          einem Major-Sprung checkt sie den PR-Branch aus, liest die Release
-          Notes und versucht — bis zu zwei Zyklen — den Sprung durch eigene,
-          minimal-invasive Codeänderungen wieder grün zu bekommen; erst dann
-          mergt sie. Nach jedem Merge beobachtet sie den ausgelösten CI-Lauf
+          einem Major-Sprung checkt sie den PR-Branch aus und wendet zuerst
+          das passende <b>OpenRewrite-Rezept</b> an
+          (<code>ci/openrewrite-anwenden.sh</code>, ADR-042) — erst was das
+          Rezept nicht abdeckt oder was es gar nicht gibt, macht sie wie
+          bisher von Hand aus den Release Notes. Dann versucht sie — bis zu
+          zwei Zyklen — den Sprung wieder grün zu bekommen; erst dann mergt
+          sie. Nach jedem Merge beobachtet sie den ausgelösten CI-Lauf
           auf main und macht einen Fehlschlag über einen Commit-Kommentar
           sichtbar.
         </span>
@@ -830,6 +836,68 @@
       es nach zwei Versuchen rot oder verlangt es eine echte Designentscheidung
       statt einer mechanischen Anpassung, mergt sie weiterhin nicht — dann wie
       zuvor nur ein Kommentar.
+    </p>
+
+    <p class="aside">
+      <b>Seit dem 30.08.2026 rät sie beim Major-Sprung nicht mehr, sie führt
+      aus (ADR-042).</b> Die Reparatur eines Major-Sprungs hing bis dahin an
+      einer einzigen Quelle: den Release Notes im PR-Text. Aus Prosa schließen,
+      was der Bibliotheksautor als Umstieg gemeint hat, ist genau die Stelle,
+      an der ein Sprachmodell rät — und ein Missverständnis fällt frühestens
+      im nächsten Gate auf. <b>OpenRewrite</b> dreht die Richtung um: Der
+      Hersteller beschreibt den Umstieg einmal als ausführbares Rezept, das auf
+      dem Syntaxbaum arbeitet, und <code>ci/openrewrite-anwenden.sh</code>
+      sucht zum konkreten Sprung das passende heraus
+      (<code>UpgradeSpringBoot_4_0</code>, <code>JUnit5to6Migration</code>,
+      <code>Testcontainers2Migration</code> …) und wendet es an. Drei Grenzen
+      bleiben, ausdrücklich: Es gilt nur für Gradle/Java — für npm und
+      Actions-Tags gibt es keine Rezepte. Der Katalog ist unvollständig; ein
+      Sprung ohne Eintrag ist eine Auskunft, kein Fehlschlag, und die Routine
+      macht dort weiter wie zuvor. Und ein Rezept kennt die Regeln
+      <i>dieses</i> Projekts nicht — Ringe, Stereotypen, die sieben
+      Invarianten —, deshalb ändert es an den Leitplanken oben keine Zeile:
+      Der Rezeptlauf ist ein Vorschlag, über grün entscheiden weiter
+      <code>check</code> und <code>/invarianten-review</code>.
+    </p>
+
+   <div class="section-head">
+      <h3>Was daran deterministisch ist</h3>
+      <p>
+        Nicht der Umstieg — der bleibt teilweise Handarbeit. Deterministisch ist
+        die <b>Zuordnung</b>: Aus dem Versionssprung, den Dependabot im PR-Titel
+        nennt, folgt ohne Ermessen ein Rezeptname. Kein Urteil, kein
+        Zwischenschritt, in dem etwas interpretiert wird — eine
+        Nachschlagetabelle in <code>ci/openrewrite-anwenden.sh</code>, gefüttert
+        mit <code>&lt;koordinate&gt; &lt;von&gt; &lt;nach&gt;</code>. Was das
+        Rezept dann tut, ist ebenfalls festgelegt: ein Programm auf dem
+        Syntaxbaum, gleicher Eingang, gleicher Diff. Deshalb steht der Katalog
+        hier vollständig — er ist kurz genug dafür, und seine Lücken sind der
+        eigentliche Inhalt.
+      </p>
+    </div>
+
+    <dl class="refs">
+      <div class="ref"><dt>Spring Boot → 4.x</dt><dd>org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0</dd></div>
+      <div class="ref"><dt>Spring Framework → 7.x</dt><dd>org.openrewrite.java.spring.framework.UpgradeSpringFramework_7_0</dd></div>
+      <div class="ref"><dt>JUnit → 6.x</dt><dd>org.openrewrite.java.testing.junit6.JUnit5to6Migration</dd></div>
+      <div class="ref"><dt>Testcontainers → 2.x</dt><dd>org.openrewrite.java.testing.testcontainers.Testcontainers2Migration</dd></div>
+      <div class="ref"><dt>Flyway → 10.x</dt><dd>org.openrewrite.java.flyway.MigrateToFlyway10</dd></div>
+      <div class="ref"><dt>ArchUnit → 1.x</dt><dd>org.openrewrite.java.testing.archunit.ArchUnit0to1Migration — längst hinter uns, steht im Katalog als Beispiel wonach gesucht wird</dd></div>
+      <div class="ref"><dt>Java-Toolchain → 25</dt><dd>org.openrewrite.java.migrate.UpgradeToJava25 — kommt nicht von Dependabot, nimmt aber denselben Weg</dd></div>
+      <div class="ref"><dt>npm (frontend/, e2e/) · Actions-Tags</dt><dd>kein Rezept — dafür gibt es keine vergleichbare Sammlung. Bleibt Handarbeit aus den Release Notes.</dd></div>
+    </dl>
+
+    <p class="aside">
+      <b>Ein Sprung ohne Eintrag ist eine Auskunft, kein Fehlschlag.</b> Das
+      Skript beendet sich dann mit <code>4</code> und sagt, welcher Sprung ohne
+      Rezept blieb; die Routine macht an dieser Stelle weiter wie vor ADR-042.
+      <code>0</code> heißt angewandt (oder mit <code>--trocken</code>
+      durchgerechnet, Patch unter
+      <code>build/reports/rewrite/rewrite.patch</code>), <code>1</code> ist ein
+      echter Fehler. Ausgeführt wird über <code>./gradlew rewriteRun
+      -PrewriteRezepte=…</code>; ohne diese Property ist kein Rezept aktiv, und
+      an <code>check</code> hängt die Aufgabe an keiner Stelle — sie ist
+      Werkzeug, kein Gate, und rührt das Zehn-Minuten-Budget nicht an.
     </p>
   </section>
 
@@ -1021,8 +1089,29 @@
             <span class="chip skill"><b>Skill</b> /invarianten-review</span>
             <span class="chip gate"><b>Gate</b> commit-msg — Format</span>
             <span class="chip gate"><b>Gate</b> commit-msg — releasender Typ ⇒ Anwendungsdatei</span>
+            <span class="chip gate"><b>Gate</b> Branch Protection auf main — serverseitig</span>
             <span class="chip hook"><b>Hook</b> PreToolUse — kein Branch, Pull (nur Agent)</span>
           </div>
+
+          <p class="aside">
+            <b>„Direkt auf main" gilt nicht für jeden, der pusht.</b> Diese Seite
+            behauptete den Satz bis zum 30.08.2026 ohne Einschränkung — bis ein
+            Push aus einer Agent-Sitzung mit
+            <code>protected branch hook declined</code> abgewiesen wurde.
+            <code>main</code> ist geschützt; der Projektinhaber kommt durch, ein
+            Agent mit App-Token nicht. Für ihn heißt „auf main arbeiten" deshalb:
+            Branch, Pull-Request, Merge — und der lokale
+            <code>ci/git-regeln-hook.sh</code>, der das Anlegen von Branches
+            verbietet, steht dazu in einer Spannung, die man kennen muss statt sie
+            im Einzelfall neu zu entdecken. Die Branch Protection ist dabei der
+            <b>härteste deterministische Check des ganzen Ablaufs</b>: Sie sitzt
+            serverseitig, greift auch ohne Agent, ohne Hook und ohne Gradle, und
+            lässt sich durch nichts lokal umgehen. Genau deshalb gehört sie auf
+            diese Seite — die welche Regeln sie im Einzelnen durchsetzt
+            (Pflicht-Checks, Reviews, kein Force-Push), steht in den
+            Repository-Einstellungen und nicht im Repo; hier steht nur, dass es
+            sie gibt und was sie in der Praxis erzwingt.
+          </p>
           <p class="aside">
             <b>Freigabe jetzt auch als Check.</b> Der <code>commit-msg</code>-Hook lehnt
             jeden releasenden Commit (<code>feat:</code>/<code>fix:</code>/<code>perf:</code>)
@@ -1138,7 +1227,7 @@
       <div class="hook">
         <span class="ev">PreToolUse</span>
         <span class="file">ci/git-regeln-hook.sh</span>
-        <span class="what">Kein Branch, Pull vor dem Commit.</span>
+        <span class="what">Kein <i>neuer</i> Branch, Pull vor dem Commit. Einen bestehenden auschecken ist erlaubt — auch einen, den es nur auf dem Remote gibt (<code>-b lokal origin/x</code>); das braucht die Dependabot-Routine für fremde PR-Branches.</span>
       </div>
       <div class="hook">
         <span class="ev">PostToolUse</span>
@@ -1268,8 +1357,10 @@
       <div class="ref"><dt>CI-Workflows</dt><dd>.github/workflows/build.yml · release.yml · pages.yml · codeql.yml</dd></div>
       <div class="ref"><dt>Deploy-Absicherung</dt><dd>ci/eine-maschine-pruefen.sh · ci/rauchtest.mjs</dd></div>
       <div class="ref"><dt>Commit-Konvention</dt><dd>Conventional Commits · ci/commit-format-pruefen.sh (ADR-019)</dd></div>
+      <div class="ref"><dt>Branch Protection</dt><dd>GitHub · Settings → Branches → main (nicht im Repo versioniert)</dd></div>
       <div class="ref"><dt>Dependabot-Konfiguration</dt><dd>.github/dependabot.yml</dd></div>
-      <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_01SgSa2dwKv7cpiirFASUDyz</dd></div>
+      <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_01FHkz4oeYEVXVqM12YWM5EU (löst trig_01SgSa2dwKv7cpiirFASUDyz ab) — Prompt als Quelle: docs/dependabot-routine.md</dd></div>
+      <div class="ref"><dt>Major-Sprung als Rezept</dt><dd>ci/openrewrite-anwenden.sh · build.gradle.kts (Task rewriteRun) — ADR-042</dd></div>
     </dl>
   </section>
 
@@ -1277,6 +1368,22 @@
     <div class="section-head">
       <h2>Zur Fassung</h2>
       <p>Was sich von Fassung zu Fassung geändert hat — und warum.</p>
+    </div>
+
+    <div class="version">
+      <span class="v">Siebte Fassung<br>2026-08-30</span>
+      <p>
+        <b>Die Reparatur eines Major-Sprungs hing an einer gelesenen
+        Prosaquelle.</b> Die sechste Fassung gab der Routine Schreibrecht auf
+        Produktivcode und umgab es mit Leitplanken — aber die Leitplanken
+        prüfen nur das <i>Ergebnis</i>. Woher die Änderung kam, blieb
+        ungeprüft: aus den Release Notes im PR-Text, interpretiert. Seit
+        ADR-042 steht davor ein ausführbares Rezept
+        (<code>ci/openrewrite-anwenden.sh</code>), das der Bibliotheksautor
+        selbst geschrieben hat. Die Handarbeit verschwindet damit nicht, sie
+        wird kleiner — und was bleibt, ist sichtbar das, wofür es kein Rezept
+        gibt.
+      </p>
     </div>
 
     <div class="version">
@@ -1376,7 +1483,7 @@
   </section>
 
   <footer class="closing">
-    Stand 2026-08-29 · Watchparty · beschreibt den umgesetzten Prozess, keine Vorschläge
+    Stand 2026-08-30 · Watchparty · beschreibt den umgesetzten Prozess, keine Vorschläge
   </footer>
 
 </div>
