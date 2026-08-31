@@ -1,44 +1,63 @@
 # Die Dependabot-Routine
 
-Der Prompt der täglichen Routine „Dependabot-PRs sichten und mergen
-(OpenRewrite)" (claude.ai/code/routines, `trig_01FHkz4oeYEVXVqM12YWM5EU`,
-täglich 05:00 UTC). Sie weckt keine frische Sitzung, sondern immer dieselbe:
-`session_01Bnqk9B4NNgedJCoyJ3YQeX`, „Dependabot-Wartung (Routine-Sitzung,
-mit Repo-Quelle)".
+Der Prompt der täglichen Routine „Merge critical Dependabot PRs using
+OpenRewrite" (claude.ai/code/routines, `trig_019nySXHRAv9xJjDrgT8TCm7`,
+täglich 02:00 UTC, angelegt am 2026-08-31 07:32 UTC). Anders als ihre beiden
+Vorgängerinnen weckt sie keine bestehende Sitzung, sondern erzeugt bei
+jedem Lauf eine frische, mit dem Repository direkt am Trigger als Quelle
+(`job_config.ccr.session_context.sources`) — kein Umweg mehr über eine
+dauerhaft gebundene Sitzung.
 
-Die Vorgängerin `trig_01SgSa2dwKv7cpiirFASUDyz` (ohne OpenRewrite) ist am
-2026-08-31 gelöscht — von Hand, weil ein Agent sie nicht abschalten konnte:
-Sie wurde über die Weboberfläche angelegt, und `update_trigger` lehnt genau
-das ab („Agents can only update routines they created"). Bis dahin liefen
-morgens zwei Agenten auf dieselben Pull-Requests. Der Punkt bleibt hier
-stehen, weil er für jede künftige Ablösung wieder gilt: Wer eine Routine
-ersetzt, muss die alte selbst abräumen — das erledigt kein Agent.
+Zwei Vorgängerinnen liegen dahinter, beide nicht mehr in der
+Trigger-Übersicht:
 
-## Warum eine feste Sitzung statt einer frischen je Lauf
+- `trig_01SgSa2dwKv7cpiirFASUDyz` (ohne OpenRewrite) — am 2026-08-31 von
+  Hand gelöscht, weil ein Agent sie nicht abschalten konnte: über die
+  Weboberfläche angelegt, und `update_trigger` lehnt eine fremde Routine ab
+  („Agents can only update routines they created"). Bis dahin liefen
+  morgens zwei Agenten auf dieselben Pull-Requests.
+- `trig_01FHkz4oeYEVXVqM12YWM5EU` (mit OpenRewrite, gebunden an die feste
+  Sitzung `session_01Bnqk9B4NNgedJCoyJ3YQeX`) — der Ansatz, den dieses
+  Dokument bis zum 2026-08-31 als aktuellen beschrieb (Abschnitt unten).
+  Ersetzt durch die jetzige Routine, aus demselben Grund wie oben: Ersatz
+  heißt selbst abräumen, das erledigt kein Agent automatisch.
 
-Nicht aus Überzeugung, sondern weil es der einzige Weg war, der das
-Repository in die Routine bekommt. Eine Routine erhält ihre Git-Quelle
-ausschließlich beim Anlegen über die Weboberfläche; die Werkzeuge, mit
-denen ein Agent Routinen anlegt und ändert, kennen dafür schlicht keinen
-Parameter. Der erste Versuch (`trig_01DNECwWbfL5oRRXpAmsmFMc`, am
-2026-08-30 angelegt und wieder gelöscht) fiel genau darüber: Die gefeuerte
-Sitzung stand ohne Checkout da und konnte nichts tun.
+Der Punkt bleibt für jede künftige Ablösung gültig: Wer eine Routine
+ersetzt, muss die alte selbst abräumen.
 
-Beim Anlegen einer *Sitzung* gibt es den Parameter dagegen sehr wohl. Also
-bekommt eine dauerhafte Sitzung das Repository, und die Routine weckt
-diese Sitzung täglich. Der Preis steht im Prompt und ist dort der erste
-Absatz: Die Sitzung ist am nächsten Morgen nicht frisch — Arbeitsverzeichnis
-und Gesprächsverlauf tragen den Vortag noch. Deshalb beginnt jeder Lauf mit
-einem harten Rücksetzen auf `origin/main`, und deshalb steht der volle Text
-der Regeln bei jedem Weckruf noch einmal da, statt sich auf „steht weiter
-oben" zu verlassen.
+## Warum jetzt eine frische Sitzung je Lauf reicht
 
-Eine Nebenwirkung dieser Bauweise: Sobald eine Routine in eine *fremde*
-Sitzung feuert, lässt sich ihr Prompt nicht mehr bearbeiten — jede
-Textänderung heißt löschen und neu anlegen, und die `trig_`-ID wechselt
-dabei. Wer die ID hier sucht und sie nicht findet, hat vermutlich eine
-Fassung von vorgestern vor sich; maßgeblich ist die Routine mit diesem
-Namen in der Übersicht.
+Die ursprüngliche Annahme war: Eine Routine bekommt ihre Git-Quelle
+ausschließlich beim Anlegen einer *Sitzung*, nicht beim Anlegen einer
+Routine — die Werkzeuge, mit denen ein Agent Routinen anlegt und ändert
+(`create_trigger`/`update_trigger`), kennen bis heute keinen Parameter für
+ein Repository, egal ob die Routine eine bestehende Sitzung weckt oder bei
+jedem Lauf eine neue erzeugt. Der erste Versuch überhaupt
+(`trig_01DNECwWbfL5oRRXpAmsmFMc`, am 2026-08-30 angelegt und wieder
+gelöscht) fiel genau darüber: eine frische Sitzung ohne Repo-Angabe stand
+ohne Checkout da. Die Konsequenz daraus war `trig_01FHkz4oeYEVXVqM12YWM5EU`
+— eine dauerhafte Sitzung mit Repo-Quelle, täglich neu geweckt, mit allen
+Folgen einer nicht-frischen Sitzung (hartes Rücksetzen als erster Schritt,
+voller Regeltext bei jedem Weckruf, siehe Git-Historie dieser Datei).
+
+Die aktuelle Routine zeigt, dass diese Konsequenz nicht nötig war: Über die
+Weboberfläche lässt sich ein Repository auch direkt an eine Routine hängen,
+die bei jedem Lauf eine *neue* Sitzung erzeugt (`job_config.ccr` trägt
+`environment_id` und `session_context.sources` unmittelbar, ohne
+`persistent_session_id`) — nur die Agent-Werkzeuge (`create_trigger`) bieten
+dafür weiterhin keinen Parameter. Jeder Lauf startet damit bei einem
+echten, sauberen Checkout; die drei Punkte, die der alte Weckruf-Vorspann
+deshalb voranstellte (Rücksetzen, Hook-Hinweis, „Regeln verjähren nicht"),
+entfallen dadurch nicht als Sorge, sondern als Notwendigkeit — es gibt
+schlicht keinen Vortagszustand mehr, auf den sich zurücksetzen ließe.
+
+Weiterhin unverändert: Der Prompt lässt sich nur über die Weboberfläche mit
+einer Repo-Quelle versehen. Jede Textänderung heißt also weiterhin: hier
+ändern, committen, dann in der Weboberfläche einfügen — bei dieser Routine
+reicht dafür (anders als bei der alten) vermutlich ein einfaches
+Bearbeiten des Prompts über `update_trigger`, sofern die Routine vom
+richtigen Konto aus angelegt wurde; ungetestet, da diese Datei bislang nur
+per Löschen-und-Neuanlegen aktuell gehalten wurde.
 
 ## Diese Datei ist die Quelle, nicht die Kopie
 
@@ -56,17 +75,18 @@ ein Web-Formular gereicht, dessen Kodierung nirgends festgenagelt ist;
 Was die Routine im Prozess ist und warum sie seit ADR-042 beim Major-Sprung
 nicht mehr rät, steht in `docs/entwicklungsprozess.html`.
 
+Der Weckruf-Vorspann aus der Zeit der festen Sitzung (Rücksetzen auf
+`origin/main`, Hinweis auf `ci/git-regeln-hook.sh`, „Regeln verjähren
+nicht") ist hier bewusst nicht mehr Teil des Prompts: Jeder Lauf bekommt
+jetzt ohnehin einen frischen Checkout, es gibt keinen Vortagszustand, auf
+den zurückzusetzen wäre. Der Hook selbst gilt natürlich unverändert für
+jede Sitzung, die ihn im Repository vorfindet — er muss dem Agenten nur
+nicht mehr eigens vorab erklärt werden, da er in `gh pr checkout` und den
+übrigen Schritten unten ohnehin nicht im Weg steht (siehe Commit 316f56f).
+
 ---
 
 ```text
-WIEDERKEHRENDER WECKRUF IN DERSELBEN SITZUNG. Diese Sitzung ist die feste Wartungssitzung fuer ajFourteen/Watchparty; sie hat das Repository als Quelle und wird jeden Tag erneut mit genau diesem Text geweckt. Drei Dinge folgen daraus:
-
-Erstens: Das Arbeitsverzeichnis kann vom Lauf des Vortags veraendert sein -- ein ausgecheckter PR-Branch, ein Rest vom Rezeptlauf. Bring es deshalb ZUERST in einen sauberen Ausgangszustand, bevor irgendetwas anderes passiert: `git status` ansehen, ungestagte Aenderungen verwerfen, `git checkout main`, `git fetch origin main`, `git reset --hard origin/main`. Was vom Vortag noch uncommittet herumliegt, ist per Definition nichts Wertvolles -- der Ablauf unten committet und pusht, bevor er merged.
-
-Zweitens: Dieses Projekt hat einen eigenen PreToolUse-Hook (ci/git-regeln-hook.sh). Er verbietet das Anlegen NEUER Branches (`git checkout -b <name>` ohne Startpunkt, `git switch -c <name>`, `git worktree add`, `git branch <name>`) und lehnt einen Commit ab, solange der lokale Branch hinter seinem Upstream steht. Einen BESTEHENDEN Branch auszuchecken ist ausdruecklich erlaubt: `git checkout <branch>` direkt, `git checkout -b <lokal> origin/<branch>` fuer einen, den es nur auf dem Remote gibt, und `gh pr checkout <n>` ohnehin. Fuer diesen Ablauf ist der Hook damit kein Hindernis, und vor einem Commit auf einem PR-Branch gehoert ohnehin ein `git pull`. Versuche nicht, den Hook zu umgehen -- er ist eine Vorgabe des Projektinhabers, kein Versehen.
-
-Drittens: Behandle den folgenden Text bei jedem Weckruf als vollstaendig und verbindlich, auch wenn Teile davon schon weiter oben im Gespraechsverlauf stehen oder dort zusammengefasst wurden. Insbesondere die harten Grenzen am Ende gelten unveraendert bei jedem einzelnen Lauf; sie verjaehren nicht dadurch, dass sie gestern schon dastanden.
-
 Du bist ein taeglicher Wartungsagent fuer das Repository ajFourteen/Watchparty (Git-Checkout liegt bereits vor). Aufgabe: offene Dependabot-Pull-Requests sichten und mergen - unkritische direkt, kritische auch, aber nur nachdem du sie durch OpenRewrite-Rezepte und, wo noetig, eigene Codeanpassungen gruen bekommen hast. Lies zuerst CLAUDE.md im Repo-Wurzelverzeichnis fuer Architektur- und Konventionskontext (Onion-Architektur, DDD-Stereotypen, Testkultur, die sieben harten Invarianten), bevor du irgendetwas aenderst.
 
 Kontext: .github/dependabot.yml buendelt Minor-/Patch-Updates je Oekosystem (gradle, npm/frontend, npm/e2e, github-actions) zu einer PR mit Label "minor-und-patch"; Major-Updates bleiben absichtlich einzeln, weil sie eher brechende Aenderungen tragen. Commit-Praefixe sind "chore" (gradle/npm) bzw. "ci" (github-actions) - beide loesen laut ADR-019 (Semantic Release) keinen Deploy aus, nur "fix"/"feat"/"perf" tun das. Das ist eine harte Nebenbedingung fuer alles Folgende: JEDER Merge dieser Routine bleibt beim chore/ci-Praefix der Dependabot-PR, egal wie viel Code du dafuer anpassen musstest - ein releasender Typ wuerde automatisch auf Fly.io deployen, das darf diese Routine nie ungefragt ausloesen.
