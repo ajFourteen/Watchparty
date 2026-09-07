@@ -1864,3 +1864,67 @@ dann reproduzierbar und nachlesbar, nicht interpretiert.
   `javax.xml.bind:jaxb-api` als Laufzeitabhängigkeit hinzu — ein Rest aus
   einem eingebetteten Jakarta-Teilrezept, den dieser Sprung nicht erzwingt
   und der beim Durchsehen des Diffs zurückzunehmen ist.
+
+## ADR-043: Sieger-Tipp-Wertung als zweites Wertungsschema, Eigenschaft der Liga
+
+**Status:** Akzeptiert
+
+**Kontext:** Die bestehende Wertung nach 13.5/ADR-038 (Tendenz, Abstands-Eimer,
+exaktes Ergebnis, bis zu 6 Wertungspunkte) verlangt ein genaues
+Zahlenergebnis und belohnt Genauigkeit. Für eine leichtere Einstiegsvariante
+kam der Wunsch auf, in mancher Liga nur zu werten, wer eine Partie gewinnt
+(Tendenz), ohne den Aufwand einer Zahlenprognose stärker zu gewichten. Zwei
+Wege standen offen: die bestehende Wertung ersetzen, oder eine zweite,
+schlankere Wertung daneben anbieten. Ein Ersatz hätte 13.5/ADR-038
+zurückgenommen, ohne dass daran etwas fachlich falsch wäre — es wäre allein
+eine Vereinfachung um ihrer selbst willen gewesen und hätte Ligen, die die
+feinere Wertung wollen, keine Wahl gelassen.
+
+**Entscheidung:**
+1. **Zweites Wertungsschema statt Ersatz.** 13.5/ADR-038 bleiben unverändert
+   bestehen. Zusätzlich gibt es die *Sieger-Tipp-Wertung*: Gewertet wird nur
+   die Tendenz aus demselben Ergebnistipp — übereinstimmend 1 Wertungspunkt,
+   sonst 0. Abstand und exaktes Ergebnis spielen keine Rolle.
+2. **Kein zweiter Ergebnistipp, keine zweite Eingabe.** Ein Ergebnistipp
+   bleibt genau die eine Form aus 13.4 (zwei nicht-negative ganze Zahlen).
+   Die Sieger-Tipp-Wertung liest daraus nur die Tendenz
+   (`GameScore.tendency()`), sie verlangt keinen eigenen, reduzierten
+   Tippweg und keinen neuen Domänentyp für den Tipp selbst — derselbe
+   Ergebnistipp zählt in einer Standard-Liga anders als in einer
+   Sieger-Tipp-Liga, ohne dass der Tipper das beim Tippen merkt.
+3. **Das Wertungsschema ist eine unveränderliche Eigenschaft der Liga, keine
+   eigene Liga-Art.** Beim Anlegen (`League.create`) legt sich eine Liga auf
+   Standard- oder Sieger-Tipp-Wertung fest; das Schema ändert sich über die
+   gesamte Lebensdauer der Liga nicht. `League` bekommt dafür ein Feld
+   `ScoringScheme` (Value Object, zwei Ausprägungen), sonst bleibt Struktur
+   und Mitgliederverwaltung unverändert — dieselbe Liga, derselbe
+   Beitrittscode, dieselbe Mitgliederliste, nur eine andere Rechenvorschrift
+   für ihre Rangliste.
+4. **`Standings` wählt die Wertungsfunktion nach dem Schema der Liga**,
+   bleibt aber wie bisher eine reine Funktion (ADR-038) — `Scoring`
+   bekommt eine zweite reine Funktion `(Prediction, GameScore) ->
+   LeaguePoints` für die Sieger-Tipp-Wertung, neben der bestehenden für
+   13.5.
+5. **Gleichstand in einer Sieger-Tipp-Liga:** Die drei Tiebreak-Stufen aus
+   13.6-g (Gesamtpunktzahl, exakte Ergebnisse, richtige Tendenzen) tragen
+   hier nur die erste — exakte Ergebnisse werden nicht gewertet, und die
+   Zahl richtiger Tendenzen ist in dieser Wertung mit der Gesamtpunktzahl
+   identisch (1 Punkt je richtiger Tendenz). Ein Gleichstand nach
+   Gesamtpunktzahl bleibt deshalb ein Gleichstand, geteilter Platz nach der
+   bestehenden Regel — keine neue Tiebreak-Stufe nötig.
+
+**Konsequenzen:**
+- `docs/anforderungen.md` 13.5 und 13.6 werden um die Sieger-Tipp-Wertung
+  bzw. die Liga-Eigenschaft ergänzt (13.5-f, 13.6-m), nicht ersetzt.
+- Persistenz (`LeagueRepositoryJdbc`, ADR-035) braucht eine zusätzliche
+  Spalte für das Wertungsschema; eine Flyway-Migration ergänzt sie mit
+  Standardwertung als Vorbelegung für bestehende Zeilen.
+- Die Oberfläche (`LeaguesScreen.jsx`, `LeagueDetailScreen.jsx`) zeigt das
+  Schema beim Anlegen als Auswahl und danach nur noch informativ an, nicht
+  änderbar.
+- Wie beim Anlegen einer Liga (ADR-034 folgend) bleibt der Ergebnistipp
+  selbst unabhängig vom Modus/Schema — dieselbe Trennung von Tipp und
+  Wertung wie zwischen 13.4 und 13.5 bereits heute.
+- Umsetzung folgt testgetrieben über `schneiden`/`feature`
+  (`docs/teststrategie.md` 9.1); dieser ADR legt nur die Richtung fest, kein
+  Feature-Dokument ist damit bereits geschrieben.

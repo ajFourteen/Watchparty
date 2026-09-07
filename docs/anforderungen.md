@@ -426,11 +426,25 @@ Wertungspunkte sind ganzzahlig und nie negativ. Die Wertung ist eine reine
 Funktion aus Ergebnistipp und Endergebnis: Zweimal dieselbe Eingabe ergibt
 zweimal dieselbe Punktzahl, ohne verstecktes Datum und ohne Seiteneffekt.
 
+Daneben gibt es die **Sieger-Tipp-Wertung** (ADR-043) als zweites,
+schlankeres Schema: Es verlangt keinen eigenen Ergebnistipp — derselbe Tipp
+aus 13.4 wird verwendet —, wertet aber nur die Tendenz. Stimmt sie mit dem
+Endergebnis überein, gibt es 1 Wertungspunkt, sonst 0; Abstand und exaktes
+Ergebnis bleiben unberücksichtigt. Welches der beiden Schemata für eine
+Rangliste gilt, legt die Liga fest (13.6).
+
 ### 13.6 Ligen, Mitgliedschaft, Rangliste
 
 Ein angemeldeter Tipper kann eine Liga anlegen; er ist ihr Verwalter und
 zugleich ihr erstes Mitglied. Eine Liga hat einen Beitrittscode, der sich
-weitergeben lässt — wer ihn hat, tritt bei. Ein Tipper kann in beliebig
+weitergeben lässt — wer ihn hat, tritt bei.
+
+Beim Anlegen legt sich eine Liga zusätzlich auf ein Wertungsschema fest:
+die Standardwertung (13.5) oder die Sieger-Tipp-Wertung (13.5, ADR-043).
+Das Schema gilt über die gesamte Lebensdauer der Liga unveränderlich und
+bestimmt nur, wie ihre Rangliste aus den Ergebnistipps berechnet wird — der
+Ergebnistipp selbst (13.4) ist in beiden Fällen derselbe, unabhängig davon,
+in welchen Ligen der Tipper Mitglied ist. Ein Tipper kann in beliebig
 vielen Ligen Mitglied sein, ohne dass sich seine Ergebnistipps
 vervielfachen: Ein Tipp gehört dem Tipper und dem Spiel, nicht einer Liga
 (Kapitel 13.4), und zählt deshalb gleichzeitig in allen Ligen, denen der
@@ -449,7 +463,12 @@ die Spiele dieses einen Spieltags zählt.
 Bei Punktgleichheit entscheidet zuerst die Zahl der exakten Ergebnisse,
 dann die Zahl der richtigen Tendenzen (ein exaktes Ergebnis trifft dabei
 zwangsläufig auch die Tendenz und zählt hier mit); bleibt es dabei gleich,
-teilen sich die betroffenen Tipper denselben Platz. Korrigiert sich ein
+teilen sich die betroffenen Tipper denselben Platz. In einer Liga mit
+Sieger-Tipp-Wertung entfällt die erste Stufe (kein exaktes Ergebnis
+gewertet), und die zweite liefert keine zusätzliche Unterscheidung mehr,
+weil dort jeder Wertungspunkt bereits einer richtigen Tendenz entspricht —
+ein Gleichstand in der Gesamtpunktzahl bleibt dort unmittelbar ein
+geteilter Platz. Korrigiert sich ein
 Endergebnis nachträglich (13.3), wird die Rangliste bei der nächsten Abfrage
 aus dem aktuellen Stand neu gebildet — es gibt keinen eingefrorenen
 Punktestand, der von den Ergebnissen abweicht.
@@ -776,6 +795,7 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.5-c | Die Abstands-Eimer sind 0 (Unentschieden) / 1–8 / 9–16 / ab 17. | Tippspiel | backend |
 | 13.5-d | Wertungspunkte sind ganzzahlig und nie negativ. | Tippspiel | backend |
 | 13.5-e | Die Wertung ist eine reine Funktion aus Ergebnistipp und Endergebnis: zustandslos, dieselbe Eingabe ergibt immer dieselbe Punktzahl. | Tippspiel | backend |
+| 13.5-f | Bei der Sieger-Tipp-Wertung wird nur die Tendenz aus demselben Ergebnistipp gewertet: übereinstimmend 1 Wertungspunkt, sonst 0 — Abstand und exaktes Ergebnis bleiben unberücksichtigt. | Tippspiel | backend |
 | 13.6-a | Ein angemeldeter Tipper kann eine Liga anlegen; er ist ihr Verwalter und zugleich ihr erstes Mitglied. | Tippspiel | backend |
 | 13.6-b | Eine Liga hat einen Beitrittscode; wer ihn hat, tritt bei. | Tippspiel | backend |
 | 13.6-c | Ein Ergebnistipp gilt für alle Ligen des Tippers gleichzeitig, auch für Ligen, denen er erst später beitritt. | Tippspiel | backend |
@@ -788,6 +808,7 @@ Baustufe dazu (siehe die Tabelle in Kapitel 13).*
 | 13.6-j | Eine Ergebniskorrektur wird bei der nächsten Abfrage der Rangliste berücksichtigt — kein eingefrorener Punktestand. | Tippspiel | backend |
 | 13.6-k | Ein Konto hat einen eigenen Punktestand — die Summe seiner Wertungspunkte über alle bewerteten Spiele, unabhängig von einer Liga. | Tippspiel | backend |
 | 13.6-l | Es gibt zusätzlich eine kumulierte Rangliste bis einschließlich eines bestimmten Spieltags — sie zählt nur Spiele mit Spieltagsnummer ≤ der angefragten. | Tippspiel | backend |
+| 13.6-m | Eine Liga legt sich beim Anlegen unveränderlich auf ein Wertungsschema fest (Standardwertung nach 13.5-a–d oder Sieger-Tipp-Wertung nach 13.5-f); beide werten denselben Ergebnistipp. | Tippspiel | backend |
 | 13.9-a | Ein angemeldeter Tipper kann für einen Spieltag seine eigene Bilanz abrufen: je gewertetem Spiel Endergebnis, eigener Ergebnistipp und erreichte Wertungspunkte. | Tippspiel | backend |
 | 13.9-b | Ein noch nicht gewertetes Spiel (SCHEDULED oder CANCELLED) ist nicht Teil der Bilanz. | Tippspiel | backend |
 | 13.9-c | Ein gewertetes Spiel ohne eigenen Ergebnistipp erscheint mit 0 Wertungspunkten und ohne eigenen Tipp in der Bilanz. | Tippspiel | backend |
