@@ -391,7 +391,7 @@
     align-self: flex-start;
   }
 
-  /* Klammer: ein /feature-Durchlauf über mehrere Stufen */
+  /* Klammer: ein /implementieren-Durchlauf über mehrere Stufen */
 
   .bracket {
     border-left: 2px solid var(--skill);
@@ -695,8 +695,10 @@
       <p>
         Anlass ist eine neue Idee, eine fachliche oder technische Frage, oder eine
         Beobachtung vom Spielabend (<code>docs/probelauf.md</code>).
-        <code>/triage</code> ordnet sie einem von drei Wegen zu — die Einordnung
-        selbst prüft nichts, sie ist reine Urteilssache.
+        <code>/feature</code> weitet zunächst den Problemraum (Discover/Define,
+        Fragen größtenteils selbst beantwortet) und ordnet, was dabei offen
+        bleibt, einem von drei Wegen zu — die Einordnung selbst prüft nichts,
+        sie ist reine Urteilssache.
       </p>
     </div>
 
@@ -709,7 +711,7 @@
           und 003 haben keinen eigenen ADR, sie zitieren bestehende.
         </p>
         <div class="chips">
-          <span class="chip skill"><b>Skill</b> /triage → /schneiden</span>
+          <span class="chip skill"><b>Skill</b> /feature → /schneiden</span>
         </div>
       </div>
 
@@ -723,7 +725,7 @@
           und die Idee kommt zurück in den Ablauf.
         </p>
         <div class="chips">
-          <span class="chip skill"><b>Skill</b> /triage</span>
+          <span class="chip skill"><b>Skill</b> /feature</span>
           <span class="chip skill"><b>Skill</b> /entscheidung</span>
         </div>
       </div>
@@ -758,7 +760,7 @@
       <p>
         Nicht jede Änderung beginnt bei einer Idee. Ein von Dependabot geöffneter
         Pull-Request ist bereits ein fertiger, mechanisch erzeugter Diff — dafür
-        gibt es nichts zu triagieren, <code>/triage</code> und <code>/schneiden</code>
+        gibt es nichts zu klären, <code>/feature</code> und <code>/schneiden</code>
         bleiben außen vor. CodeQL läuft unabhängig davon als zweite, ständig
         mitlaufende Prüfung. Was aus beidem einen Merge macht, ist seit dem
         29.08.2026 eine eigene Routine.
@@ -983,7 +985,7 @@
 
       <div class="bracket">
         <div class="bracket-label">
-          <b>SKILL: /feature</b>
+          <b>SKILL: /implementieren</b>
           <span>Stufen 02–04 sind <b>ein</b> Durchlauf, nicht drei Aufrufe.</span>
           <span>Kern: die Szenarien laufen rot, bevor es Produktivcode gibt.</span>
         </div>
@@ -1035,7 +1037,7 @@
               <p class="where">Szenarien des Dokuments eins zu eins als JGiven-Stufen</p>
             </div>
             <p>
-              Vor jeder Zeile Produktivcode. Das ist der Kern von <code>/feature</code>
+              Vor jeder Zeile Produktivcode. Das ist der Kern von <code>/implementieren</code>
               — und die einzige Stelle des ganzen Ablaufs, an der die Reihenfolge selbst
               das Ergebnis ist.
             </p>
@@ -1392,7 +1394,7 @@
       <div class="ref"><dt>Entscheidungen</dt><dd>docs/adrs.md · docs/anforderungen.md</dd></div>
       <div class="ref"><dt>Feature-Vorlage &amp; Testvorgehen</dt><dd>docs/features/_vorlage.md · docs/teststrategie.md (9.1)</dd></div>
       <div class="ref"><dt>Lokale Gates</dt><dd>build.gradle.kts — Task check (u. a. featuredoku) · ArchitectureTest.java</dd></div>
-      <div class="ref"><dt>Skills</dt><dd>.claude/skills/*/SKILL.md — triage, entscheidung, adr, schneiden, feature, domaenentyp, pruefen, invarianten-review, freigabe, probelauf</dd></div>
+      <div class="ref"><dt>Skills</dt><dd>.claude/skills/*/SKILL.md — feature, entscheidung, adr, schneiden, implementieren, domaenentyp, pruefen, invarianten-review, freigabe, probelauf</dd></div>
       <div class="ref"><dt>Agent-Hooks</dt><dd>ci/sitzungsstart.sh · ci/git-regeln-hook.sh · ci/pipeline-beobachten.sh · ci/stop-arbeit-abschliessen.sh · .claude/settings.json</dd></div>
       <div class="ref"><dt>CI-Workflows</dt><dd>.github/workflows/build.yml · release.yml · pages.yml · codeql.yml</dd></div>
       <div class="ref"><dt>Deploy-Absicherung</dt><dd>ci/eine-maschine-pruefen.sh · ci/rauchtest.mjs</dd></div>

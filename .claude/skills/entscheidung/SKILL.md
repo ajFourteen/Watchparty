@@ -25,8 +25,8 @@ zweite Wahrheit in Wartestellung.
 
 3. **`docs/anforderungen.md` nachziehen**, falls sich fachliches Verhalten
    ändert. Das Feature-Dokument (falls eines entsteht, siehe Skill
-   `feature`) ist der Antrag, `anforderungen.md` bleibt der geltende Stand
-   — beide dürfen nicht auseinanderlaufen.
+   `implementieren`) ist der Antrag, `anforderungen.md` bleibt der geltende
+   Stand — beide dürfen nicht auseinanderlaufen.
 
 4. **Atomare Regel in Anhang A ergänzen**, mit Spielmodus-Kennzeichnung und
    der Kategorie (backend/frontend/organisatorisch/beobachtung) wie die
@@ -39,8 +39,8 @@ Nach Schritt 4 läuft `gradle abdeckung` (Teil von `check`) für diese Regel
 **absichtlich rot** — die Regel ist beschlossen und noch nicht im Code
 belegt. Das ist kein Fehler, den man vorschnell wegräumt, sondern die
 Metrik, die genau das anzeigen soll: entschieden, aber noch nicht gebaut.
-Wird die Regel sofort mitimplementiert, gilt stattdessen Skill `feature` ab
-Schritt 2 (Feature-Dokument, JGiven-Szenario zuerst).
+Wird die Regel sofort mitimplementiert, gilt stattdessen Skill
+`implementieren` ab Schritt 2 (Feature-Dokument, JGiven-Szenario zuerst).
 
 ## Commit und rotes `check`
 
@@ -50,7 +50,7 @@ gebaut ist. Das übersieht man leicht, weil dieser Skill selbst keinen Code
 anfasst und sich „fertig" anfühlt, sobald die vier Stellen stimmen. Zwei
 saubere Wege — keiner davon „committen und rot stehen lassen":
 
-- **Direkt weiter mit `schneiden`/`feature`, wenn der nächste Schnitt
+- **Direkt weiter mit `schneiden`/`implementieren`, wenn der nächste Schnitt
   ohnehin sofort drankommt** (auch noch in derselben Sitzung): Dann landen
   Entscheidung und der erste Schnitt in einem gemeinsamen, grünen Commit —
   kein rotes Intervall auf dem Zielbranch.

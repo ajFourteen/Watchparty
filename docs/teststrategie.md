@@ -645,7 +645,7 @@ Dokument jede Stufe als „einzeln einsetzbar" bezeichnet.
 
 Wie ein Vorhaben stattdessen geschnitten wird — dünn durch alle Ringe, jede
 Scheibe für sich benutzbar —, steht im Skill `schneiden`; er läuft vor
-`feature`. Die Schnittrichtung selbst bleibt Urteilssache: Ein horizontaler
+`implementieren`. Die Schnittrichtung selbst bleibt Urteilssache: Ein horizontaler
 Schnitt besteht alle drei Prüfungen oben. Sie fangen die Größe ab, nicht die
 Achse.
 

@@ -94,16 +94,21 @@ Die **Reihenfolge** der Arbeit steckt in Skills unter `.claude/skills/`, das
 **Ergebnis** in Gradle-Gates an `check`. Skills brauchen Urteil und lassen
 sich überspringen; die Gates nicht.
 
-Die Kette: `triage` → `schneiden` → `feature` → `pruefen` →
+Die Kette: `feature` → `schneiden` → `implementieren` → `pruefen` →
 `invarianten-review` → `abnahme` → `freigabe` → Commit → CI → Deploy.
 
-Drei Einstiege ab einer neuen Idee, je nachdem, was sie ist:
+Jede neue Idee ist eine Feature-Idee und läuft zuerst durch Skill `feature`
+(Discover/Define): Er weitet den Problemraum, bevor irgendetwas geschnitten
+wird, und beantwortet dabei auftauchende Fragen größtenteils selbst.
+`AskUserQuestion` ist die Ausnahme für die echte Sackgasse, nicht der erste
+Reflex. Nur was dabei offen bleibt, geht vorab in eine der folgenden
+Ablagen — der Regelfall läuft ohne Umweg weiter zu `schneiden`:
 
-| Die Idee… | geht nach | Skill |
+| Die Frage… | geht nach | Skill |
 |---|---|---|
-| wirft eine offene Frage auf | `docs/offene-entscheidungen.md`, später zurück | `triage`, dann `entscheidung` |
-| ist eine getroffene technische Entscheidung | `docs/adrs.md` | `adr` |
-| ist einfach neues Verhalten (**der Regelfall**) | direkt in den Schnitt | `triage` → `schneiden` |
+| bleibt eine echte offene Alternative | `docs/offene-entscheidungen.md`, später zurück | `feature`, dann `entscheidung` |
+| zieht eine technische Entscheidung nach sich | `docs/adrs.md` | `adr` |
+| lässt sich erst am echten Spielabend beantworten | `docs/probelauf.md` | `feature`, dann `probelauf` |
 
 Ein eigener ADR ist die Ausnahme: Feature 001, 002 und 003 haben keinen, sie
 zitieren bestehende; nur 004 bekam ADR-033, weil es eine frühere Entscheidung
@@ -119,7 +124,7 @@ aufgerufen hat. Die E2E-Ebene (`e2eTest`) hängt bewusst nicht an `check`,
 sondern läuft als eigene Pipeline-Stufe vor dem Deploy — ein Browser-Durchlauf
 sprengt sonst das Zehn-Minuten-Budget. Umgekehrt prüft kein Gate, ob die Szenarien je rot waren, ob ein
 Schnitt vertikal war und ob das Ergebnis den Akzeptanzkriterien entspricht
-— dafür sind `feature`, `schneiden` und `abnahme` da.
+— dafür sind `implementieren`, `schneiden` und `abnahme` da.
 
 Zu Sitzungsbeginn speist `ci/sitzungsstart.sh` (SessionStart-Hook)
 Arbeitsstand und offene Entscheidungen ein.
@@ -618,7 +623,7 @@ selbst, die sich nicht am Schreibtisch simulieren lassen.
   alle Ringe und ist für sich benutzbar — nicht Schicht für Schicht wie
   Feature 005, wo bis Stufe 7 von 9 niemand etwas tun konnte. Der Weg von
   der Idee zu den Scheiben ist der Skill `schneiden`, er läuft vor
-  `feature`. Das gilt für neue Features; der
+  `implementieren`. Das gilt für neue Features; der
   bestehende Funktionsumfang wurde einmalig als Characterization Testing
   nachgerüstet (`docs/teststrategie-umsetzung.md`, inzwischen abgeschlossen
   und gelöscht) und ist davon nicht rückwirkend betroffen.

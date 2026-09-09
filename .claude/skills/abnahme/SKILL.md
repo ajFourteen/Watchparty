@@ -7,8 +7,8 @@ description: Wenn ein Feature-Dokument existiert und die Implementierung fertig 
 
 Zwischen `invarianten-review` und `freigabe`. Ein grünes JGiven-Szenario
 beweist, dass Implementierung und Szenario zueinander passen — beide sind
-im selben Zug vom selben Bearbeiter entstanden (Skill `feature`, Schritt 3
-und 5). Es beweist nicht, dass diese gemeinsame Interpretation mit dem
+im selben Zug vom selben Bearbeiter entstanden (Skill `implementieren`,
+Schritt 3 und 5). Es beweist nicht, dass diese gemeinsame Interpretation mit dem
 Akzeptanzkriterium übereinstimmt, das noch vor der ersten Zeile Testcode
 in Prosa formuliert wurde. Diese Lücke schließt kein Gate: `check` fragt
 „sind die Tests grün", nicht „haben die Tests das Richtige geprüft".
@@ -16,7 +16,7 @@ in Prosa formuliert wurde. Diese Lücke schließt kein Gate: `check` fragt
 ## Vorbedingung
 
 Ein Feature-Dokument mit ausgefülltem Abschnitt „Akzeptanzkriterien"
-liegt vor. Ohne das gehört hierher nichts — zurück zu `feature`.
+liegt vor. Ohne das gehört hierher nichts — zurück zu `implementieren`.
 
 ## Vorgehen
 
@@ -44,14 +44,14 @@ Dokuments:
    Browser").
 4. **Abgleichen und mit Ja/Nein/Unsicher markieren.** Bei „Nein" oder
    „Unsicher": nicht zum nächsten Kriterium weitergehen, sondern zurück zu
-   Schritt 5 in `feature` (Produktivcode nachbessern) — oder, falls das
-   Kriterium selbst unklar oder falsch war, zu `triage`.
+   Schritt 5 in `implementieren` (Produktivcode nachbessern) — oder, falls
+   das Kriterium selbst unklar oder falsch war, zu `feature`.
 
 Erst wenn alle Kriterien mit „Ja" markiert sind, gilt das Feature als
 fertig implementiert und `freigabe` ist an der Reihe. Das Ergebnis kurz im
 Gespräch festhalten (Kriterium → Ja/Nein/Unsicher mit einem Satz
 Begründung), nicht in einer eigenen Datei — das Feature-Dokument selbst
-bleibt nach `feature` Schritt 7 unverändert stehen.
+bleibt nach `implementieren` Schritt 7 unverändert stehen.
 
 ## Abgrenzung
 

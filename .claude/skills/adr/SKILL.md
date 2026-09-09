@@ -37,4 +37,4 @@ Kommt die Anfrage nicht über einen bereits geklärten Eintrag aus
 technische Frage: kurz rückfragen, ob die Entscheidung wirklich schon
 getroffen ist, statt sie beim Schreiben des ADRs stillschweigend zur
 getroffenen Entscheidung zu machen. Im Zweifel `Vorgeschlagen` statt
-`Akzeptiert`, oder zuerst Skill `triage`.
+`Akzeptiert`, oder zuerst Skill `feature`.

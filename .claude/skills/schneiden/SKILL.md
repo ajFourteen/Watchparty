@@ -1,6 +1,6 @@
 ---
 name: schneiden
-description: Wenn feststeht, dass aus einer Idee ein Feature wird, und sie in umsetzbare Stücke zerfallen muss: macht daraus vertikale Schnitte — je einer dünn durch alle Ringe, je einer für sich benutzbar, je einer mit genau einer Kritikalität. Beantwortet „wie zerlege ich es", nicht „wohin gehört das" (dafür: triage). Läuft vor feature.
+description: Wenn feststeht, dass aus einer Idee ein Feature wird, und sie in umsetzbare Stücke zerfallen muss: macht daraus vertikale Schnitte — je einer dünn durch alle Ringe, je einer für sich benutzbar, je einer mit genau einer Kritikalität. Beantwortet „wie zerlege ich es", nicht „wohin gehört das" (dafür: feature). Läuft vor implementieren.
 ---
 
 # Schneiden
@@ -11,13 +11,13 @@ ist: ein Dokument mit 38 Akzeptanzkriterien, acht Kritikalitätsbereichen
 und einer eigenen Neun-Stufen-Bautabelle — die Teilung hat stattgefunden,
 aber erst *im* Dokument und entlang der falschen Achse.
 
-Dieser Skill läuft **vor** `feature`. Er erzeugt keinen Code und kein
+Dieser Skill läuft **vor** `implementieren`. Er erzeugt keinen Code und kein
 Feature-Dokument, aber einen **Schnittplan**: eine Datei unter
 `docs/schnitte/<kurzname>.md`, die die Liste der Schnitte über das Ende
-des Gesprächs hinaus festhält. Erst `feature` legt je Schnitt ein eigenes
+des Gesprächs hinaus festhält. Erst `implementieren` legt je Schnitt ein eigenes
 Dokument unter `docs/features/` an — nicht für alle auf einmal, sondern
 einen nach dem anderen, bei Bedarf auch in späteren, unabhängigen
-Sitzungen: `feature` liest dafür nur den Schnittplan, keinen Chatverlauf.
+Sitzungen: `implementieren` liest dafür nur den Schnittplan, keinen Chatverlauf.
 
 ## Der Fehler, den es zu vermeiden gilt
 
@@ -38,7 +38,7 @@ ist eine Scheibe.
    Stellen in `docs/anforderungen.md` (Anhang-A-IDs, falls schon
    vorhanden, sonst der Anforderungstext) berührt die Idee überhaupt? Diese
    Liste ist der Maßstab für die Vollständigkeitsprobe in Schritt 7 — ohne
-   sie fällt fehlender Umfang erst bei `feature` oder noch später auf.
+   sie fällt fehlender Umfang erst bei `implementieren` oder noch später auf.
 
 1. **Den Satz aufschreiben, den ein Mensch danach sagen kann.**
    Nicht „das System kennt Spielpläne", sondern „ich kann für den nächsten
@@ -79,7 +79,7 @@ ist eine Scheibe.
    als nachträglicher Prosa-Absatz. Besteht auch nur einer mit „ja", ist
    er ein eigener Schnitt.
 
-6. **Größenprobe je Schnitt** — hier anwenden, nicht erst bei `feature`
+6. **Größenprobe je Schnitt** — hier anwenden, nicht erst bei `implementieren`
    abwarten:
    - genau **eine** Kritikalitätsstufe. Zwei Stufen heißen: weiter teilen.
    - höchstens **zwölf** Akzeptanzkriterien.
@@ -110,13 +110,13 @@ ist eine Scheibe.
    Gedankenstrich; bei einer begründeten Bündelung (Schritt 5) die Liste
    der einzeln geprüften Bausteine. `<kurzname>` beschreibt die Idee,
    nicht den ersten Schnitt, und trägt **keine** Nummer — die vergibt erst
-   `feature`, je Schnitt neu, an `docs/features/`. `Status` ist eines von
+   `implementieren`, je Schnitt neu, an `docs/features/`. `Status` ist eines von
    `offen`, `in Arbeit`, `blockiert` (mit Begründung in der Zelle, meist
    ein Verweis auf `docs/offene-entscheidungen.md`) oder `fertig`. Alle
    Zeilen starten als `offen`, außer eine Entscheidung fehlt bereits jetzt
    erkennbar (dann `blockiert`, siehe unten). Direkt unter der Tabelle die
    Anforderungsliste aus Schritt 0 mit Zuordnung zum Schnitt (die
-   Vollständigkeitsprobe, festgehalten statt nur durchgeführt). `feature`
+   Vollständigkeitsprobe, festgehalten statt nur durchgeführt). `implementieren`
    pflegt Status und Feature-Dokument-Spalte selbst nach jedem grün
    gebauten Schnitt — diese Datei danach nicht mehr von Hand anfassen,
    sonst laufen Schnittplan und Baustand auseinander.
@@ -147,18 +147,18 @@ nicht.
 
 ## Danach
 
-Für den **ersten** Schnitt: Skill `feature` — er nimmt sich die oberste
+Für den **ersten** Schnitt: Skill `implementieren` — er nimmt sich die oberste
 `offen`-Zeile aus dem gerade geschriebenen Schnittplan, auch noch in
 derselben Sitzung. Kam dieser Schnittplan direkt im Anschluss an eine
 Entscheidung zustande, die Anhang A schon rot hinterlassen hat (Skill
 `entscheidung`, Abschnitt „Commit und rotes `check`"): Dann gehören der
-Commit der Entscheidung und der Start von `feature` zusammen, kein
+Commit der Entscheidung und der Start von `implementieren` zusammen, kein
 Zwischen-Commit mit rotem `check`.
 
 Ein Schnitt, der selbst eine Entscheidung offenlässt
-(wie Schnitt 5 im Beispiel unten), geht zusätzlich über Skill `triage`
+(wie Schnitt 5 im Beispiel unten), geht zusätzlich über Skill `feature`
 nach `docs/offene-entscheidungen.md` und bekommt in der Status-Spalte
-`blockiert` mit einem Verweis auf den dortigen Eintrag — `feature`
+`blockiert` mit einem Verweis auf den dortigen Eintrag — `implementieren`
 überspringt eine blockierte Zeile und nimmt die nächste `offen`e.
 
 Die übrigen Schnitte bekommen ihr eigenes Feature-Dokument erst, wenn sie

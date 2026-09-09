@@ -6,7 +6,7 @@ description: Nach einem echten Spielabend: arbeitet den Beobachtungsbogen aus do
 # Probelauf
 
 Nach einem echten Spielabend, wenn `docs/probelauf.md` neue Beobachtungen
-trägt. Im Kern ein wiederholter Aufruf von Skill `triage` über eine ganze
+trägt. Im Kern ein wiederholter Aufruf von Skill `feature` über eine ganze
 Liste statt über eine einzelne Idee — mit der Besonderheit, dass die Quelle
 danach aufgeräumt werden muss, nicht nur die Ziele befüllt.
 
@@ -22,7 +22,7 @@ danach aufgeräumt werden muss, nicht nur die Ziele befüllt.
      `entscheidung`, falls sich die Frage damit tatsächlich klären lässt.
    - **Deckt sie eine neue technische Notwendigkeit auf**, die vorher
      niemand entschieden hat? → Skill `adr`.
-   - **Verlangt sie eine Verhaltensänderung**? → Skill `feature`.
+   - **Verlangt sie eine Verhaltensänderung**? → Skill `implementieren`.
    - **Ist sie eine Randnotiz ohne Konsequenz** (z. B. "lief unauffällig")?
      → im Beobachtungsbogen als erledigt markieren, mit kurzer Begründung
      — nicht kommentarlos löschen. Nachvollziehbarkeit für den nächsten
@@ -37,4 +37,4 @@ danach aufgeräumt werden muss, nicht nur die Ziele befüllt.
 Er entscheidet nichts selbst. Wo eine Beobachtung eine echte Alternative
 aufwirft (Parameterwert X oder Y?), landet sie in
 `docs/offene-entscheidungen.md` und wartet dort auf eine menschliche
-Antwort — genau wie bei `triage`.
+Antwort — genau wie bei `feature`.
