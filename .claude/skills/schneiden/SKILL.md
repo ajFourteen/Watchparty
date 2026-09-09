@@ -34,6 +34,12 @@ ist eine Scheibe.
 
 ## Vorgehen
 
+0. **Berührte Anforderungen auflisten.** Bevor geschnitten wird: welche
+   Stellen in `docs/anforderungen.md` (Anhang-A-IDs, falls schon
+   vorhanden, sonst der Anforderungstext) berührt die Idee überhaupt? Diese
+   Liste ist der Maßstab für die Vollständigkeitsprobe in Schritt 7 — ohne
+   sie fällt fehlender Umfang erst bei `feature` oder noch später auf.
+
 1. **Den Satz aufschreiben, den ein Mensch danach sagen kann.**
    Nicht „das System kennt Spielpläne", sondern „ich kann für den nächsten
    Spieltag tippen". Wer diesen Satz nicht hinbekommt, hat noch keine
@@ -61,31 +67,59 @@ ist eine Scheibe.
    jemand etwas davon? Lautet die Antwort „nein, das kommt mit dem
    nächsten", war der Schnitt horizontal.
 
-6. **Größenprobe je Schnitt**, bevor `feature` startet:
+   Besteht ein Schnitt erkennbar aus mehreren Bausteinen (mehrere Verben,
+   mehrere Typen, mehrere Ringe mit eigenem fachlichen Gewicht — wie bei
+   Schnitt 5 in `docs/schnitte/spieltags-report.md`: Opt-in, FINAL-
+   Erkennung, Mailinhalt, Abmeldelink), reicht eine Probe für den Schnitt
+   als Ganzes nicht. Erst jeden Baustein einzeln auflisten und die
+   Abbruchprobe auf ihn allein anwenden: „Wenn nur dieser Baustein käme,
+   sonst nichts — hätte jemand etwas davon?" Besteht **jeder** Baustein
+   diese Probe mit „nein", ist die Bündelung begründet und gehört als
+   Aufzählung in den Schnittplan (Spalte „Bausteine", Schritt 7) — nicht
+   als nachträglicher Prosa-Absatz. Besteht auch nur einer mit „ja", ist
+   er ein eigener Schnitt.
+
+6. **Größenprobe je Schnitt** — hier anwenden, nicht erst bei `feature`
+   abwarten:
    - genau **eine** Kritikalitätsstufe. Zwei Stufen heißen: weiter teilen.
    - höchstens **zwölf** Akzeptanzkriterien.
    - keine eigene Bautabelle. Wer im Dokument Stufen aufzählt, hat
      mehrere Features vor sich und nicht eins.
 
-   Diese drei prüft `featuredoku` beim Bau nach — hier verhindern sie den
-   Fehlschlag, dort fangen sie ihn.
+   Reißt ein Schnitt eine dieser Grenzen, zurück zu Schritt 5: entweder
+   war die Abbruchprobe je Baustein zu großzügig, oder der Schnitt ist
+   trotz bestandener Abbruchprobe zu groß und muss fachlich weiter
+   geteilt werden. `featuredoku` prüft dieselben drei Grenzen beim Bau
+   noch einmal nach — als zweites Netz, nicht als Ersatz für diesen
+   Schritt.
 
-7. **Schnittplan schreiben.** Unter `docs/schnitte/<kurzname>.md`, mit
+7. **Vollständigkeitsprobe.** Jede Anforderungs-ID aus Schritt 0 muss in
+   mindestens einem Schnitt auftauchen — als eigene Zeile in dessen
+   späterem Feature-Dokument oder als genannter Behelf. Eine ID, die in
+   keinem Schnitt vorkommt, ist entweder vergessen (Schnittplan
+   ergänzen) oder bewusst außen vor (dann als Anmerkung im Schnittplan
+   festhalten, mit Begründung) — nie stillschweigend fehlen.
+
+8. **Schnittplan schreiben.** Unter `docs/schnitte/<kurzname>.md`, mit
    dieser Tabelle:
 
-   | # | Schnitt | Behelf | Kritikalität | Status | Feature-Dokument |
-   |---|---|---|---|---|---|
+   | # | Schnitt | Bausteine | Behelf | Kritikalität | Status | Feature-Dokument |
+   |---|---|---|---|---|---|---|
 
-   `<kurzname>` beschreibt die Idee, nicht den ersten Schnitt, und trägt
-   **keine** Nummer — die vergibt erst `feature`, je Schnitt neu, an
-   `docs/features/`. `Status` ist eines von `offen`, `in Arbeit`,
-   `blockiert` (mit Begründung in der Zelle, meist ein Verweis auf
-   `docs/offene-entscheidungen.md`) oder `fertig`. Alle Zeilen starten als
-   `offen`, außer eine Entscheidung fehlt bereits jetzt erkennbar (dann
-   `blockiert`, siehe unten). `feature` pflegt Status und
-   Feature-Dokument-Spalte selbst nach jedem grün gebauten Schnitt — diese
-   Datei danach nicht mehr von Hand anfassen, sonst laufen Schnittplan und
-   Baustand auseinander.
+   `Bausteine` bleibt bei einem unteilbaren Schnitt leer oder trägt einen
+   Gedankenstrich; bei einer begründeten Bündelung (Schritt 5) die Liste
+   der einzeln geprüften Bausteine. `<kurzname>` beschreibt die Idee,
+   nicht den ersten Schnitt, und trägt **keine** Nummer — die vergibt erst
+   `feature`, je Schnitt neu, an `docs/features/`. `Status` ist eines von
+   `offen`, `in Arbeit`, `blockiert` (mit Begründung in der Zelle, meist
+   ein Verweis auf `docs/offene-entscheidungen.md`) oder `fertig`. Alle
+   Zeilen starten als `offen`, außer eine Entscheidung fehlt bereits jetzt
+   erkennbar (dann `blockiert`, siehe unten). Direkt unter der Tabelle die
+   Anforderungsliste aus Schritt 0 mit Zuordnung zum Schnitt (die
+   Vollständigkeitsprobe, festgehalten statt nur durchgeführt). `feature`
+   pflegt Status und Feature-Dokument-Spalte selbst nach jedem grün
+   gebauten Schnitt — diese Datei danach nicht mehr von Hand anfassen,
+   sonst laufen Schnittplan und Baustand auseinander.
 
 ## Wenn Risiko und Benutzbarkeit sich widersprechen
 
@@ -98,14 +132,14 @@ jemand benutzen kann; sie zuerst zu schreiben ist trotzdem richtig.
 
 ## Beispiel: 005, richtig geschnitten
 
-| # | Schnitt | Behelf | Kritikalität |
-|---|---|---|---|
-| 1 | Ich kann ein von Hand eingetragenes Spiel tippen | kein Feed, kein Mailversand (Log), keine Liga | HIGH (Konto/Sitzung) |
-| 2 | Ich sehe, was mein Tipp wert war | — | HIGH (Wertung) |
-| 3 | Ich sehe die Tipps der anderen erst ab Anstoß | — | HIGH (Sichtbarkeit) |
-| 4 | Ich kann eine Liga anlegen und beitreten, mit Rangliste | Spiele weiter von Hand | MEDIUM |
-| 5 | Die Spiele kommen von selbst aus dem Feed | Handeintrag bleibt als Notweg | MEDIUM |
-| 6 | Ich bekomme den Anmeldelink per Mail | — | HIGH (personenbezogen) |
+| # | Schnitt | Bausteine | Behelf | Kritikalität |
+|---|---|---|---|---|
+| 1 | Ich kann ein von Hand eingetragenes Spiel tippen | — | kein Feed, kein Mailversand (Log), keine Liga | HIGH (Konto/Sitzung) |
+| 2 | Ich sehe, was mein Tipp wert war | — | — | HIGH (Wertung) |
+| 3 | Ich sehe die Tipps der anderen erst ab Anstoß | — | — | HIGH (Sichtbarkeit) |
+| 4 | Ich kann eine Liga anlegen und beitreten, mit Rangliste | — | Spiele weiter von Hand | MEDIUM |
+| 5 | Die Spiele kommen von selbst aus dem Feed | — | Handeintrag bleibt als Notweg | MEDIUM |
+| 6 | Ich bekomme den Anmeldelink per Mail | — | — | HIGH (personenbezogen) |
 
 Sechs Dokumente mit je einer Stufe statt einem mit acht Bereichen — und
 nach Schnitt 1 hätte jemand tippen können, statt nach Stufe 6 noch immer
