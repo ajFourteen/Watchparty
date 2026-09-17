@@ -37,6 +37,17 @@ Format: Kontext → Entscheidung → Konsequenzen. Status ist **Akzeptiert**
 | ADR-030 | Teststrategie: Ebenen über JGiven-Tags, Sprachausnahme fürs Stufen-Paket | Akzeptiert |
 | ADR-031 | Teststrategie: Metriken scharf gestellt — JaCoCo, Ebenen-Disjunktheit, PIT, Ausnahmenregister | Akzeptiert |
 | ADR-032 | Screen Wake Lock als Best-Effort-Komfort, ohne automatisierten Test | Akzeptiert |
+| ADR-033 | Mehrere Watchpartys gleichzeitig auf einer Instanz | Akzeptiert |
+| ADR-034 | Zwei Spielmodi in einer Anwendung, getrennte Modelle statt Wiederverwendung | Akzeptiert |
+| ADR-035 | Verwaltetes Postgres für das Tippspiel | Akzeptiert |
+| ADR-036 | Konten mit Magic Link statt Kennwort | Akzeptiert |
+| ADR-037 | ESPN als Feed hinter dem Port `ScheduleFeed` | Akzeptiert |
+| ADR-038 | Wertung als reine Funktion, „höchste Stufe zählt", eigene Fachbegriffe | Akzeptiert |
+| ADR-039 | HTTP statt WebSocket für das Tippspiel | Akzeptiert |
+| ADR-040 | Getrennte Kommandos `CREATE_ROOM` und `JOIN` statt eines `JOIN` mit optionalem Code | Akzeptiert |
+| ADR-041 | Spieltags-Report per Mail — Auslöser im Domain-Modell, Opt-in, Ein-Klick-Abmeldung | Akzeptiert |
+| ADR-042 | Major-Versionsupdates über OpenRewrite-Rezepte statt gelesener Release Notes | Akzeptiert |
+| ADR-043 | Required-Status-Check auf main entfernt, Deploy-Gate bleibt über Job-Kette bestehen | Akzeptiert |
 
 ---
 
@@ -1864,3 +1875,68 @@ dann reproduzierbar und nachlesbar, nicht interpretiert.
   `javax.xml.bind:jaxb-api` als Laufzeitabhängigkeit hinzu — ein Rest aus
   einem eingebetteten Jakarta-Teilrezept, den dieser Sprung nicht erzwingt
   und der beim Durchsehen des Diffs zurückzunehmen ist.
+
+## ADR-043: Required-Status-Check auf main entfernt, Deploy-Gate bleibt über Job-Kette bestehen
+
+**Status:** Akzeptiert
+
+**Kontext:** `build.yml` lief bis zum 2026-09-17 bei jedem Push auf `main`
+bis zu dreifach komplett durch check+E2E — einmal über seinen eigenen
+`push`-Trigger, einmal über `release.yml` und einmal über das seinerzeit
+eigenständige `pages.yml`, jeweils per `workflow_call` erneut ausgelöst,
+jeweils mit eigenen Artefakt-Uploads. Dazu kam eine Verdopplung bei jedem
+Dependabot-Commit, weil `push` und `pull_request` für denselben Commit auf
+demselben Branch beide feuerten. In sechs Wochen hatten sich so über 700
+Artefakte (~1,1 GB) angesammelt, ohne dass irgendwo `retention-days` gesetzt
+war — das GitHub-Actions-Speicherbudget war aufgebraucht. Die Trigger-
+Dopplung wurde behoben: `build.yml` läuft nicht mehr auf `push` nach `main`
+oder nach `dependabot/**`, der Pages-Deploy hängt jetzt als eigener Job an
+`release.yml` (`needs: build`), und alle drei Artefakt-Uploads tragen
+`retention-days: 7`.
+
+Dabei zeigte sich ein zweiter, unabhängiger Befund: Die klassische Branch
+Protection auf `main` trägt `enforce_admins: true` und verlangt den Kontext
+`build` als Required Status Check. Das bedeutet, ein roher `git push origin
+main` für eine brandneue lokale Commit-SHA wird immer abgelehnt
+(„Required status check 'build' is expected") — unabhängig davon, wie viele
+Trigger `build.yml` hat, weil GitHub für einen reinen Push verlangt, dass
+für exakt diese SHA bereits ein grüner Check existiert, was für eine gerade
+erst lokal erzeugte SHA nie der Fall sein kann. Das trifft jeden Pusher
+gleichermaßen, der nicht über die GitHub-Merge-API geht (die die Prüfung
+gegen den PR-Head-Commit vor dem Erzeugen der Merge-SHA vornimmt, nicht
+gegen die resultierende SHA selbst). `docs/entwicklungsprozess.html`
+beschrieb diesen Zustand seit dem 30.08.2026 als bewusst gewollten
+„härtesten deterministischen Check des ganzen Ablaufs" und wies für Agenten
+den Umweg „Branch, Pull-Request, Merge" — der der Regel „nur main, keine
+Feature-Branches" aus `CLAUDE.md` und `ci/git-regeln-hook.sh` unmittelbar
+widerspricht und in der Praxis genau diese Spannung bei jedem
+Agenten-Commit neu erzeugte.
+
+**Entscheidung:** Der Required Status Check wird aus der Branch Protection
+entfernt (`DELETE
+.../branches/main/protection/required_status_checks`), alles andere an der
+Regel bleibt unverändert: `enforce_admins` bleibt `true`,
+`allow_force_pushes` und `allow_deletions` bleiben `false`. Ausschlaggebend
+war, dass das eigentliche Deploy-Gate davon unberührt bleibt: In
+`release.yml` hängt `release` an `needs: build` und `deploy` an `needs:
+release` — eine GitHub-Actions-interne Jobabhängigkeit innerhalb desselben
+Workflow-Laufs, die unabhängig von der Branch Protection gilt. Ein roter
+`check`- oder E2E-Lauf blockiert weiterhin `release` und damit `deploy`,
+selbst wenn der zugehörige Commit bereits ungeprüft auf `main` liegt — nur
+das *Landen* auf `main` ist jetzt ungeprüft möglich, nicht mehr das
+*Deployen*.
+
+**Konsequenzen:**
+- Ein Push auf `main` — von einem Menschen wie von einem Agenten — landet
+  sofort, ohne dass vorher ein Check gelaufen sein muss. Ein kaputter Commit
+  kann damit für die Dauer eines CI-Laufs sichtbar in der Main-Historie
+  stehen, bevor `release.yml` ihn nachträglich prüft und `release`/`deploy`
+  bei Rot überspringt.
+- Der in `docs/entwicklungsprozess.html` beschriebene Agenten-Umweg „Branch,
+  Pull-Request, Merge" entfällt ersatzlos; die entsprechenden Abschnitte
+  sind mit dieser Entscheidung nachgezogen.
+- Dependabot-PRs brauchen den Required Status Check nicht mehr, um zu
+  mergen — das ändert an ihrem Ablauf nichts, weil sie ohnehin über
+  Squash-Merge laufen, nicht über einen rohen Push.
+- Kein Review-Zwang, kein Force-Push- oder Löschschutz wurde angetastet;
+  diese Teile der Branch Protection bestehen unverändert fort.

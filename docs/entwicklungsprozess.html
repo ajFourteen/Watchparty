@@ -683,8 +683,9 @@
       Dependabot geöffneter Pull-Request hat kein Feature-Dokument und keine
       Schnitte hinter sich — er steigt direkt bei Stufe 05/06 ein, mit der
       Merge-Routine anstelle eines Menschen an der Commit-Stufe. Er landet dort
-      auch nicht als Commit, sondern als Squash-Merge eines Pull-Requests — der
-      einzige Weg, den die Branch Protection auf <code>main</code> offen lässt.
+      auch nicht als Commit, sondern als Squash-Merge eines Pull-Requests —
+      unabhängig davon, was die Branch Protection auf <code>main</code> gerade
+      verlangt (ADR-043), weil Dependabot ohnehin immer über eine PR arbeitet.
       Details im nächsten Abschnitt.
     </p>
   </section>
@@ -1134,23 +1135,26 @@
           </div>
 
           <p class="aside">
-            <b>„Direkt auf main" gilt nicht für jeden, der pusht.</b> Diese Seite
-            behauptete den Satz bis zum 30.08.2026 ohne Einschränkung — bis ein
-            Push aus einer Agent-Sitzung mit
-            <code>protected branch hook declined</code> abgewiesen wurde.
-            <code>main</code> ist geschützt; der Projektinhaber kommt durch, ein
-            Agent mit App-Token nicht. Für ihn heißt „auf main arbeiten" deshalb:
-            Branch, Pull-Request, Merge — und der lokale
+            <b>„Direkt auf main" galt bis zum 17.09.2026 nicht für jeden, der
+            pusht — mittlerweile schon.</b> Vom 30.08.2026 bis dahin stand hier,
+            dass <code>main</code> einen Required Status Check verlangte und ein
+            roher Push für eine frische Commit-SHA deshalb immer als
+            <code>protected branch hook declined</code> abgewiesen wurde, egal
+            wer pushte — der Projektinhaber eingeschlossen
+            (<code>enforce_admins</code> stand auf <code>true</code>). Für einen
+            Agenten hieß „auf main arbeiten" deshalb faktisch: Branch,
+            Pull-Request, Merge — in offener Spannung zum lokalen
             <code>ci/git-regeln-hook.sh</code>, der das Anlegen von Branches
-            verbietet, steht dazu in einer Spannung, die man kennen muss statt sie
-            im Einzelfall neu zu entdecken. Die Branch Protection ist dabei der
-            <b>härteste deterministische Check des ganzen Ablaufs</b>: Sie sitzt
-            serverseitig, greift auch ohne Agent, ohne Hook und ohne Gradle, und
-            lässt sich durch nichts lokal umgehen. Genau deshalb gehört sie auf
-            diese Seite — die welche Regeln sie im Einzelnen durchsetzt
-            (Pflicht-Checks, Reviews, kein Force-Push), steht in den
-            Repository-Einstellungen und nicht im Repo; hier steht nur, dass es
-            sie gibt und was sie in der Praxis erzwingt.
+            gerade verbietet. ADR-043 hat den Required Status Check entfernt,
+            weil dieser Umweg bei jedem Agenten-Commit neu auftrat, ohne dass er
+            am eigentlichen Deploy-Gate etwas geändert hätte: Das sitzt in
+            <code>release.yml</code> über die Job-Kette
+            <code>build → release → deploy</code> und bleibt unverändert
+            bestehen — ein roter Lauf verhindert weiterhin den Deploy, auch wenn
+            der Commit inzwischen ungeprüft auf <code>main</code> landen kann.
+            Was von der Branch Protection bleibt (kein Force-Push, keine
+            Löschung, <code>enforce_admins</code>), steht weiterhin nur in den
+            Repository-Einstellungen, nicht im Repo.
           </p>
           <p class="aside">
             <b>Freigabe jetzt auch als Check.</b> Der <code>commit-msg</code>-Hook lehnt
@@ -1191,29 +1195,21 @@
     <div class="cards3">
       <div class="card">
         <h3>build.yml</h3>
-        <p class="when">jeder Push &amp; jede PR</p>
+        <p class="when">jede PR & jeder Push außer main/dependabot/** (ADR-043)</p>
         <ul>
           <li class="g">commit-format-pruefen.sh</li>
           <li>Frontend bauen (npm ci · build)</li>
           <li class="g">gradle check -PskipFrontend</li>
-          <li>Test-/JGiven-Bericht (Artifact)</li>
+          <li>Test-/JGiven-Bericht (Artifact, retention-days: 7)</li>
         </ul>
       </div>
       <div class="card">
         <h3>release.yml</h3>
-        <p class="when">nur Push auf main</p>
+        <p class="when">nur Push auf main — einziger Aufrufer von build.yml für main (ADR-043)</p>
         <ul>
-          <li>ruft build.yml auf</li>
+          <li>ruft build.yml einmalig auf</li>
           <li class="g">Semantic Release</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>pages.yml</h3>
-        <p class="when">Push auf main, unabhängig von release.yml</p>
-        <ul>
-          <li>ruft build.yml auf</li>
-          <li>JGiven-Bericht</li>
-          <li>→ GitHub Pages (Teststrategie §8)</li>
+          <li>Job „pages" (needs: build): JGiven-Bericht → GitHub Pages (Teststrategie §8)</li>
         </ul>
       </div>
       <div class="card">
@@ -1394,10 +1390,10 @@
       <div class="ref"><dt>Lokale Gates</dt><dd>build.gradle.kts — Task check (u. a. featuredoku) · ArchitectureTest.java</dd></div>
       <div class="ref"><dt>Skills</dt><dd>.claude/skills/*/SKILL.md — triage, entscheidung, adr, schneiden, feature, domaenentyp, pruefen, invarianten-review, freigabe, probelauf</dd></div>
       <div class="ref"><dt>Agent-Hooks</dt><dd>ci/sitzungsstart.sh · ci/git-regeln-hook.sh · ci/pipeline-beobachten.sh · ci/stop-arbeit-abschliessen.sh · .claude/settings.json</dd></div>
-      <div class="ref"><dt>CI-Workflows</dt><dd>.github/workflows/build.yml · release.yml · pages.yml · codeql.yml</dd></div>
+      <div class="ref"><dt>CI-Workflows</dt><dd>.github/workflows/build.yml · release.yml (enthält seit ADR-043 den Pages-Deploy-Job) · codeql.yml</dd></div>
       <div class="ref"><dt>Deploy-Absicherung</dt><dd>ci/eine-maschine-pruefen.sh · ci/rauchtest.mjs</dd></div>
       <div class="ref"><dt>Commit-Konvention</dt><dd>Conventional Commits · ci/commit-format-pruefen.sh (ADR-019)</dd></div>
-      <div class="ref"><dt>Branch Protection</dt><dd>GitHub · Settings → Branches → main (nicht im Repo versioniert)</dd></div>
+      <div class="ref"><dt>Branch Protection</dt><dd>GitHub · Settings → Branches → main (nicht im Repo versioniert) — ohne Required Status Check seit ADR-043</dd></div>
       <div class="ref"><dt>Dependabot-Konfiguration</dt><dd>.github/dependabot.yml</dd></div>
       <div class="ref"><dt>Merge-Routine</dt><dd>claude.ai/code/routines · trig_019nySXHRAv9xJjDrgT8TCm7 (löst am 31.08. innerhalb weniger Stunden zwei Vorgängerinnen ab: erst die ohne OpenRewrite, dann die mit fester Sitzung) — Prompt als Quelle: docs/dependabot-routine.md</dd></div>
       <div class="ref"><dt>Major-Sprung als Rezept</dt><dd>ci/openrewrite-anwenden.sh · build.gradle.kts (Task rewriteRun) — ADR-042</dd></div>
