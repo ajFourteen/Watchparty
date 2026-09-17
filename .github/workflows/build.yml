@@ -5,7 +5,11 @@ name: Build & Test
 # (docs/teststrategie.md, Abschnitt 10).
 
 on:
+  # main ausgenommen: release.yml deckt main bereits per workflow_call ab
+  # (siehe unten) -- ein eigener push-Trigger hier wuerde denselben Commit
+  # ein zweites Mal komplett durch check+E2E schicken.
   push:
+    branches-ignore: [main]
   pull_request:
   # Erlaubt release.yml, diesen Workflow als Job einzuhaengen (jobs.needs
   # wirkt nur innerhalb einer Workflow-Datei; ueber workflow_call wird daraus
@@ -86,6 +90,7 @@ jobs:
         with:
           name: e2e-report
           path: build/reports/e2e
+          retention-days: 7
 
       - name: Testbericht
         if: always()
@@ -93,13 +98,16 @@ jobs:
         with:
           name: test-report
           path: build/reports/tests/test
+          retention-days: 7
 
-      # Grundlage fuer pages.yml (GitHub Pages, docs/teststrategie.md
-      # Abschnitt 8): nur bei gruenem `check` vorhanden, also nie ein Bericht
-      # ueber einen roten Lauf.
+      # Grundlage fuer den Pages-Job in release.yml (GitHub Pages,
+      # docs/teststrategie.md Abschnitt 8): nur bei gruenem `check` vorhanden,
+      # also nie ein Bericht ueber einen roten Lauf. Kurze Aufbewahrung reicht
+      # -- der Pages-Job laeuft im selben Workflow-Durchlauf direkt danach.
       - name: JGiven-Bericht
         if: success()
         uses: actions/upload-artifact@v7
         with:
           name: jgiven-report
           path: build/reports/jgiven/test/html
+          retention-days: 7
