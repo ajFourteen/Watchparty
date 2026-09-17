@@ -7,9 +7,12 @@ name: Build & Test
 on:
   # main ausgenommen: release.yml deckt main bereits per workflow_call ab
   # (siehe unten) -- ein eigener push-Trigger hier wuerde denselben Commit
-  # ein zweites Mal komplett durch check+E2E schicken.
+  # ein zweites Mal komplett durch check+E2E schicken. dependabot/**
+  # ausgenommen aus demselben Grund: Dependabot pusht auf seinen eigenen
+  # Branch und eroeffnet sofort eine PR fuer denselben Commit -- push und
+  # pull_request wuerden sonst beide feuern und den Lauf verdoppeln.
   push:
-    branches-ignore: [main]
+    branches-ignore: [main, "dependabot/**"]
   pull_request:
   # Erlaubt release.yml, diesen Workflow als Job einzuhaengen (jobs.needs
   # wirkt nur innerhalb einer Workflow-Datei; ueber workflow_call wird daraus
