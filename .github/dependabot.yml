@@ -21,7 +21,18 @@ updates:
       - "dependencies"
       - "java"
     groups:
+      # OpenRewrite (Plugin, Rezeptsammlung-BOM) bekommt eine eigene PR: Plugin
+      # und BOM muessen zusammen springen, und die passende rewrite-bom liegt
+      # oft erst Tage nach dem Plugin auf dem Plugin Portal (ADR-042). In der
+      # Sammel-PR haengte dadurch jedes andere Update daran (PR #35). Die
+      # Gruppe steht vor minor-und-patch, damit sie die Treffer bekommt; die
+      # Routine prueft die offene PR taeglich weiter (docs/dependabot-routine.md).
+      openrewrite:
+        patterns:
+          - "org.openrewrite*"
       minor-und-patch:
+        exclude-patterns:
+          - "org.openrewrite*"
         update-types:
           - "minor"
           - "patch"
