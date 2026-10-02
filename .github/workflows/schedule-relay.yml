@@ -35,20 +35,24 @@ jobs:
       - name: Alle Spieltage der Regular Season abrufen und weiterleiten
         run: |
           set -uo pipefail
+          # Der Schritt laeuft mit bash -e: ohne dieses +e brach ein fehlgeschlagener
+          # curl in der Zuweisung unten das ganze Skript ab, statt zu zaehlen.
+          set +e
           fehler=0
           for week in $(seq 1 18); do
-            if ! curl -fsS -o "/tmp/espn-week-${week}.json" \
+            if ! curl -fsS --retry 3 --retry-all-errors --retry-delay 2 -o "/tmp/espn-week-${week}.json" \
                 "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${SEASON}"; then
               echo "::warning::Woche ${week}: ESPN nicht erreichbar"
               fehler=$((fehler + 1))
               continue
             fi
 
-            status="$(curl -sS -o /tmp/relay-response.txt -w "%{http_code}" \
+            status="$(curl -sS --retry 3 --retry-all-errors --retry-delay 2 \
+                -o /tmp/relay-response.txt -w "%{http_code}" \
                 -X POST "${APP_BASE_URL}/api/league/feed-relay/${SEASON}/${week}" \
                 -H "X-Relay-Token: ${RELAY_TOKEN}" \
                 -H "Content-Type: text/plain" \
-                --data-binary "@/tmp/espn-week-${week}.json")"
+                --data-binary "@/tmp/espn-week-${week}.json")" || status="000"
             if [ "$status" != "200" ]; then
               echo "::warning::Woche ${week}: Relay antwortete mit HTTP ${status}"
               cat /tmp/relay-response.txt
