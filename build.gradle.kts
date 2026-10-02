@@ -14,8 +14,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     // Setzen JSpecify durch: ein @Nullable an der falschen Stelle ist ein
     // Compile-Fehler, keine Doku (ADR-026).
-    id("net.ltgt.errorprone") version "5.1.0"
-    id("net.ltgt.nullaway") version "3.1.0"
+    id("net.ltgt.errorprone") version "5.1.1"
+    id("net.ltgt.nullaway") version "3.2.0"
     // Erzeugt den JGiven-HTML-Report aus den JSON-Ergebnissen, die
     // jgiven-junit5 beim Testlauf schreibt (docs/teststrategie.md, Abschnitt 8).
     id("com.tngtech.jgiven.gradle-plugin") version "2.0.3"
@@ -105,7 +105,7 @@ dependencies {
     // -onion-architecture) sind reine Marker ohne diese Abhaengigkeit;
     // geprueft werden sie unten mit denselben, stabilen ArchUnit-Bausteinen,
     // die der Rest dieser Klasse schon benutzt.
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.1")
 
     // Report- und Szenariowerkzeug der Teststrategie (docs/teststrategie.md).
     // jgiven-junit5 bringt die JUnit5-Erweiterung fuer ScenarioTest mit;
@@ -124,7 +124,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     errorprone("com.google.errorprone:error_prone_core:2.50.0")
-    errorprone("com.uber.nullaway:nullaway:0.14.0")
+    errorprone("com.uber.nullaway:nullaway:0.14.2")
 
     // Die Rezeptsammlungen fuer ADR-042. Sie liegen auf einer eigenen
     // Konfiguration (`rewrite`) und damit weder auf dem Compile- noch auf dem
