@@ -15,7 +15,7 @@ plugins {
     // Setzen JSpecify durch: ein @Nullable an der falschen Stelle ist ein
     // Compile-Fehler, keine Doku (ADR-026).
     id("net.ltgt.errorprone") version "5.1.1"
-    id("net.ltgt.nullaway") version "3.2.0"
+    id("net.ltgt.nullaway") version "3.3.0"
     // Erzeugt den JGiven-HTML-Report aus den JSON-Ergebnissen, die
     // jgiven-junit5 beim Testlauf schreibt (docs/teststrategie.md, Abschnitt 8).
     id("com.tngtech.jgiven.gradle-plugin") version "2.0.3"
@@ -111,7 +111,7 @@ dependencies {
     // jgiven-junit5 bringt die JUnit5-Erweiterung fuer ScenarioTest mit;
     // jqwik die Property-Tests (Abschnitt 4).
     testImplementation("com.tngtech.jgiven:jgiven-junit5:2.0.3")
-    testImplementation("net.jqwik:jqwik:1.10.1")
+    testImplementation("net.jqwik:jqwik:1.10.2")
 
     // Adapter-Tests gegen echtes Postgres statt einer Attrappe (Abschnitt
     // 2.3): derselbe SQL-Dialekt wie die Produktion, kein H2-Drift. Versionen
