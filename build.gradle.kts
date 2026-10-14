@@ -18,7 +18,7 @@ plugins {
     id("net.ltgt.nullaway") version "3.3.0"
     // Erzeugt den JGiven-HTML-Report aus den JSON-Ergebnissen, die
     // jgiven-junit5 beim Testlauf schreibt (docs/teststrategie.md, Abschnitt 8).
-    id("com.tngtech.jgiven.gradle-plugin") version "2.0.3"
+    id("com.tngtech.jgiven.gradle-plugin") version "3.0.0"
     // Zeilen-/Zweigabdeckung je Ebene, erhoben statt als Zielgroesse
     // (docs/teststrategie.md, Abschnitt 7.3) -- und die Grundlage fuer die
     // Ebenen-Disjunktheit aus Abschnitt 7.4.
