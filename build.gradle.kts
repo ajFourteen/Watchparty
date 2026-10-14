@@ -18,7 +18,7 @@ plugins {
     id("net.ltgt.nullaway") version "3.3.0"
     // Erzeugt den JGiven-HTML-Report aus den JSON-Ergebnissen, die
     // jgiven-junit5 beim Testlauf schreibt (docs/teststrategie.md, Abschnitt 8).
-    id("com.tngtech.jgiven.gradle-plugin") version "2.0.3"
+    id("com.tngtech.jgiven.gradle-plugin") version "3.0.0"
     // Zeilen-/Zweigabdeckung je Ebene, erhoben statt als Zielgroesse
     // (docs/teststrategie.md, Abschnitt 7.3) -- und die Grundlage fuer die
     // Ebenen-Disjunktheit aus Abschnitt 7.4.
@@ -110,7 +110,7 @@ dependencies {
     // Report- und Szenariowerkzeug der Teststrategie (docs/teststrategie.md).
     // jgiven-junit5 bringt die JUnit5-Erweiterung fuer ScenarioTest mit;
     // jqwik die Property-Tests (Abschnitt 4).
-    testImplementation("com.tngtech.jgiven:jgiven-junit5:2.0.3")
+    testImplementation("com.tngtech.jgiven:jgiven-junit5:3.0.0")
     testImplementation("net.jqwik:jqwik:1.10.2")
 
     // Adapter-Tests gegen echtes Postgres statt einer Attrappe (Abschnitt
