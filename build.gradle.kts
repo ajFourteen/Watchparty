@@ -123,7 +123,7 @@ dependencies {
     // Test-Classpath; ohne ihn startet der Test-Executor gar nicht erst.
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    errorprone("com.google.errorprone:error_prone_core:2.51.0")
+    errorprone("com.google.errorprone:error_prone_core:2.52.0")
     errorprone("com.uber.nullaway:nullaway:0.14.3")
 
     // Die Rezeptsammlungen fuer ADR-042. Sie liegen auf einer eigenen
