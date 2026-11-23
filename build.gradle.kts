@@ -10,7 +10,7 @@ import org.w3c.dom.Element
 
 plugins {
     java
-    id("org.springframework.boot") version "4.1.2"
+    id("org.springframework.boot") version "4.2.0"
     id("io.spring.dependency-management") version "1.1.7"
     // Setzen JSpecify durch: ein @Nullable an der falschen Stelle ist ein
     // Compile-Fehler, keine Doku (ADR-026).
@@ -123,8 +123,8 @@ dependencies {
     // Test-Classpath; ohne ihn startet der Test-Executor gar nicht erst.
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    errorprone("com.google.errorprone:error_prone_core:2.52.0")
-    errorprone("com.uber.nullaway:nullaway:0.14.3")
+    errorprone("com.google.errorprone:error_prone_core:2.53.0")
+    errorprone("com.uber.nullaway:nullaway:0.14.4")
 
     // Die Rezeptsammlungen fuer ADR-042. Sie liegen auf einer eigenen
     // Konfiguration (`rewrite`) und damit weder auf dem Compile- noch auf dem
