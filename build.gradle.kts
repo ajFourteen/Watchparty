@@ -28,7 +28,7 @@ plugins {
     // Fuehrt Major-Versionsupdates als Rezept aus statt von Hand (ADR-042).
     // Haengt bewusst an KEINER Stelle an `check` -- rewriteRun/rewriteDryRun
     // sind Werkzeuge fuer den Dependabot-Lauf, keine Pruefung.
-    id("org.openrewrite.rewrite") version "7.39.0"
+    id("org.openrewrite.rewrite") version "7.41.0"
 }
 
 group = "de.fourteen"
@@ -135,7 +135,7 @@ dependencies {
     // *erzwingt*. rewrite-static-analysis waere die vierte naheliegende, ist
     // aber Geschmacksverbesserung -- und die Routine darf laut ihren eigenen
     // Grenzen nichts anfassen, was der Sprung nicht verlangt.
-    rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:3.37.0"))
+    rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:3.38.0"))
     rewrite("org.openrewrite.recipe:rewrite-spring")
     rewrite("org.openrewrite.recipe:rewrite-migrate-java")
     rewrite("org.openrewrite.recipe:rewrite-testing-frameworks")
